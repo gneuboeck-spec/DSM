@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 import os
 import subprocess
 import mailbox
