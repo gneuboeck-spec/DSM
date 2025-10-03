@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 #!/usr/bin/env python3
 import os
 import sys
