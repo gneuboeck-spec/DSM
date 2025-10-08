@@ -1,0 +1,6 @@
+In das Skriptverzeichnis wechseln
+cd C:\Users\digit\Desktop\Skripte
+Virtuelle Umgebung aktivieren
+C:\Users\digit\.venv\Scripts\activate
+Skript ausführen in
+(.venv) C:\Users\digit\Desktop\Skripte>python filetrove_scan_und_brunhilde_win.py
