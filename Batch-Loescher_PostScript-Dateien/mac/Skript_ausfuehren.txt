@@ -1,0 +1,2 @@
+Terminal
+python3 /Users/gregorneuboeck/Desktop/delete_ps_macOS.py
