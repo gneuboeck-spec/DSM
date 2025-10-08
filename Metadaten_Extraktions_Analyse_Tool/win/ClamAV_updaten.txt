@@ -1,0 +1,4 @@
+Virendefinitionsdatei updaten
+CMD beim Start als Administrator ausführen
+cd "C:\Program Files\ClamAV"
+freshclam.exe
