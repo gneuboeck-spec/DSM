@@ -1,0 +1,3 @@
+source /Users/gregorneuboeck/Desktop/filetrove-venv/bin/activate #virtuelle Umgebung aktivieren
+Virendefinitionsdateien updaten: sudo freshclam
+es kann eine Passwortabfrage kommen. Der Benutzer benötigt Adminrechte
