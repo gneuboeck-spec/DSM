@@ -1,0 +1,2 @@
+Terminal öffnen
+python3 /Users/gregorneuboeck/Desktop/sam_copy.py
