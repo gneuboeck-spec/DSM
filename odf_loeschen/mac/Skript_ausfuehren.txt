@@ -1,0 +1,2 @@
+Terminal öffnen
+python3 /Users/gregorneuboeck/Desktop/odf_zwischenformate_loeschen_mac.py
