@@ -1,0 +1,2 @@
+Terminal
+python3 /Users/gregorneuboeck/Desktop/pdf_to_pdfa.py
