@@ -1,6 +1,6 @@
 # PDF zu PDF/A Batch-Konverter
 
-Dieses Verzeichnis enthält ein Python-Skript zur automatisierten Konvertierung von Standard-PDF-Dateien in das langzeitarchivierbare PDF/A-2b-Format.
+Dieses Verzeichnis enthält ein Python-Skript zur automatisierten Konvertierung von Standard-PDF-Dateien in das langzeitarchivierbare PDF/A-2b-Format. Wobei darauf hinzuweisen ist, dass mit dem Skript convert_textbasierte_to_pdfa die standardmäßige Konvertierung von normalen PDFs (alten) in PDFA inkludiert ist. Hier in diesem Skript geht es um eine spezifische Anforderung. Es wurden PDF-Dateien mit Hilfe von Ghostscript aus PS-Dateien (Postscript) erzeugt wurden, die ihrerseits wiederum aus SAM-Dateien (AmiPro) erstellt wurden. So konnte das Layout der ursprünglichen Dateien erhalten werden und in das Langzeitacrhivierungsformat PDFA übergeführt werden.
 
 ## Zweck des Skripts
 
