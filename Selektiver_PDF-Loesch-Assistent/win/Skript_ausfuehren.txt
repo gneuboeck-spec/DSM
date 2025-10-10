@@ -1,0 +1,2 @@
+CMD
+C:\Users\digit\Desktop\Skripte>python neu_pdf_falsche_namenskonvention_loeschen.py
