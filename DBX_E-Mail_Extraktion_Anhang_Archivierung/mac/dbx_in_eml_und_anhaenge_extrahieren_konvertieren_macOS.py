@@ -15,9 +15,7 @@ import sys
 # TEIL 1: GLOBALE KONFIGURATION FÜR ALLE KONVERTIERUNGEN
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# --- PFADE ZU DEN EXTERNEN TOOLS ---
-wine_path = "wine"
-dbxconv_path = "/Users/gregorneuboeck/Desktop/dbxconv/DbxConv.exe"
+# --- PFADE ZU DEN EXTERNEN TOOLS (FÜR MACOS) ---
 libreoffice_path = "/Applications/LibreOffice.app/Contents/MacOS/soffice"
 imagemagick_path = "magick"
 inkscape_path = "/Applications/Inkscape.app/Contents/MacOS/inkscape"
@@ -26,8 +24,13 @@ ffprobe_path = "ffprobe"
 
 # --- ZU VERARBEITENDE DATEITYPEN (ANHÄNGE) ---
 office_map = {
+    # Textdokumente
     ".doc": ("odt", "writer_pdf_Export"), ".docx": ("odt", "writer_pdf_Export"), ".dot": ("odt", "writer_pdf_Export"), ".rtf": ("odt", "writer_pdf_Export"), ".odt": ("odt", "writer_pdf_Export"), ".ott": ("odt", "writer_pdf_Export"), ".sxw": ("odt", "writer_pdf_Export"), ".stw": ("odt", "writer_pdf_Export"), ".fodt": ("odt", "writer_pdf_Export"), ".uot": ("odt", "writer_pdf_Export"), ".wpd": ("odt", "writer_pdf_Export"), ".wps": ("odt", "writer_pdf_Export"), ".abw": ("odt", "writer_pdf_Export"), ".sdw": ("odt", "writer_pdf_Export"), ".wri": ("odt", "writer_pdf_Export"), ".html": ("odt", "writer_pdf_Export"), ".htm": ("odt", "writer_pdf_Export"), ".txt": ("odt", "writer_pdf_Export"), ".pages": ("odt", "writer_pdf_Export"),
+    # ClarisWorks / AppleWorks
+    ".cwk": ("odt", "writer_pdf_Export"), ".cws": ("odt", "writer_pdf_Export"),
+    # Tabellen
     ".xls": ("ods", "calc_pdf_Export"), ".xlsx": ("ods", "calc_pdf_Export"), ".xlw": ("ods", "calc_pdf_Export"), ".xlt": ("ods", "calc_pdf_Export"), ".ods": ("ods", "calc_pdf_Export"), ".ots": ("ods", "calc_pdf_Export"), ".sxc": ("ods", "calc_pdf_Export"), ".stc": ("ods", "calc_pdf_Export"), ".fods": ("ods", "calc_pdf_Export"), ".uos": ("ods", "calc_pdf_Export"),
+    # Präsentationen
     ".ppt": ("odp", "impress_pdf_Export"), ".pptx": ("odp", "impress_pdf_Export"), ".pps": ("odp", "impress_pdf_Export"), ".pot": ("odp", "impress_pdf_Export"), ".odp": ("odp", "impress_pdf_Export"), ".otp": ("odp", "impress_pdf_Export"), ".sxi": ("odp", "impress_pdf_Export"), ".sti": ("odp", "impress_pdf_Export"), ".fodd": ("odp", "impress_pdf_Export"), ".uop": ("odp", "impress_pdf_Export"), ".key": ("odp", "impress_pdf_Export")
 }
 raster_extensions = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".heic", ".gif", ".tga", ".jfif"}
@@ -79,7 +82,6 @@ def convert_office_document(input_path):
     odf_target_path = f"{input_path}.{target_odf_ext}"
     pdf_target_path = f"{input_path}.pdf"
 
-    # Alte Zieldateien löschen
     if os.path.exists(odf_target_path): os.remove(odf_target_path)
     if os.path.exists(pdf_target_path): os.remove(pdf_target_path)
 
@@ -110,15 +112,13 @@ def convert_office_document(input_path):
     else:
         log_to_console(f"      -> [FEHLER] PDF/A-Export für '{filename}' fehlgeschlagen.")
     
-    # Aufräumen der Zwischendatei
     if source_for_pdf_export != input_path and os.path.exists(source_for_pdf_export):
         os.remove(source_for_pdf_export)
-
 
 def convert_raster_image(input_path):
     log_to_console(f"      -> Rasterbild erkannt. Konvertiere nach TIFF...")
     output_path = f"{input_path}.tiff"
-    if os.path.exists(output_path): os.remove(output_path) # Überschreiben sicherstellen
+    if os.path.exists(output_path): os.remove(output_path)
     cmd = [imagemagick_path, input_path, output_path]
     subprocess.run(cmd, capture_output=True)
     if os.path.exists(output_path):
@@ -139,39 +139,24 @@ def convert_vector_image(input_path):
 
 def convert_audio_file(input_path):
     log_to_console(f"      -> Audiodatei erkannt. Erstelle MP3- und/oder WAV-Version...")
-    root, filename = os.path.split(input_path)
-    name, ext = os.path.splitext(filename)
+    name, ext = os.path.splitext(input_path)
     ext = ext.lower()
     
     mp3_path = f"{input_path}.mp3"
     wav_path = f"{input_path}.wav"
     
-    # --- INTELLIGENTE "ZWILLINGSPAAR"-LOGIK ---
-    
-    # Fall 1: Original ist weder .mp3 noch .wav -> Erstelle beides
     if ext not in {".mp3", ".wav"}:
-        log_to_console(f"      -> Fremdformat erkannt. Erstelle MP3 und WAV.")
-        # Erstelle MP3
         cmd_mp3 = [ffmpeg_path, "-y", "-i", input_path, "-c:a", "libmp3lame", "-q:a", "2", mp3_path]
         subprocess.run(cmd_mp3, capture_output=True)
-        # Erstelle WAV
         cmd_wav = [ffmpeg_path, "-y", "-i", input_path, "-c:a", "pcm_s16le", wav_path]
         subprocess.run(cmd_wav, capture_output=True)
         log_to_console(f"      -> [OK] MP3 und WAV erstellt.")
-        
-    # Fall 2: Original ist eine MP3-Datei -> Erstelle nur WAV
     elif ext == ".mp3":
-        log_to_console(f"      -> MP3-Original erkannt. Erstelle nur WAV.")
-        # Lösche alte Zieldatei, falls vorhanden
         if os.path.exists(wav_path): os.remove(wav_path)
         cmd_wav = [ffmpeg_path, "-y", "-i", input_path, "-c:a", "pcm_s16le", wav_path]
         subprocess.run(cmd_wav, capture_output=True)
         log_to_console(f"      -> [OK] WAV erstellt.")
-
-    # Fall 3: Original ist eine WAV-Datei -> Erstelle nur MP3
     elif ext == ".wav":
-        log_to_console(f"      -> WAV-Original erkannt. Erstelle nur MP3.")
-        # Lösche alte Zieldatei, falls vorhanden
         if os.path.exists(mp3_path): os.remove(mp3_path)
         cmd_mp3 = [ffmpeg_path, "-y", "-i", input_path, "-c:a", "libmp3lame", "-q:a", "2", mp3_path]
         subprocess.run(cmd_mp3, capture_output=True)
@@ -224,65 +209,85 @@ def extract_attachments(msg_obj, eml_base_name, output_dir):
                 log_to_console(f"    [FEHLER] Anhang konnte nicht gespeichert werden: {final_filename} ({e})")
 
 def extract_emails_to_eml(mbox_path, eml_output_dir):
-    """Extrahiert E-Mails und ruft die Anhang-Verarbeitung auf."""
+    """Extrahiert E-Mails aus einer MBOX-Datei, speichert sie als EML und verarbeitet Anhänge."""
     os.makedirs(eml_output_dir, exist_ok=True)
-    try: mbox = mailbox.mbox(mbox_path)
+    try:
+        # Wir verwenden die Standard-Klasse 'mailbox.mbox', die in allen Python 3 Versionen verfügbar ist.
+        # Der 'factory'-Parameter ist entscheidend für den Umgang mit alten Eudora-Formaten.
+        mbox = mailbox.mbox(mbox_path, factory=email.message_from_binary_file)
     except Exception as e:
         log_to_console(f"[FEHLER] MBOX-Datei konnte nicht geöffnet werden: {mbox_path} ({e})")
         return
 
-    for msg in mbox:
+    for i, msg in enumerate(mbox):
         date = parse_date(msg.get("Date"))
         subject = parse_subject(msg.get("Subject"))
+        # KORREKTUR: Der Basisname für die EML und Anhänge wird hier eindeutig generiert
         eml_base_name = f"{date}_{subject}"
         eml_filename = f"{eml_base_name}.eml"
         eml_filepath = os.path.join(eml_output_dir, eml_filename)
+        
         try:
-            with open(eml_filepath, "w", encoding="utf-8", errors="replace") as f: f.write(msg.as_string())
+            # KORREKTUR: Speichere zuerst die EML-Datei
+            with open(eml_filepath, "wb") as f:
+                f.write(msg.as_bytes())
+            
+            # KORREKTUR: DANN verarbeite die Anhänge für DIESE E-Mail
             extract_attachments(msg, eml_base_name, eml_output_dir)
+            
         except Exception as e:
-            log_to_console(f"[FEHLER] EML-Datei konnte nicht gespeichert werden: {eml_filename} ({e})")
-
-def convert_dbx_to_mbox_and_extract(input_dir):
-    """Führt den gesamten Workflow aus."""
-    for root, _, files in os.walk(input_dir):
-        for file in files:
-            if file.lower().endswith(".dbx"):
-                dbx_path = os.path.join(root, file)
-                mbox_path = dbx_path + ".mbox"
-                generated_mbx_path = os.path.join(root, os.path.splitext(file)[0] + ".mbx")
-                eml_dir = os.path.join(root, f"{file}.eml")
-
-                if os.path.getsize(dbx_path) < 1024:
-                    log_to_console(f"[ÜBERSPRUNGEN] {file} ist zu klein.")
-                    continue
-
-                if os.path.exists(mbox_path): os.remove(mbox_path)
-                if os.path.exists(generated_mbx_path): os.remove(generated_mbx_path)
-
-                log_to_console(f"\n--- Verarbeite DBX: {file} ---")
-
-                result = subprocess.run([wine_path, dbxconv_path, "-mbxrd", "-dn", "-ic", "-senddate", dbx_path], capture_output=True)
-
-                if result.returncode == 0 and os.path.exists(generated_mbx_path):
-                    try:
-                        os.rename(generated_mbx_path, mbox_path)
-                        log_to_console(f"[OK] DBX zu MBOX konvertiert: {os.path.basename(mbox_path)}")
-                        extract_emails_to_eml(mbox_path, eml_dir)
-                        log_to_console(f"[OK] EMLs und Anhänge extrahiert und konvertiert für: {os.path.basename(eml_dir)}")
-                    except Exception as e:
-                        log_to_console(f"[FEHLER] Verarbeitung nach Konvertierung: {e}")
-                else:
-                    log_to_console(f"[FEHLER] DBX-Konvertierung fehlgeschlagen: {file}")
+            log_to_console(f"[FEHLER] EML-Datei konnte nicht gespeichert oder Anhänge konnten nicht extrahiert werden: {eml_filename} ({e})")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # TEIL 5: SKRIPT-AUSFÜHRUNG
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+def process_eudora_mailboxes(input_dir):
+    """
+    Durchsucht einen Ordner nach Eudora Mailbox-Dateien (die oft keine Endung haben) 
+    und verarbeitet sie.
+    """
+    log_to_console(f"--- Starte Eudora-Mailbox-Verarbeitung im Ordner: {input_dir} ---")
+    
+    # Eudora legt viele Hilfsdateien an, die wir ignorieren wollen.
+    ignore_extensions = {".toc", ".idx", ".tmp"}
+    
+    for filename in os.listdir(input_dir):
+        full_path = os.path.join(input_dir, filename)
+        if os.path.isdir(full_path):
+            continue
+
+        _, ext = os.path.splitext(filename)
+
+        if ext.lower() in ignore_extensions or filename.startswith('.'):
+            continue
+
+        # Annahme: Jede übrige Datei ist eine Mailbox.
+        mbox_path = full_path
+        
+        # KORREKTUR: Der Ausgabepfad soll neben der Mailbox-Datei liegen, nicht darin.
+        # Und er soll die gleiche Logik wie im DBX-Skript verwenden: MailboxName.eml
+        base_name = filename.removesuffix('.mbx') if filename.lower().endswith('.mbx') else filename
+        eml_dir = os.path.join(os.path.dirname(mbox_path), f"{base_name}.eml")
+
+        log_to_console(f"\n--- Verarbeite Mailbox: {filename} ---")
+        
+        extract_emails_to_eml(mbox_path, eml_dir)
+        
+        log_to_console(f"[OK] Verarbeitung für {filename} abgeschlossen. Ergebnisse in: {eml_dir}")
+
 if __name__ == "__main__":
-    main_input_dir = "/Users/gregorneuboeck/Desktop/AC16000289"
+    # ❗️ WICHTIG: PASSE DIESEN PFAD AN! ❗️
+    # Er sollte auf den Ordner zeigen, der deine Eudora-Mailbox-Dateien enthält
+    # (z.B. der "Mail Folder" aus deinem "Eudora Folder").
+    main_input_dir = "/Users/gregorneuboeck/Desktop/Eudora_files" 
+    
+    # Erlaube die Übergabe eines Pfades als Kommandozeilenargument
+    if len(sys.argv) > 1:
+        main_input_dir = sys.argv[1]
+
     if os.path.isdir(main_input_dir):
-        convert_dbx_to_mbox_and_extract(main_input_dir)
+        process_eudora_mailboxes(main_input_dir)
         log_to_console("\nAlle Prozesse abgeschlossen.")
     else:
-        log_to_console("[FEHLER] Ungültiger Eingabepfad.")
+        log_to_console(f"[FEHLER] Ungültiger Eingabepfad: '{main_input_dir}'. Bitte passen Sie die Variable 'main_input_dir' im Skript an oder übergeben Sie einen Pfad als Argument.")

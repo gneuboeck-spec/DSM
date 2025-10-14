@@ -1,0 +1,2 @@
+Terminal
+python3 /Users/gregorneuboeck/Desktop/dateityp_erkennen_dateiendung_anhaengen.py
