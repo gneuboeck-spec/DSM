@@ -1,0 +1,5 @@
+In das Skriptverzeichnis wechseln
+cd C:\Users\digit\Desktop\Skripte
+
+Skript ausführen in
+C:\Users\digit\Desktop\Skripte>python delete_ps_win.py
