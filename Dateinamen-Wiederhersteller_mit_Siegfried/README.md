@@ -1,19 +1,20 @@
-# Dateinamen-Wiederhersteller mit Siegfried
+# Intelligenter Dateinamen-Wiederhersteller
 
-Dieses Verzeichnis enthält ein Python-Skript, um Dateiendungen für Dateien wiederherzustellen, die diese durch Kopiervorgänge zwischen verschiedenen Betriebssystemen (insbesondere von klassischem Mac OS) verloren haben. Es nutzt das professionelle Dateiidentifikations-Tool **Siegfried**, um den wahren Dateityp anhand des Inhalts zu erkennen und die korrekte Endung automatisch oder über manuelle Regeln anzuhängen.
+Dieses Verzeichnis enthält ein Python-Skript, um Dateiendungen für Dateien wiederherzustellen, die diese verloren haben (z.B. durch Kopiervorgänge von klassischen Mac-Systemen). Es nutzt die professionellen Kommandozeilen-Tools **Siegfried** und **FFprobe**, um den wahren Dateityp anhand des Inhalts zu erkennen und die korrekte Endung intelligent anzuhängen.
 
 ## Zweck des Skripts
 
-Beim Transfer von alten Dateien, insbesondere von klassischen Mac-Systemen, gehen oft die Metadaten verloren, die den Dateityp definieren. Das Ergebnis sind "nackte" Dateien ohne Endung, die von modernen Betriebssystemen als "Ausführbare Unix-Datei" oder "Dokument" falsch interpretiert werden.
+Beim Transfer von alten Dateien gehen oft die Metadaten verloren, die den Dateityp definieren. Das Ergebnis sind "nackte" Dateien ohne Endung, die von modernen Betriebssystemen falsch interpretiert werden. Dieses Skript löst dieses Problem durch eine mehrstufige, automatisierte Analyse.
 
-Dieses Skript löst dieses Problem automatisiert:
+**Der Prozess im Überblick:**
 
-1.  **Dateisuche:** Es durchsucht rekursiv einen angegebenen Ordner nach allen Dateien, die entweder keine Dateiendung haben oder eine **unbekannte Endung** besitzen (d.h. eine Endung, die nicht in einer vordefinierten Sicherheitsliste steht).
-2.  **Inhaltsanalyse:** Jede dieser Dateien wird mit **Siegfried** analysiert. Siegfried liest die "Magic Numbers" (die ersten Bytes einer Datei), um den exakten Dateityp aus der PRONOM-Datenbank zu ermitteln und liefert Formatname, PRONOM-ID und MIME-Typ.
-3.  **Intelligente Umbenennung:** Das Skript verwendet eine mehrstufige Logik, um die korrekte Dateiendung zu bestimmen:
-    *   **Priorität 1 (PRONOM ID):** Zuerst prüft es, ob für die von Siegfried gefundene PRONOM-ID (z.B. `fmt/846`) eine manuelle Regel in der `pronom_to_ext_map` existiert. Dies ist die präziseste Methode und hat Vorrang.
-    *   **Priorität 2 (MIME-Typ):** Wenn keine PRONOM-Regel passt, versucht das Skript, aus dem von Siegfried gelieferten MIME-Typ (z.B. `application/msword`) automatisch die Standard-Dateiendung (`.doc`) abzuleiten. Dies deckt viele gängige Formate ab.
-    *   **Priorität 3 (Formatname):** Als letzte Möglichkeit prüft das Skript, ob der von Siegfried erkannte Formatname in der `format_name_to_ext_map` als Fallback definiert ist.
+1.  **Dateisuche:** Das Skript durchsucht rekursiv einen angegebenen Ordner nach allen Dateien, die **keine Dateiendung** besitzen.
+2.  **Inhaltsanalyse mit Siegfried:** Jede endungslose Datei wird mit Siegfried analysiert. Siegfried liest die "Magic Numbers" (die ersten Bytes einer Datei), um den exakten Dateityp aus der PRONOM-Datenbank zu ermitteln und liefert Formatname, PRONOM-ID und MIME-Typ.
+3.  **Intelligente Umbenennung:** Das Skript verwendet eine Prioritäten-Kaskade, um die korrekteste Dateiendung zu bestimmen:
+    *   **Priorität 1 (Manuelle PRONOM-Regeln):** Zuerst prüft es, ob für die gefundene PRONOM-ID eine Regel in der `pronom_to_ext_map` existiert. Dies dient als präzises "Override" für mehrdeutige Fälle.
+    *   **Priorität 2 (Tiefenanalyse mit FFprobe):** Für generische Containerformate wie MPEG-4 (`fmt/199`) wird **FFprobe** aufgerufen, um zu prüfen, ob die Datei eine Videospur enthält. Basierend darauf wird intelligent zwischen `.mp4` (mit Video) und `.m4a` (nur Audio) unterschieden.
+    *   **Priorität 3 (Automatische MIME-Typ-Erkennung):** Wenn die oberen Regeln nicht greifen, versucht das Skript, aus dem von Siegfried gelieferten MIME-Typ automatisch die Standard-Dateiendung abzuleiten. Dies deckt die meisten gängigen Formate ab.
+    *   **Priorität 4 (Manuelle Formatnamen-Regeln):** Als letzter Fallback dient die `format_name_to_ext_map`.
 4.  **Sicherheitsmodus (`DRY_RUN`):** Standardmäßig läuft das Skript in einem Simulationsmodus. Es zeigt nur an, welche Dateien es umbenennen *würde*, ohne tatsächlich Änderungen vorzunehmen.
 
 ---
@@ -21,14 +22,16 @@ Dieses Skript löst dieses Problem automatisiert:
 ## Technische Voraussetzungen
 
 ### 1. Python
-*   **Version:** 3.6 oder neuer.
-*   **Bibliotheken:** Keine externen Bibliotheken erforderlich. Das Skript verwendet nur Standardbibliotheken.
+*   **Version:** 3.8 oder neuer (wegen `shutil.which`).
+*   **Bibliotheken:** Keine externen Python-Bibliotheken erforderlich.
 
-### 2. Siegfried
-*   **Zweck:** Dies ist das **zentrale Analysewerkzeug**. Das Skript ist auf eine funktionierende Installation von Siegfried angewiesen.
-*   **Installation:** Siegfried muss auf Ihrem System installiert und über die Kommandozeile als `sf` erreichbar sein (d.h. im System-`PATH`).
-    *   **macOS:** Am einfachsten via [Homebrew](https://brew.sh/): `brew install siegfried`
-    *   **Windows:** Laden Sie die `sf.exe` von der [offiziellen Webseite](https://www.itforarchivists.com/siegfried/) herunter und legen Sie sie in ein Verzeichnis, das in Ihrer `PATH`-Umgebungsvariable enthalten ist.
+### 2. Externe Kommandozeilen-Tools
+Alle der folgenden Programme müssen installiert und systemweit verfügbar sein (d.h. ihre Verzeichnisse müssen zur **Systemumgebungsvariable `PATH`** hinzugefügt werden).
+
+| Werkzeug | Zweck | Installationshinweis |
+| :--- | :--- | :--- |
+| **Siegfried** | Primäre Dateiidentifikation | **macOS:** `brew install siegfried` / **Windows:** `sf.exe` von der Webseite |
+| **FFmpeg** | Tiefenanalyse von Mediendateien (`ffprobe`) | **macOS:** `brew install ffmpeg` / **Windows:** Von [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) laden |
 
 ---
 
@@ -37,46 +40,42 @@ Dieses Skript löst dieses Problem automatisiert:
 Vor der Ausführung müssen die folgenden Variablen am Anfang des Skripts angepasst werden:
 
 *   `base_path`: Der absolute Pfad zum Hauptordner, in dem die Suche nach Dateien ohne Endung beginnen soll.
-*   `pronom_to_ext_map`: Das Python-Dictionary, das die **wichtigsten Übersetzungsregeln** enthält. Hier legen Sie fest, welche PRONOM-ID zu welcher Endung führt. Dies ist ideal für Formate ohne klaren MIME-Typ (z.B. ClarisWorks) oder wenn Sie eine bestimmte Endung erzwingen wollen.
-*   `format_name_to_ext_map`: Dient als Fallback für Regeln, die auf dem reinen Formatnamen basieren.
+*   `ffprobe_path_config`: Der exakte Pfad zur `ffprobe`-Executable. Wenn FFprobe im System-`PATH` ist, kann der Standardwert (`"ffprobe"`) meist beibehalten werden.
+*   `pronom_to_ext_map`: Das wichtigste "Wörterbuch". Hier tragen Sie Regeln für Formate ein, die entweder keinen klaren MIME-Typ haben (z.B. ClarisWorks) oder bei denen Sie die automatische MIME-Erkennung übersteuern möchten.
 *   `DRY_RUN`: Setzen Sie diesen Wert auf `False`, um die Dateien tatsächlich umzubenennen, nachdem Sie die Simulationsausgabe überprüft haben.
 
 ---
 
 ## Anpassung für neue Dateitypen
 
-Das Skript ist so konzipiert, dass es viele Dateitypen automatisch über ihren MIME-Typ erkennt. Wenn Sie im Simulationsmodus eine Zeile wie diese sehen, die Sie aber zuordnen möchten:
+Das Skript ist so konzipiert, dass es die meisten Standardformate automatisch erkennt. Wenn Sie im Simulationsmodus eine Zeile wie diese sehen:
 
-`❓ Nicht zugeordnet: 'MeineAlteDatei' Some Obscure Format (ID: fmt/123, MIME: application/x-obscure)`
+`❓ Nicht zugeordnet: 'MeineAlteDatei' (Erkannt als: Some Obscure Format)`
 
-... können Sie dem Skript den neuen Dateityp am besten über die PRONOM-ID beibringen:
+... können Sie dem Skript den neuen Dateityp am besten über die **PRONOM-ID** beibringen, die in der erweiterten Debug-Ausgabe angezeigt wird.
 
 1.  **Informationen sammeln:**
-    *   PRONOM ID: `fmt/123`
+    *   PRONOM ID (aus der Ausgabe): `fmt/123`
     *   Korrekte Endung (recherchiert): `.obscure`
 
 2.  **Skript anpassen:** Öffnen Sie das Skript und fügen Sie einen neuen Eintrag zur **`pronom_to_ext_map`**-Liste hinzu:
 
     ```python
     pronom_to_ext_map = {
-        "fmt/397": ".mus",
-        "fmt/846": ".cwk",
+        # ... andere Einträge ...
         "fmt/123": ".obscure"  # <-- NEUER EINTRAG
     }
     ```
-
-3.  **Erneut ausführen:** Wenn Sie das Skript jetzt erneut im Simulationsmodus starten, wird es die Datei korrekt zuordnen:
-    `[SIMULATION]: 'MeineAlteDatei' -> 'MeineAlteDatei.obscure' [via PRONOM ID]`
 
 ---
 
 ## Ausführung
 
 1.  Öffnen Sie ein Terminal (macOS) oder eine Eingabeaufforderung/PowerShell (Windows).
-2.  Passen Sie den `base_path` im Skript an.
+2.  Passen Sie den `base_path` und ggf. den `ffprobe_path_config` im Skript an.
 3.  Führen Sie das Skript aus (standardmäßig im sicheren `DRY_RUN`-Modus).
     ```bash
-    python3 add_extensions_with_siegfried.py
+    python3 dateityp_erkennen_dateiendung_anhaengen.py
     ```
 4.  Überprüfen Sie die Ausgabe. Passen Sie bei Bedarf die `pronom_to_ext_map` an und wiederholen Sie Schritt 3.
-5.  Wenn Sie mit dem Ergebnis zufrieden sind, setzen Sie `DRY_RUN = False` im Skript und führen Sie es erneut aus, um die Dateien umzubenennen.
+5.  Wenn Sie mit dem Ergebnis zufrieden sind, setzen Sie `DRY_RUN = False` im Skript und führen Sie es erneut aus, um die Dateien umzubenennen.```
