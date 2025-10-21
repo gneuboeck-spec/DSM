@@ -815,8 +815,8 @@ def unify_metadata_keys(metadata: dict) -> dict:
         'essencestreamid', 'exifbyteorder', 'exiftoolversion', 'exifversion',
         'exposurelevelincrements', 'exposuremode', 'exposureprogram', 'exposuretime',
         'exposurewarning', 'ffprobe_format_probe_score', 'ffprobe_format_start_time',
-        'filecreatedate', 'fileid', 'fileindex', 'filelength', 'filenumber', 'filesizebytes',
-        'filesource', 'fill', 'fillorder', 'filter', 'firmwareversion', 'flags',
+        'filecreatedate', 'fileid', 'fileindex', 'filelength', 'filenumber', 'filesizebytes', 'filesfilesha256',
+        'filesource', 'fill', 'fillorder', 'filter', 'firmwareversion', 'flags', 'filesfiletype', 'filesfilerelativepath', 'filesfilename',
         'flash', 'flashactivity', 'flashbits', 'flashexposurecomp', 'flashmeteringmode',
         'flashpixversion', 'flashsyncspeedav', 'flashtype', 'fnumber', 'focaldistance',
         'focallength', 'focallength35efl', 'focalplaneresolutionunit', 'focalplanexresolution',
@@ -841,7 +841,7 @@ def unify_metadata_keys(metadata: dict) -> dict:
         'makeandmodel', 'manifestlinkform', 'manifestplacedxresolution',
         'manifestplacedyresolution', 'manifestplacedresolutionunit', 'manifestreferenceinstanceid',
         'manifestreferencedocumentid', 'matrixstructure', 'maxaperture', 'maxfocallength',
-        'maximumgopsize', 'maxpacketsize', 'mcdi', 'measuredev', 'measuredev2',
+        'maximumgopsize', 'maxpacketsize', 'mcdi', 'measuredev', 'measuredev2', 'md5signature',
         'measuredrggb', 'measurementbacking', 'measurementflare', 'measurementilluminant',
         'measurementobserver', 'mediablackpoint', 'mediabox', 'mediadataoffset',
         'mediatimescale', 'mediawhitepoint', 'megapixels', 'meteringmode', 'minaperture',
@@ -998,11 +998,11 @@ def unify_metadata_keys(metadata: dict) -> dict:
         ("imageheight", "image_height", "height", "imagelength", "exifimageheight"): "image_height",
         ("bitdepth", "bits_per_pixel", "colorresolutiondepth"): "image_bit_depth",
         ("samplesize", "bitsperaudiosample"): "audio_bits_per_sample",
-        ("filesize", "size"): "size",
+        ("filesize", "size", "filesfilesize"): "size",
         ("filetypeextension", "filetype", "extension"): "extension",
         ("mimetype", "mime_type", "format"): "mime_type",
         ("newlines", "lineending"): "document_line_break",
-        ("createdate", "datetimeoriginal", "creationdate", "date", "mediacreatedate", "creation_date", "creationtime", "asset_created_date_combined", "datecreated", "Creation_time", "CreationDate", "Creation-date", "CreateDate", "MediaCreateDate", "CreationTime"): "asset_created_date",
+        ("createdate", "datetimeoriginal", "creationdate", "date", "mediacreatedate", "creation_date", "creationtime", "asset_created_date_combined", "datecreated", "Creation_time", "CreationDate", "Creation-date", "CreateDate", "MediaCreateDate", "CreationTime", "filesfilefirstsaveddate"): "asset_created_date",
         ("modifydate", "datemodified", "moddate", "metadatadate", "mediamodifydate", "zipmodifydate", "ModifyDate", "MediaModifyDate"): "asset_modified_date",
         ("lastprinted", "print date"): "asset_last_printed_date",
         ("keywords", "document_keywords", "tags", "genre"): "document_keywords",
@@ -1024,7 +1024,7 @@ def unify_metadata_keys(metadata: dict) -> dict:
         ("format_version", "identification", "pdf_version", "pdfversion", "jfifversion", "gifversion", "bmpversion", "doctypeversion"): "document_format_version",
         ("hostcomputer", "system", "primaryplatform"): "operating_system",
         ("note", "doctype"): "document_format_descriptive_name",
-        ("duration", "ffprobe_format_duration", "mediaduration"): "duration",
+        ("duration", "ffprobe_format_duration", "mediaduration", "length"): "duration",
         ("audiocodecname", "audiocodecid", "audioformat"): "audio_codec_id",
         ("audiochannels", "channels", "audio_channels", "numchannels", "channelcount"): "audio_channel_count",
         ("samplerate", "audiosamplerate"): "samplerate",
@@ -1280,26 +1280,28 @@ def process_file(file_path, relative_path, structured_warnings, structured_unide
             del final_unified_metadata['image_height']
 
     if 'duration' in final_unified_metadata:
-        # Hole den finalen, vereinheitlichten MIME-Typ
         final_mime_type = final_unified_metadata.get("mime_type", "").lower()
-        
-        # Erlaube 'duration' nur für Audio, Video und animierte GIFs.
-        # Bei allen anderen Dateitypen (z.B. image/jpeg) wird es entfernt.
-        if not (final_mime_type.startswith('audio/') or 
-                final_mime_type.startswith('video/') or 
-                final_mime_type == 'image/gif'):
-            
-            print(f"Info: Entferne 'duration' ({final_unified_metadata['duration']}) für unpassenden MIME-Typ: {final_mime_type}")
+        file_type_group = get_file_type_group(file_path)
+
+        is_media_file = (final_mime_type.startswith('audio/') or
+                        final_mime_type.startswith('video/') or
+                        final_mime_type == 'image/gif' or
+                        file_type_group in ['audio', 'video'])
+
+        if not is_media_file:
+            print(f"Info: Entferne 'duration' ({final_unified_metadata['duration']}) für unpassenden MIME-Typ: {final_mime_type} und Dateityp: {file_type_group}")
             del final_unified_metadata['duration']
 
     if 'audio_channel_count' in final_unified_metadata:
         final_mime_type = final_unified_metadata.get("mime_type", "").lower()
+        file_type_group = get_file_type_group(file_path)
 
-        # Erlaube 'audio_channel_count' nur für Audio- und Videodateien.
-        if not (final_mime_type.startswith('audio/') or 
-                final_mime_type.startswith('video/')):
-            
-            print(f"Info: Entferne 'audio_channel_count' ({final_unified_metadata['audio_channel_count']}) für unpassenden MIME-Typ: {final_mime_type}")
+        is_media_file = (final_mime_type.startswith('audio/') or
+                        final_mime_type.startswith('video/') or
+                        file_type_group in ['audio', 'video'])
+
+        if not is_media_file:
+            print(f"Info: Entferne 'audio_channel_count' ({final_unified_metadata['audio_channel_count']}) für unpassenden MIME-Typ: {final_mime_type} und Dateityp: {file_type_group}")
             del final_unified_metadata['audio_channel_count']
 
     print(f"\n--- Vereinheitlichte Metadaten für {relative_path} (final) ---")
@@ -1403,7 +1405,7 @@ def write_xml_to_file(element_tree_root, output_file_path):
 def get_file_type_group(filepath):
     suffix = filepath.suffix.lower()
     image_suffixes = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".psd"}
-    audio_suffixes = {".mp3", ".wav", ".flac", ".ogg", ".aac", ".m4a", ".wma"}
+    audio_suffixes = {".mp3", ".wav", ".flac", ".ogg", ".aac", ".m4a", ".wma", ".voc", ".alac"}
     video_suffixes = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".mxf", ".r3d"}
     document_suffixes = {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".odt", ".ods", ".odp", ".rtf", ".txt", ".csv", ".eml", ".sam", ".mxl", ".html", ".htm", ".xhtml"}
     archive_suffixes = {".zip", ".rar", ".7z", ".tar", ".gz"}
