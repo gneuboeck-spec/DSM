@@ -33,6 +33,62 @@ YARA_RULES_FILE = "/Users/gregorneuboeck/Desktop/rules.yar"
 BRUNHILDE_OUTPUT_DIR = "/Users/gregorneuboeck/Desktop/Brunhilde"
 
 
+# NEU: Die "Schwarze Liste" aller Tags, die unbedingt aus der finalen XML-Ausgabe entfernt werden sollen.
+# Diese Liste basiert auf Ihrer Anfrage und wurde aus allen Ihren Beispielen zusammengestellt.
+# Ein Set wird für maximale Performance bei der Überprüfung verwendet.
+TAGS_TO_REMOVE = {
+    # Redundante und unerwünschte Tags aus Ihrer Liste und dem Canon-Beispiel
+    'image_orientation', 'ycbcrpositioning', 'exifversion', 'componentsconfiguration',
+    'spatialfrequencyresponse', 'noise', 'flashpixversion', 'filesource', 'scenetype',
+    'iptcdigest', 'printstyle', 'printposition', 'printscale', 'globalangle',
+    'globalaltitude', 'url_list', 'slicesgroupname', 'numslices', 'hasrealmergeddata',
+    'writername', 'readername', 'photoshopquality', 'photoshopformat', 'about',
+    'documentid', 'dctencodeversion', 'app14flags0', 'app14flags1', 'colortransform',
+    'make', 'exposuretime', 'fnumber', 'exposureprogram', 'shutterspeedvalue', 'aperturevalue',
+    'flash', 'focallength', 'macromode', 'selftimer', 'canonflashmode', 'continuousdrive',
+    'recordmode', 'canonimagesize', 'easymode', 'contrast', 'saturation', 'meteringmode',
+    'focusrange', 'canonexposuremode', 'lenstype', 'maxfocallength', 'minfocallength',
+    'focalunits', 'maxaperture', 'minaperture', 'flashactivity', 'flashbits', 'colortone',
+    'autoiso', 'baseiso', 'measuredev', 'targetaperture', 'targetexposuretime',
+    'cameratemperature', 'flashexposurecomp', 'autoexposurebracketing', 'controlmode',
+    'measuredev2', 'canonimagetype', 'canonfirmwareversion', 'ownername',
+    'flashmeteringmode', 'cameraorientation', 'fileindex', 'directoryindex',
+    'contraststandard', 'sharpnessstandard', 'sharpnessportrait', 'sharpnesslandscape',
+    'sharpnessmonochrome', 'sharpnessuserdef1', 'sharpnessuserdef2', 'sharpnessuserdef3',
+    'userdef1picturestyle', 'userdef2picturestyle', 'userdef3picturestyle', 'canonmodelid',
+    'thumbnailimagevalidarea', 'serialnumberformat', 'afareamode', 'numafpoints',
+    'validafpoints', 'canonimagewidth', 'canonimageheight', 'afimagewidth',
+    'afimageheight', 'afareawidths', 'afareaheights', 'afareaxpositions',
+    'afareaypositions', 'afpointsinfocus', 'afpointsselected', 'bracketmode', 'rawjpgsize',
+    'longexposurenoisereduction2', 'wbbracketmode', 'liveviewshooting', 'focusdistanceupper',
+    'focusdistancelower', 'shuttermode', 'lensmodel', 'internalserialnumber',
+    'dustremovaldata', 'exposurelevelincrements', 'isospeedincrements', 'isoexpansion',
+    'aebautocancel', 'aebsequence', 'safetyshift', 'flashsyncspeedav',
+    'longexposurenoisereduction', 'highisonoisereduction', 'highlighttonepriority',
+    'lensdrivenoaf', 'lensafstopbutton', 'afpointselectionmethod', 'superimposeddisplay',
+    'afassistbeam', 'afduringliveview', 'mirrorlockup', 'shutterbuttonafonbutton',
+    'afonaelockbuttonswitch', 'setbuttonwhenshooting', 'dialdirectiontvav', 'focusingscreen',
+    'addoriginaldecisiondata', 'liveviewexposuresimulation', 'addaspectratioinfo',
+    'croppedimagewidth', 'croppedimageheight', 'tonecurve', 'picturestyle',
+    'measuredrggb', 'sensorwidth', 'sensorheight', 'sensorleftborder', 'sensortopborder',
+    'sensorrightborder', 'sensorbottomborder', 'colordataversion', 'wb_rggblevelsasshot',
+    'colortempasshot', 'wb_rggblevelsauto', 'colortempauto', 'wb_rggblevelsmeasured',
+    'colortempmeasured', 'wb_rggblevelsdaylight', 'colortempdaylight', 'wb_rggblevelsshade',
+    'colortempshade', 'wb_rggblevelscloudy', 'colortempcloudy', 'wb_rggblevelstungsten',
+    'colortemptungsten', 'wb_rggblevelsfluorescent', 'colortempfluorescent',
+    'wb_rggblevelskelvin', 'colortempkelvin', 'wb_rggblevelsflash', 'colortempflash',
+    'averageblacklevel', 'rawmeasuredrggb', 'picturestyleuserdef', 'picturestylepc',
+    'subsectime', 'subsectimeoriginal', 'subsectimedigitized', 'interopindex',
+    'interopversion', 'focalplanexresolution', 'focalplaneyresolution',
+    'focalplaneresolutionunit', 'customrendered', 'exposuremode', 'scenecapturetype',
+    'gpsversionid', 'conditionalfec', 'drivemode', 'filenumber', 'flashtype', 'lens',
+    'redeyereduction', 'shootingmode', 'shuttercurtainhack', 'wb_rggblevels', 'aperture',
+    'bluebalance', 'lensid', 'megapixels', 'redbalance', 'scalefactor35efl', 'shutterspeed',
+    'subseccreatedate', 'subsecdatetimeoriginal', 'subsecmodifydate', 'lens35efl',
+    'circleofconfusion', 'dof', 'fov', 'hyperfocaldistance', 'lightvalue'
+}
+
+
 # Sicherstellen, dass die YARA-Regeln existieren, bevor sie kompiliert werden
 if not Path(YARA_RULES_FILE).exists():
     print(f"Fehler: YARA-Regeldatei nicht gefunden unter {YARA_RULES_FILE}")
@@ -716,180 +772,202 @@ def unify_metadata_keys(metadata: dict) -> dict:
     # Blockliste für standardisierte Schlüssel, die immer entfernt werden sollen.
     # Diese Liste enthält nun explizit alle von Ihnen genannten, nicht gemappten 'score_partwise'-Felder.
     always_remove_standardized_keys = {
-        # Ihre angeforderten Felder
-        'copy_status_version',
-        'isfallback',
-        'optedin',
-        'thumbnailimage',
-        'wm_albumtitle', 'wm_year',
-        'previewimage',
-        'originalfilename',
-        'xoffset',
-        'yoffset',
-        'timescale', 'handlerdescription',
-        'bitspersample', 
-        'scalecrop', 'linksuptodate', 'shareddoc', 'hyperlinkschanged',
-        'streamname',
-        'delimiter', 'quoting', 'columncount', 'rowcount',
-        'document_statisticobject_count', # Verhindert <num_objects>
-        'templatetype',
-        'templateactuate',
-        'templatehref',
-        'previewpng',
-        'document_titleofparts', 'titleofparts',
-        'document_headingpairs', 'headingpairs',
-        'audio_sample_count', 'audiosamplecount',
-        'displayedunitsx', 'displayedunitsy', 'alphachannelsnames', 'photoshopthumbnail',
-        'layercount', 'layerrectangles', 'layerblendmodes', 'layeropacities',
-        'layervisible', 'layernames',
-        'internalversionnumber',
-        'encodingprocess', 'colorcomponents', 'ycbcrsubsampling',
-        'document_statisticcell_count', 'document_statistictable_count',
-        'byteordermark',
-        'htmlelementsids', 'htmlelementsclasses', 'htmlelementstags',
-        'wcom_http___www_atlantic_records_com',
-        'uslt__eng',
-        'comm__eng',
-        'picture',
-        'year',
+        # Redundante und unerwünschte Tags
+        '_temp_bit_depth', 'about', 'addaspectratioinfo', 'addoriginaldecisiondata',
+        'aebautocancel', 'aebsequence', 'afareamode', 'afareaheights', 'afareawidths',
+        'afareaxpositions', 'afareaypositions', 'afassistbeam', 'afduringliveview',
+        'afimagewidth', 'afimageheight', 'afonaelockbuttonswitch', 'afpointinfocus',
+        'afpointselectionmethod', 'afpointsselected', 'alphachannelsnames', 'app14flags0',
+        'app14flags1', 'application', 'applicationname', 'applicationsuppliername',
+        'applicationversionnumber', 'applicationversionstring', 'appversion', 'aperture',
+        'aperturevalue', 'artist', 'artisturl', 'aspectratio', 'aspectratiox',
+        'aspectratioy', 'audiocodecdescription', 'audiolayer', 'audiovendorid',
+        'audio_sample_count', 'audiosamplecount', 'audiostreamtype', 'autobracketing',
+        'autoexposurebracketing', 'autoiso', 'averageblacklevel', 'averagebytespersecond',
+        'avgbytespersec', 'baseiso', 'bitsperpixel', 'bitspersample', 'blockalign',
+        'blocksizemin', 'blocksizemax', 'bluebalance', 'bpm_beats_per_minute',
+        'bpmbeatsperminute', 'bracketmode', 'brain', 'byteordermark', 'bytes',
+        'cameratemperature', 'cameratype', 'cameraorientation', 'canonexposuremode',
+        'canonfirmwareversion', 'canonflashmode', 'canonimageheight', 'canonimagesize',
+        'canonimagetype', 'canonimagewidth', 'canonmodelid', 'channelmode',
+        'chromaticadaptation', 'circleofconfusion', 'closedgopindicator', 'cmmflags',
+        'codecid', 'codepage', 'colordataversion', 'colormode', 'colorcomponents',
+        'colorsiting', 'colorspace', 'colortempasshot', 'colortempauto', 'colortempcloudy',
+        'colortempdaylight', 'colortempflash', 'colortempfluorescent', 'colortempkelvin',
+        'colortempmeasured', 'colortempshade', 'colortemptungsten', 'colortemperature',
+        'colortone', 'colortransform', 'columncount', 'comment', 'comments',
+        'commercialurl', 'comm__eng', 'comm_eng', 'comm_id3v1_comment_eng',
+        'comm_musicmatch_bio_eng', 'company', 'compatible_brands', 'compatiblebrands',
+        'componentdatadefinition', 'componentdepth', 'componentsconfiguration',
+        'compobjusertypelen', 'conditionalfec', 'conformance', 'connectionspaceilluminant',
+        'containerlastmodifydate', 'continuousdrive', 'contrast', 'contraststandard',
+        'controlmode', 'copy_status_version', 'copyrightflag', 'creation_time', 'croparea',
+        'croppedimageheight', 'croppedimagewidth', 'currenttime', 'currentuser',
+        'customrendered', 'datapackets', 'dctencodeversion', 'delimiter', 'derivedfromdocumentid',
+        'derivedfrominstanceid', 'deviceattributes', 'devicemodel', 'devicemodeldesc',
+        'devicemanufacturer', 'devicemfgdesc', 'dialdirectiontvav', 'directoryindex',
+        'displayedunitsx', 'displayedunitsy', 'doctype', 'doctypereadversion',
+        'doctypeversion', 'documentid', 'document_headingpairs', 'document_statisticcell_count',
+        'document_statisticobject_count', 'document_statistictable_count',
+        'document_titleofparts', 'dof', 'drivemode', 'dropframe', 'dustremovaldata',
+        'easymode', 'ebmlreadversion', 'ebmlversion', 'editrate', 'encodedby',
+        'encodingprocess', 'error_correction_type', 'errorcorrectiontype',
+        'essencestreamid', 'exifbyteorder', 'exiftoolversion', 'exifversion',
+        'exposurelevelincrements', 'exposuremode', 'exposureprogram', 'exposuretime',
+        'exposurewarning', 'ffprobe_format_probe_score', 'ffprobe_format_start_time',
+        'filecreatedate', 'fileid', 'fileindex', 'filelength', 'filenumber', 'filesizebytes',
+        'filesource', 'fill', 'fillorder', 'filter', 'firmwareversion', 'flags',
+        'flash', 'flashactivity', 'flashbits', 'flashexposurecomp', 'flashmeteringmode',
+        'flashpixversion', 'flashsyncspeedav', 'flashtype', 'fnumber', 'focaldistance',
+        'focallength', 'focallength35efl', 'focalplaneresolutionunit', 'focalplanexresolution',
+        'focalplaneyresolution', 'focalunits', 'focusdistanceupper', 'focusdistancelower',
+        'focusmode', 'focusrange', 'focuswarning', 'focusingscreen', 'fov', 'framecount',
+        'framesizemin', 'framesizemax', 'fujiflashmode', 'globalaltitude', 'globalangle',
+        'gpsversionid', 'graphicsmode', 'greenmatrixcolumn', 'greentrc', 'handler_name',
+        'handlerclass', 'handlerdescription', 'handlername', 'handlertype',
+        'handlervendorid', 'hascolormap', 'hasrealmergeddata', 'headingpairs',
+        'highisonoisereduction', 'highlighttonepriority', 'horizontalsubsampling',
+        'htmlelementsclasses', 'htmlelementsids', 'htmlelementstags', 'hyperfocaldistance',
+        'hyperlinkschanged', 'id', 'id3size', 'image_icc_profile_description', 'image_orientation',
+        'imagesize', 'indexstreamid', 'instanceid', 'intensitystereo', 'interlace',
+        'internalserialnumber', 'internalversionnumber', 'interopindex', 'interopversion',
+        'iptcdigest', 'isfallback', 'iso', 'isoexpansion', 'isospeedincrements',
+        'layerblendmodes', 'layercount', 'layernames', 'layeropacities', 'layervisible',
+        'lens', 'lens35efl', 'lensafstopbutton', 'lensdrivenoaf', 'lensid', 'lensmodel',
+        'lenstype', 'lightvalue', 'linearized', 'linkedtrackid', 'linksuptodate',
+        'liveviewexposuresimulation', 'liveviewshooting', 'localeindicator',
+        'lockedindicator', 'longexposurenoisereduction', 'longexposurenoisereduction2',
+        'luminance', 'lyrics', 'macro', 'major_brand', 'majorbrand', 'make',
+        'makeandmodel', 'manifestlinkform', 'manifestplacedxresolution',
+        'manifestplacedyresolution', 'manifestplacedresolutionunit', 'manifestreferenceinstanceid',
+        'manifestreferencedocumentid', 'matrixstructure', 'maxaperture', 'maxfocallength',
+        'maximumgopsize', 'maxpacketsize', 'mcdi', 'measuredev', 'measuredev2',
+        'measuredrggb', 'measurementbacking', 'measurementflare', 'measurementilluminant',
+        'measurementobserver', 'mediablackpoint', 'mediabox', 'mediadataoffset',
+        'mediatimescale', 'mediawhitepoint', 'megapixels', 'meteringmode', 'minaperture',
+        'minfocallength', 'minor_version', 'minorversion', 'minpacketsize', 'mirrorlockup',
+        'model', 'modeextension', 'mpegaudioversion', 'msstereo', 'muxingapp', 'mxfversion',
+        'nativedisplayinfo', 'nexttrackid', 'noise', 'nominalbitrate', 'notes',
+        'numafpoints', 'numcolors', 'numimportantcolors', 'numslices', 'numsampleframes',
+        'objectmodelversion', 'opcolor', 'optedin', 'origin', 'originalfilename',
+        'originalframerate', 'originalmedia', 'orientation', 'outputgain', 'ownername',
+        'packagelastmodifydate', 'pagemode', 'pagenumber', 'part', 'photoshopformat',
+        'photoshopquality', 'photoshopthumbnail', 'picture', 'picturemode', 'picturemimetype',
+        'picturestyle', 'picturestylepc', 'picturestyleuserdef', 'picturetype',
+        'pixelformat', 'planarconfiguration', 'planes', 'postertime', 'predictor',
+        'preferredrate', 'preferredvolume', 'presentationaspectratio', 'previewduration',
+        'previewimage', 'previewpng', 'previewtime', 'primarychromaticities', 'printposition',
+        'printscale', 'printstyle', 'profileandlevel', 'profileclass', 'profilecmmtype',
+        'profileconnectionspace', 'profilecopyright', 'profilecreator', 'profiledatetime',
+        'profiledescription', 'profilefilesignature', 'profilename', 'profileversion',
+        'quality', 'quoting', 'rawjpgsize', 'rawmeasuredrggb', 'readername', 'recordmode',
+        'redbalance', 'redcodeversion', 'redeyereduction', 'redmatrixcolumn', 'redtrc',
+        'reelnumber', 'renditionclass', 'renderingintent', 'resourceforksize',
+        'resolutionunit', 'rgbcurves', 'rowcount', 'rowsperstrip', 'safetyshift',
+        'sampleformat', 'samplesize', 'samplesperpixel', 'sampledheight', 'sampledwidth',
+        'saturation', 'scalecrop', 'scalefactor35efl', 'scenecapturetype', 'scenetype',
+        'schemasnamespaceuri', 'schemasprefix', 'schemaspropertycategory', 'schemaspropertydescription',
+        'schemaspropertyname', 'schemasschema', 'schemaspropertyvaluetype', 'sdkversion',
+        'selectionduration', 'selectiontime', 'selftimer', 'sendduration', 'sensor',
+        'sensorbottomborder', 'sensorheight', 'sensorleftborder', 'sensorrightborder',
+        'sensortopborder', 'sensorwidth', 'serialnumber', 'serialnumberformat',
+        'setbuttonwhenshooting', 'shareddoc', 'sharpness', 'sharpnesslandscape',
+        'sharpnessmonochrome', 'sharpnessportrait', 'sharpnessstandard', 'sharpnessuserdef1',
+        'sharpnessuserdef2', 'sharpnessuserdef3', 'shootingmode', 'shutterbuttonafonbutton',
+        'shuttercurtainhack', 'shuttermode', 'shutterspeed', 'shutterspeedvalue',
+        'slicesgroupname', 'slowsync', 'spatialfrequencyresponse', 'starttimecode',
+        'storageformatdate', 'storageformattime', 'storageserialnumber', 'storagetype',
+        'streamcount', 'streamname', 'streamnumber', 'streamtype', 'stripbytecounts',
+        'stripoffsets', 'subseccreatedate', 'subsecdatetimeoriginal', 'subsecmodifydate',
+        'subsectime', 'subsectimedigitized', 'subsectimeoriginal', 'superimposeddisplay',
+        'tag_', 'tag_pid_guid', 'taggedpdf', 'tagtrackuid', 'take', 'talb',
+        'targetaperture', 'targetexposuretime', 'tcon', 'tcop', 'tdrc', 'technology',
+        'template', 'templateactuate', 'templatehref', 'templatetype', 'theoraversion',
+        'thumbnailclip', 'thumbnailformat', 'thumbnailheight', 'thumbnailimage',
+        'thumbnailimagevalidarea', 'thumbnaillength', 'thumbnailoffset', 'thumbnailwidth',
+        'timecodescale', 'timecreated', 'timeoffset', 'timescale', 'tit2', 'titlesofparts',
+        'titleofparts', 'tlen', 'toolkitversion', 'tonecurve', 'too', 'totalsamples',
+        'tpe1', 'track', 'trackcreatedate', 'trackduration', 'trackid', 'tracklanguage',
+        'trackmodifydate', 'tracknumber', 'tracktype', 'trackuid', 'trackvolume', 'trapped',
+        'trck', 'tsse', 'url_list', 'userdef1picturestyle', 'userdef2picturestyle',
+        'userdef3picturestyle', 'uslt__eng', 'uslt_eng', 'validafpoints', 'vendor',
+        'vendorid', 'version', 'verticalsub_sampling', 'videocardgamma', 'videocodecname',
+        'videocodingschemeid', 'videoencoding', 'videoformat', 'videoframecount',
+        'videolinemap', 'viewbox', 'viewingconddesc', 'viewingcondilluminant',
+        'viewingcondilluminanttype', 'viewingcondsurround', 'wb_rggblevels',
+        'wb_rggblevelsauto', 'wb_rggblevelsasshot', 'wb_rggblevelscloudy', 'wb_rggblevelsdaylight',
+        'wb_rggblevelsflash', 'wb_rggblevelsfluorescent', 'wb_rggblevelskelvin',
+        'wb_rggblevelsmeasured', 'wb_rggblevelsshade', 'wb_rggblevelstungsten',
+        'wbbracketmode', 'wcom', 'wcom_http___www_atlantic_records_com', 'whitebalance',
+        'whitepoint', 'wma_file_id', 'wm_albumtitle', 'wm_composer', 'wm_encodingsettings',
+        'wm_genre', 'wm_lyrics', 'wm_mcdi', 'wm_track', 'wm_tracknumber', 'wm_year',
+        'wmfsdkneeded', 'wmfsdkversion', 'woar', 'woar_www_matchmboxtwenty_com', 'word97',
+        'writername', 'writingapp', 'xoffset', 'xmlns', 'ycbcrpositioning', 'ycbcrsubsampling',
+        'year', 'yoffset', 'zipbitflag', 'zipcompressedsize', 'zipcrc', 'zipfilename',
+        'ziprequiredversion', 'zipuncompressedsize',
 
-         # NEU: Explizite Liste der zu entfernenden profiledescription-Felder
-        'profiledescriptionml_hr_hr', 'profiledescriptionml_ko_kr', 'profiledescriptionml_nb_no',
-        'profiledescriptionml_hu_hu', 'profiledescriptionml_cs_cz', 'profiledescriptionml_da_dk',
-        'profiledescriptionml_nl_nl', 'profiledescriptionml_fi_fi', 'profiledescriptionml_it_it',
-        'profiledescriptionml_ro_ro', 'profiledescriptionml_es_es', 'profiledescriptionml_uk_ua',
-        'profiledescriptionml_he_il', 'profiledescriptionml_zh_tw', 'profiledescriptionml_vi_vn',
-        'profiledescriptionml_sk_sk', 'profiledescriptionml_zh_cn', 'profiledescriptionml_ru_ru',
-        'profiledescriptionml_fr_fr', 'profiledescriptionml_hi_in', 'profiledescriptionml_ca_es',
-        'profiledescriptionml_th_th', 'profiledescriptionml_es_xl', 'profiledescriptionml_de_de',
-        'profiledescriptionml', 'profiledescriptionml_pt_br', 'profiledescriptionml_pl_pl',
-        'profiledescriptionml_el_gr', 'profiledescriptionml_sv_se', 'profiledescriptionml_tr_tr',
-        'profiledescriptionml_pt_pt', 'profiledescriptionml_ja_jp',
-        
-        # Explizite Liste der zu entfernenden score_partwise-Felder
-        'score_partwiseversion', 'score_partwiseidentificationcreatortype',
-        'score_partwiseidentificationencodingsupportsattribute', 'score_partwiseidentificationencodingsupportselement',
-        'score_partwiseidentificationencodingsupportstype', 'score_partwiseidentificationencodingsupportsvalue',
-        'score_partwisedefaultsscalingmillimeters', 'score_partwisedefaultsscalingtenths',
-        'score_partwisedefaultspage_layoutpage_height', 'score_partwisedefaultspage_layoutpage_width',
-        'score_partwisedefaultspage_layoutpage_marginstype', 'score_partwisedefaultspage_layoutpage_marginsleft_margin',
-        'score_partwisedefaultspage_layoutpage_marginsright_margin', 'score_partwisedefaultspage_layoutpage_marginstop_margin',
-        'score_partwisedefaultspage_layoutpage_marginsbottom_margin', 'score_partwisedefaultssystem_layoutsystem_marginsleft_margin',
-        'score_partwisedefaultssystem_layoutsystem_marginsright_margin', 'score_partwisedefaultssystem_layoutsystem_distance',
-        'score_partwisedefaultssystem_layouttop_system_distance', 'score_partwisedefaultsappearanceline_widthtype',
-        'score_partwisedefaultsappearanceline_width', 'score_partwisedefaultsappearancenote_sizetype',
-        'score_partwisedefaultsappearancenote_size', 'score_partwisedefaultsappearancedistancetype',
-        'score_partwisedefaultsappearancedistance', 'score_partwisedefaultsmusic_fontfont_family',
-        'score_partwisedefaultsmusic_fontfont_size', 'score_partwisedefaultsword_fontfont_family',
-        'score_partwisedefaultsword_fontfont_size', 'score_partwisedefaultslyric_fontfont_family',
-        'score_partwisedefaultslyric_fontfont_size', 'score_partwisecreditpage', 'score_partwisecreditcredit_type',
-        'score_partwisecreditcredit_wordsdefault_x', 'score_partwisecreditcredit_wordsdefault_y',
-        'score_partwisecreditcredit_wordsfont_family', 'score_partwisecreditcredit_wordshalign',
-        'score_partwisecreditcredit_wordsvalign', 'score_partwisecreditcredit_words',
-        'score_partwisecreditcredit_wordsfont_size', 'score_partwisecreditcredit_wordsfont_weight',
-        'score_partwisepart_listscore_partid', 'score_partwisepart_listscore_partpart_nameprint_object',
-        'score_partwisepart_listscore_partpart_name', 'score_partwisepart_listscore_partpart_abbreviationprint_object',
-        'score_partwisepart_listscore_partpart_abbreviation', 'score_partwisepart_listscore_partgroup',
-        'score_partwisepart_listscore_partscore_instrumentid', 'score_partwisepart_listscore_partscore_instrumentinstrument_name',
-        'score_partwisepart_listscore_partscore_instrumentinstrument_sound', 'score_partwisepart_listscore_partmidi_instrumentid',
-        'score_partwisepart_listscore_partmidi_instrumentmidi_channel', 'score_partwisepart_listscore_partmidi_instrumentmidi_program',
-        'score_partwisepart_listscore_partmidi_instrumentvolume', 'score_partwisepart_listscore_partmidi_instrumentpan',
-        'score_partwisepartid', 'score_partwisepartmeasurenumber', 'score_partwisepartmeasurewidth',
-        'score_partwisepartmeasureprintsystem_layoutsystem_marginsleft_margin', 'score_partwisepartmeasureprintsystem_layoutsystem_marginsright_margin',
-        'score_partwisepartmeasureprintsystem_layouttop_system_distance', 'score_partwisepartmeasureprintmeasure_numberingmultiple_rest_always',
-        'score_partwisepartmeasureprintmeasure_numberingmultiple_rest_range', 'score_partwisepartmeasureprintmeasure_numbering',
-        'score_partwisepartmeasureattributesdivisions', 'score_partwisepartmeasureattributeskeyfifths',
-        'score_partwisepartmeasureattributeskeymode', 'score_partwisepartmeasureattributestimebeats',
-        'score_partwisepartmeasureattributestimebeat_type', 'score_partwisepartmeasureattributesclefsign',
-        'score_partwisepartmeasureattributesclefline', 'score_partwisepartmeasureattributesmeasure_stylemultiple_rest',
-        'score_partwisepartmeasuredirectionplacement', 'score_partwisepartmeasuredirectiondirection_typemetronomedefault_y',
-        'score_partwisepartmeasuredirectiondirection_typemetronomefont_family', 'score_partwisepartmeasuredirectiondirection_typemetronomefont_size',
-        'score_partwisepartmeasuredirectiondirection_typemetronomehalign', 'score_partwisepartmeasuredirectiondirection_typemetronomerelative_x',
-        'score_partwisepartmeasuredirectiondirection_typemetronomebeat_unit', 'score_partwisepartmeasuredirectiondirection_typemetronomeper_minute',
-        'score_partwisepartmeasuredirectionsoundtempo', 'score_partwisepartmeasuredirectiondirection_typerehearsaldefault_y',
-        'score_partwisepartmeasuredirectiondirection_typerehearsalfont_size', 'score_partwisepartmeasuredirectiondirection_typerehearsalrelative_x',
-        'score_partwisepartmeasuredirectiondirection_typerehearsal', 'score_partwisepartmeasurenoterestmeasure',
-        'score_partwisepartmeasurenoteduration', 'score_partwisepartmeasurenotevoice',
-        'score_partwisepartmeasuredirectiondirection_typedynamicsdefault_y', 'score_partwisepartmeasuredirectiondirection_typedynamicshalign',
-        'score_partwisepartmeasuredirectiondirection_typedynamicsrelative_x', 'score_partwisepartmeasuredirectionsounddynamics',
-        'score_partwisepartmeasurenotedefault_x', 'score_partwisepartmeasurenotepitchstep',
-        'score_partwisepartmeasurenotepitchalter', 'score_partwisepartmeasurenotepitchoctave',
-        'score_partwisepartmeasurenotetype', 'score_partwisepartmeasurenoteaccidental',
-        'score_partwisepartmeasurenotestemdefault_y', 'score_partwisepartmeasurenotestem',
-        'score_partwisepartmeasurenotebeamnumber', 'score_partwisepartmeasurenotebeam',
-        'score_partwisepartmeasurenotenotationsarticulationsstaccatodefault_x', 'score_partwisepartmeasurenotenotationsarticulationsstaccatodefault_y',
-        'score_partwisepartmeasurenotenotationsarticulationsstaccatoplacement', 'score_partwisepartmeasurenotenotationsslurbezier_x',
-        'score_partwisepartmeasurenotenotationsslurbezier_y', 'score_partwisepartmeasurenotenotationsslurdefault_x',
-        'score_partwisepartmeasurenotenotationsslurdefault_y', 'score_partwisepartmeasurenotenotationsslurnumber',
-        'score_partwisepartmeasurenotenotationsslurplacement', 'score_partwisepartmeasurenotenotationsslurtype',
-        'score_partwisepartmeasureprintnew_system', 'score_partwisepartmeasureprintsystem_layoutsystem_distance',
-        'score_partwisepartmeasurebarlinelocation', 'score_partwisepartmeasurebarlinebar_style',
-        'score_partwisepartmeasuredirectiondirection_typewordsdefault_y', 'score_partwisepartmeasuredirectiondirection_typewordsfont_size',
-        'score_partwisepartmeasuredirectiondirection_typewords', 'score_partwisepartmeasurenotenotationsfermatadefault_x',
-        'score_partwisepartmeasurenotenotationsfermatadefault_y', 'score_partwisepartmeasurenotenotationsfermatatype',
-        'score_partwisepartmeasuredirectionoffset', 'score_partwisepartmeasuredirectiondirection_typewordsrelative_x',
-        'score_partwisepartmeasurenotenotationsarticulationsaccentdefault_x', 'score_partwisepartmeasurenotenotationsarticulationsaccentdefault_y',
-        'score_partwisepartmeasurenotenotationsarticulationsaccentplacement', 'score_partwisepartmeasurenotenotationsarticulationsstrong_accentdefault_x',
-        'score_partwisepartmeasurenotenotationsarticulationsstrong_accentdefault_y', 'score_partwisepartmeasurenotenotationsarticulationsstrong_accentplacement',
-        'score_partwisepartmeasurenotenotationsarticulationsstrong_accenttype', 'score_partwisepartmeasuredirectiondirection_typedynamicsdefault_x',
-
-        # Bestehende Felder aus der Blockliste
-        'bitsperpixel', 'filter', 'interlace', 'compobjusertypelen', 'template', 'word97', 'codepage', 'company', 
-        'part', 'timecreated', 'imagesize', 'hascolormap', 'exiftoolversion', 'ziprequiredversion', 
-        'zipbitflag', 'zipcrc', 'zipcompressedsize', 'zipuncompressedsize', 'zipfilename', 
-        'ffprobe_format_probe_score', 'application', 'appversion', 'numcolors', 'numimportantcolors',
-        'planes', 'thumbnailoffset', 'thumbnaillength', 'quality', 'sharpness', 'whitebalance', 
-        'fujiflashmode', 'macro', 'focusmode', 'slowsync', 'picturemode', 'autobracketing', 
-        'focuswarning', 'exposurewarning', 'avgbytespersec', 'filelength', 'datapackets', 
-        'sendduration', 'preroll', 'flags', 'minpacketsize', 'maxpacketsize', 'timeoffset', 
-        'streamnumber', 'audiocodecdescription', 'wmfsdkneeded', 'wmfsdkversion', 'graphicsmode', 
-        'opcolor', 'vendorid', 'handlerclass', 'audiovendorid', 'version', 'channelmode', 
-        'colormode', 'bytes', 'currentuser', 'exifbyteorder', 'stripoffsets', 'samplesperpixel', 
-        'rowsperstrip', 'stripbytecounts', 'planarconfiguration', 'resolutionunit', 'fillorder', 
-        'orientation', 'predictor', 'sampleformat', 'id', 'xmlns', 'viewbox', 'fill', 
-        'primarychromaticities', 'whitepoint', 'pagenumber', 'id3size', 'intensitystereo', 
-        'msstereo', 'audiolayer', 'mpegaudioversion', 'fileid', 'mcdi', 'tsse', 'copyrightflag', 
-        'originalmedia', 'resourceforksize', 'mediadataoffset', 'trackid', 'trackvolume', 
-        'nexttrackid', 'matrixstructure', 'preferredrate', 'preferredvolume', 'previewtime', 
-        'previewduration', 'postertime', 'selectiontime', 'selectionduration', 'devicemanufacturer', 
-        'deviceattributes', 'renderingintent', 'connectionspaceilluminant', 'profilecreator', 
-        'profiledescription', 'profilecopyright', 'mediawhitepoint', 'redmatrixcolumn', 
-        'greenmatrixcolumn', 'bluematrixcolumn', 'chromaticadaptation', 'cmmflags', 'makeandmodel', 
-        'profilename', 'devicemodel', 'mediablackpoint', 'devicemfgdesc', 'devicemodeldesc', 
-        'viewingconddesc', 'viewingcondilluminant', 'viewingcondsurround', 'viewingcondilluminanttype', 
-        'luminance', 'measurementobserver', 'measurementbacking', 'measurementflare', 'measurementilluminant', 
-        'technology', 'image_icc_profile_description', 'videocardgamma', 'nativedisplayinfo', 'colormap', 
-        'profilecmmtype', 'profileversion', 'profileclass', 'profileconnectionspace', 'profiledatetime', 
-        'profilefilesignature', 'redtrc', 'greentrc', 'bluetrc', 'lyrics', 'artisturl', 'comment', 
-        'comments', 'commercialurl', 'notes', 'artist', 'minorversion', 'compatiblebrands', 
-        'ffprobe_format_start_time', 'minor_version', 'creation_time', 'compatible_brands', 
-        'major_brand', 'handler_name', 'currenttime', 'trackcreatedate', 'trackmodifydate', 
-        'trackduration', 'handlervendorid', 'ebmlversion', 'ebmlreadversion', 'doctypereadversion', 
-        'timecodescale', 'muxingapp', 'writingapp', 'tracknumber', 'trackuid', 'tracklanguage', 
-        'codecid', 'tracktype', 'tagtrackuid', 'handlername', 'streamcount', 'framecount', 
-        'videoframecount', 'videoencoding', 'aspectratiox', 'aspectratioy', 'videocodecname', 
-        'errorcorrectiontype', 'wm_encodingsettings', 'modeextension', 'theoraversion', 'colorspace', 
-        'pixelformat', 'majorbrand', 'mxfversion', 'containerlastmodifydate', 'sdkversion', 
-        'objectmodelversion', 'applicationsuppliername', 'applicationname', 'applicationversionnumber', 
-        'applicationversionstring', 'toolkitversion', 'packagelastmodifydate', 'starttimecode', 
-        'roundedtimecodetimebase', 'dropframe', 'sampledwidth', 'sampledheight', 'componentdepth', 
-        'horizontalsubsampling', 'verticalsub_sampling', 'colorsiting', 'videolinemap', 
-        'presentationaspectratio', 'videocodingschemeid', 'profileandlevel', 'lowdelayindicator', 
-        'closedgopindicator', 'maximumgopsize', 'editrate', 'origin', 'componentdatadefinition', 
-        'linkedtrackid', 'lockedindicator', 'blockalign', 'averagebytespersecond', 'essencestreamid', 
-        'indexstreamid', 'audiostreamtype', 'redcodeversion', 'startedgecode', 'serialnumber', 
-        'colortemperature', 'cameratype', 'reelnumber', 'take', 'firmwareversion', 'storagetype', 
-        'storageserialnumber', 'storageformatdate', 'storageformattime', 'croparea', 'iso', 
-        'videoformat', 'rgbcurves', 'originalframerate', 'focusdistance', 'model', 'brain', 
-        'sensor', 'focallength35efl', 'numsampleframes', 'too', '_temp_bit_depth', 'blocksizemin', 
-        'blocksizemax', 'framesizemin', 'framesizemax', 'totalsamples', 'md5signature', 'vendor', 
-        'opusversion', 'outputgain', 'nominalbitrate', 'bpmbeatsperminute', 'bpm_beats_per_minute', 
-        'wma_file_id', 'error_correction_type', 'streamtype', 'handlertype', 'mediatimescale', 
-        'doctype', 'doctypeversion', 'filesizebytes', 'aspectratio', 'track', 'picturemimetype', 
-        'picturetype', 'length', 'samplesize', 'wcom_http_www_atlantic_records_com', 
-        'comm_musicmatch_bio_eng', 'uslt_eng', 'woar_www_matchmboxtwenty_com', 'comm_eng', 
-        'comm_id3v1_comment_eng', 'trck', 'tlen', 'tit2', 'tcop', 'tpe1', 'talb', 'tcon', 'tdrc', 
-        'wm_tracknumber', 'wm_composer', 'wm_genre', 'wm_track', 'wm_lyrics', 'wm_mcdi', 'wcom', 'woar'
+        # Eudora-Statistik-Felder
+        'eudorastatsversion', 'eudorastatsstarttime', 'eudorastatsjunkstarttime',
+        'eudorastatscurrenttime', 'eudorastatsreceivedmailcurrentday',
+        'eudorastatsreceivedmailcurrentweek', 'eudorastatsreceivedmailcurrentmonth',
+        'eudorastatsreceivedmailcurrentyear', 'eudorastatsreceivedmailpreviousday',
+        'eudorastatsreceivedmailpreviousweek', 'eudorastatsreceivedmailpreviousmonth',
+        'eudorastatsreceivedmailpreviousyear', 'eudorastatsreceivedmailaveragesumday',
+        'eudorastatsreceivedmailaveragesumweek', 'eudorastatsreceivedmailaveragesummonth',
+        'eudorastatsreceivedmailaveragesumyear', 'eudorastatssentmailcurrentday',
+        'eudorastatssentmailcurrentweek', 'eudorastatssentmailcurrentmonth',
+        'eudorastatssentmailcurrentyear', 'eudorastatssentmailpreviousday',
+        'eudorastatssentmailpreviousweek', 'eudorastatssentmailpreviousmonth',
+        'eudorastatssentmailpreviousyear', 'eudorastatssentmailaveragesumday',
+        'eudorastatssentmailaveragesumweek', 'eudorastatssentmailaveragesummonth',
+        'eudorastatssentmailaveragesumyear', 'eudorastatsusagesecondscurrentday',
+        'eudorastatsusagesecondscurrentweek', 'eudorastatsusagesecondscurrentmonth',
+        'eudorastatsusagesecondscurrentyear', 'eudorastatsusagesecondspreviousday',
+        'eudorastatsusagesecondspreviousweek', 'eudorastatsusagesecondspreviousmonth',
+        'eudorastatsusagesecondspreviousyear', 'eudorastatsusagesecondsaveragesumday',
+        'eudorastatsusagesecondsaveragesumweek', 'eudorastatsusagesecondsaveragesummonth',
+        'eudorastatsusagesecondsaveragesumyear', 'eudorastatsusagesecondstotal',
+        'eudorastatsscoredjunkcurrentday', 'eudorastatsscoredjunkcurrentweek',
+        'eudorastatsscoredjunkcurrentmonth', 'eudorastatsscoredjunkcurrentyear',
+        'eudorastatsscoredjunkpreviousday', 'eudorastatsscoredjunkpreviousweek',
+        'eudorastatsscoredjunkpreviousmonth', 'eudorastatsscoredjunkpreviousyear',
+        'eudorastatsscoredjunkaveragesumday', 'eudorastatsscoredjunkaveragesumweek',
+        'eudorastatsscoredjunkaveragesummonth', 'eudorastatsscoredjunkaveragesumyear',
+        'eudorastatsscorednotjunkcurrentday', 'eudorastatsscorednotjunkcurrentweek',
+        'eudorastatsscorednotjunkcurrentmonth', 'eudorastatsscorednotjunkcurrentyear',
+        'eudorastatsscorednotjunkpreviousday', 'eudorastatsscorednotjunkpreviousweek',
+        'eudorastatsscorednotjunkpreviousmonth', 'eudorastatsscorednotjunkpreviousyear',
+        'eudorastatsscorednotjunkaveragesumday', 'eudorastatsscorednotjunkaveragesumweek',
+        'eudorastatsscorednotjunkaveragesummonth', 'eudorastatsscorednotjunkaveragesumyear',
+        'eudorastatswhitelistcurrentday', 'eudorastatswhitelistcurrentweek',
+        'eudorastatswhitelistcurrentmonth', 'eudorastatswhitelistcurrentyear',
+        'eudorastatswhitelistpreviousday', 'eudorastatswhitelistpreviousweek',
+        'eudorastatswhitelistpreviousmonth', 'eudorastatswhitelistpreviousyear',
+        'eudorastatswhitelistaveragesumday', 'eudorastatswhitelistaveragesumweek',
+        'eudorastatswhitelistaveragesummonth', 'eudorastatswhitelistaveragesumyear',
+        'eudorastatsfalsepositivescurrentday', 'eudorastatsfalsepositivescurrentweek',
+        'eudorastatsfalsepositivescurrentmonth', 'eudorastatsfalsepositivescurrentyear',
+        'eudorastatsfalsepositivespreviousday', 'eudorastatswhitelistpreviousweek',
+        'eudorastatsfalsepositivespreviousmonth', 'eudorastatsfalsepositivespreviousyear',
+        'eudorastatsfalsepositivesaveragesumday', 'eudorastatsfalsepositivesaveragesumweek',
+        'eudorastatsfalsepositivesaveragesummonth', 'eudorastatsfalsepositivesaveragesumyear',
+        'eudorastatsfalsenegativescurrentday', 'eudorastatsfalsenegativescurrentweek',
+        'eudorastatsfalsenegativescurrentmonth', 'eudorastatsfalsenegativescurrentyear',
+        'eudorastatsfalsenegativespreviousday', 'eudorastatsfalsenegativespreviousweek',
+        'eudorastatsfalsenegativespreviousmonth', 'eudorastatsfalsenegativespreviousyear',
+        'eudorastatsfalsenegativesaveragesumday', 'eudorastatsfalsenegativesaveragesumweek',
+        'eudorastatsfalsenegativesaveragesummonth', 'eudorastatsfalsenegativesaveragesumyear',
+        'eudorastatsfalsewhitelistcurrentday', 'eudorastatsfalsewhitelistcurrentweek',
+        'eudorastatsfalsewhitelistcurrentmonth', 'eudorastatsfalsewhitelistcurrentyear',
+        'eudorastatsfalsewhitelistpreviousday', 'eudorastatsfalsewhitelistpreviousweek',
+        'eudorastatsfalsewhitelistpreviousmonth', 'eudorastatsfalsewhitelistpreviousyear',
+        'eudorastatsfalsewhitelistaveragesumday', 'eudorastatsfalsewhitelistaveragesumweek',
+        'eudorastatsfalsewhitelistaveragesummonth', 'eudorastatsfalsewhitelistaveragesumyear',
+        'eudorastatsusagereadcurrentday', 'eudorastatsusagereadcurrentweek',
+        'eudorastatsusagereadcurrentmonth', 'eudorastatsusagereadcurrentyear',
+        'eudorastatsusagereadtotal', 'eudorastatsusageothercurrentday',
+        'eudorastatsusageothercurrentweek', 'eudorastatsusageothercurrentmonth',
+        'eudorastatsusageothercurrentyear', 'eudorastatsusageothertotal',
     }
 
     # Schritt 1: Standardisiere alle eingehenden Schlüssel
@@ -1377,1373 +1455,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
