@@ -799,8 +799,8 @@ def unify_metadata_keys(metadata: dict) -> dict:
         'essencestreamid', 'exifbyteorder', 'exiftoolversion', 'exifversion',
         'exposurelevelincrements', 'exposuremode', 'exposureprogram', 'exposuretime',
         'exposurewarning', 'ffprobe_format_probe_score', 'ffprobe_format_start_time',
-        'filecreatedate', 'fileid', 'fileindex', 'filelength', 'filenumber', 'filesizebytes',
-        'filesource', 'fill', 'fillorder', 'filter', 'firmwareversion', 'flags',
+        'filecreatedate', 'fileid', 'fileindex', 'filelength', 'filenumber', 'filesizebytes', 'filesfilesha256',
+        'filesource', 'fill', 'fillorder', 'filter', 'firmwareversion', 'flags', 'filesfiletype', 'filesfilerelativepath', 'filesfilename',
         'flash', 'flashactivity', 'flashbits', 'flashexposurecomp', 'flashmeteringmode',
         'flashpixversion', 'flashsyncspeedav', 'flashtype', 'fnumber', 'focaldistance',
         'focallength', 'focallength35efl', 'focalplaneresolutionunit', 'focalplanexresolution',
@@ -822,7 +822,7 @@ def unify_metadata_keys(metadata: dict) -> dict:
         'liveviewexposuresimulation', 'liveviewshooting', 'localeindicator',
         'lockedindicator', 'longexposurenoisereduction', 'longexposurenoisereduction2',
         'luminance', 'lyrics', 'macro', 'major_brand', 'majorbrand', 'make',
-        'makeandmodel', 'manifestlinkform', 'manifestplacedxresolution',
+        'makeandmodel', 'manifestlinkform', 'manifestplacedxresolution', 'md5signature',
         'manifestplacedyresolution', 'manifestplacedresolutionunit', 'manifestreferenceinstanceid',
         'manifestreferencedocumentid', 'matrixstructure', 'maxaperture', 'maxfocallength',
         'maximumgopsize', 'maxpacketsize', 'mcdi', 'measuredev', 'measuredev2',
@@ -953,6 +953,101 @@ def unify_metadata_keys(metadata: dict) -> dict:
         'eudorastatsusageothercurrentweek', 'eudorastatsusageothercurrentmonth',
         'eudorastatsusageothercurrentyear', 'eudorastatsusageothertotal',
     }
+
+    # =======================================================
+# HIER BEGINNT DER CODE, DEN SIE KOPIEREN MÜSSEN
+# =======================================================
+
+    # Schritt 1: Standardisiere alle eingehenden Schlüssel
+    standardized_metadata = {sanitize_tag(k): v for k, v in metadata.items()}
+    
+    unified_metadata = {}
+    processed_standardized_keys = set()
+    
+    # Schritt 2: Markiere alle Felder aus der Blockliste als "verarbeitet", damit sie ignoriert werden.
+    for k_to_remove in always_remove_standardized_keys:
+        processed_standardized_keys.add(k_to_remove)
+    
+    # Spezielle Zusammenführung von datecreated und timecreated
+    if 'datecreated' in standardized_metadata and 'timecreated' in standardized_metadata:
+        date_val = str(standardized_metadata['datecreated']).split(' ')[0]
+        time_val = str(standardized_metadata['timecreated'])
+        try:
+            time_val_clean = time_val.split('+')[0].split('-')[0].split('Z')[0].strip()
+            combined_str = f"{date_val}T{time_val_clean}"
+            standardized_metadata['asset_created_date_combined'] = format_date_to_iso(combined_str)
+        except Exception:
+            pass
+
+    # Schritt 3: KERNLOGIK: Vereinheitlichung über das key_mapping-Wörterbuch
+    key_mapping = {
+        ("imagewidth", "image_width", "width", "exifimagewidth"): "image_width",
+        ("imageheight", "image_height", "height", "imagelength", "exifimageheight"): "image_height",
+        ("bitdepth", "bits_per_pixel", "colorresolutiondepth"): "image_bit_depth",
+        ("samplesize", "bitsperaudiosample"): "audio_bits_per_sample",
+        ("filesize", "size", "filesfilesize"): "size",
+        ("filetypeextension", "filetype", "extension"): "extension",
+        ("mimetype", "mime_type", "format"): "mime_type",
+        ("newlines", "lineending"): "document_line_break",
+        ("createdate", "datetimeoriginal", "creationdate", "date", "mediacreatedate", "creation_date", "creationtime", "asset_created_date_combined", "datecreated", "Creation_time", "CreationDate", "Creation-date", "CreateDate", "MediaCreateDate", "CreationTime", "filesfilefirstsaveddate"): "asset_created_date",
+        ("modifydate", "datemodified", "moddate", "metadatadate", "mediamodifydate", "zipmodifydate", "ModifyDate", "MediaModifyDate"): "asset_modified_date",
+        ("lastprinted", "print date"): "asset_last_printed_date",
+        ("keywords", "document_keywords", "tags", "genre"): "document_keywords",
+        ("author", "score_partwiseidentificationcreator", "initial_creator"): "document_author",
+        ("title", "documenttitle", "score_partwisemovement_title"): "document_title",
+        ("subject", "documentsubject"): "document_subject",
+        ("description", "documentdescription"): "document_description",
+        ("producer", "software", "creatortool", "pdf_creator", "pdf_producer", "creator", "score_partwiseidentificationencodingsoftware", "xmptoolkit", "generator", "compobjusertype"): "document_creator_tool",
+        ("lasteffort", "lastmodifiedby", "lastsavedby"): "document_last_saved_by",
+        ("revisionnumber", "revision", "editing_cycles"): "document_revision_number",
+        ("pages", "pdf_num_pages", "num_pages", "pagecount", "document_statisticpage_count"): "document_num_pages",
+        ("characters", "charcount", "document_statisticcharacter_count"): "document_characters",
+        ("words", "wordcount", "document_statisticword_count"): "document_words",
+        ("lines", "linecount", "sam_line_count"): "document_lines",
+        ("paragraphs", "paragraphcount", "document_statisticparagraph_count"): "document_paragraphs",
+        ("totaledittime", "editing_duration"): "document_total_edit_time",
+        ("compression", "compressiontype", "compressionmethod", "zipcompression"): "compression",
+        ("colorspacedata",): "colorspacedata",
+        ("format_version", "identification", "pdf_version", "pdfversion", "jfifversion", "gifversion", "bmpversion", "doctypeversion"): "document_format_version",
+        ("hostcomputer", "system", "primaryplatform"): "operating_system",
+        ("note", "doctype"): "document_format_descriptive_name",
+        ("duration", "ffprobe_format_duration", "mediaduration", "length"): "duration",
+        ("audiocodecname", "audiocodecid", "audioformat"): "audio_codec_id",
+        ("audiochannels", "channels", "audio_channels", "numchannels", "channelcount"): "audio_channel_count",
+        ("samplerate", "audiosamplerate"): "samplerate",
+        ("encoder", "compressorname", "encodersettings", "encodingsettings"): "encoder",
+        ("avgbitrate", "ffprobe_format_bit_rate", "maxdatarate", "maxbitrate", "audiobitrate"): "bitrate",
+        ("videobitrate", "nominalvideobitrate"): "video_bitrate",
+        ("compressorid", "videocodecid", "videocodec"): "video_codec_id",
+        ("rights", "score_partwiseidentificationrights", "copyright"): "document_rights",
+        ("document_encoding_date",): "document_encoding_date",
+        ("image_mode", "colortype", "photometricinterpretation"): "image_mode",
+        ("language", "languagecode", "medialanguagecode"): "language_code",
+        ("mimeencoding",): "document_mime_encoding",
+        ("characterswithspaces", "charcountwithspaces"): "document_characters_with_spaces",
+        ("videoframerate", "framerate"): "video_frame_rate",
+        ("sourceimagewidth", "displaywidth"): "video_frame_width",
+        ("sourceimageheight", "displayheight"): "video_frame_height",
+        ("xresolution",): "image_x_resolution",
+        ("yresolution",): "image_y_resolution",
+        ("pixelaspectratio", "aspectratio"): "pixel_aspect_ratio",
+        ("mediadatasize",): "media_data_size",
+        ("container_format_version",): "container_format_version",
+        ("audio_encoding_format", "encoding"): "audio_encoding_format",
+        ("audio_sample_count", "audiosamplecount"): "audio_sample_count",
+        ("document_statisticobject_count",): "num_objects",
+        ("templatedate",): "document_template_date",
+        ("hyperlinks",): "document_hyperlinks",
+        ("presentationtarget",): "document_presentationtarget",
+        ("slides",): "document_slides",
+        ("headingpairs",): "document_headingpairs",
+        ("titleofparts",): "document_titleofparts",
+        ("docflags", "doc_flags"): "document_flags",
+        ("originalfilename",): "original_filename",
+    }
+# =======================================================
+# HIER ENDET DER CODE, DEN SIE KOPIEREN MÜSSEN
+# =======================================================
 
     # ANWENDUNG DER MAPPING-REGELN
     for group_keys, preferred_key in key_mapping.items():
@@ -1134,7 +1229,16 @@ def process_file(file_path, relative_path, structured_warnings, structured_unide
     print("--------------------------------------------------")
 
     try:
-        matches = rules.match(str(file_path))
+        # Schritt 1: Datei mit Python im Binärmodus öffnen.
+        # Dies ist robust gegen Sonderzeichen im Pfad und geschieht innerhalb des try-Blocks.
+        with open(file_path, "rb") as f:
+            file_data = f.read()
+    
+        # Schritt 2: Den Inhalt (data=) an YARA übergeben, nicht mehr den Pfad.
+        matches = rules.match(data=file_data)
+
+        # Schritt 3: Die gefundenen Matches wie zuvor verarbeiten.
+        # Diese Logik ist jetzt ebenfalls sicher innerhalb des try-Blocks.
         detailed_match_info = []
         all_match_rules = [{"rule": m.rule, "meta": m.meta} for m in matches]
         lower_rule_names = {m_info['rule'].lower() for m_info in all_match_rules}
@@ -1176,24 +1280,28 @@ def process_file(file_path, relative_path, structured_warnings, structured_unide
             del final_unified_metadata['image_height']
 
     if 'duration' in final_unified_metadata:
-        # Hole den finalen, vereinheitlichten MIME-Typ
         final_mime_type = final_unified_metadata.get("mime_type", "").lower()
+        file_type_group = get_file_type_group(file_path)
 
-        # Erlaube 'duration' nur für Audio, Video und animierte GIFs.
-        # Bei allen anderen Dateitypen (z.B. image/jpeg) wird es entfernt.
-        if not (final_mime_type.startswith('audio/') or
-                final_mime_type.startswith('video/') or
-                final_mime_type == 'image/gif'):
-            print(f"Info: Entferne 'duration' ({final_unified_metadata['duration']}) für unpassenden MIME-Typ: {final_mime_type}")
+        is_media_file = (final_mime_type.startswith('audio/') or
+                        final_mime_type.startswith('video/') or
+                        final_mime_type == 'image/gif' or
+                        file_type_group in ['audio', 'video'])
+
+        if not is_media_file:
+            print(f"Info: Entferne 'duration' ({final_unified_metadata['duration']}) für unpassenden MIME-Typ: {final_mime_type} und Dateityp: {file_type_group}")
             del final_unified_metadata['duration']
 
     if 'audio_channel_count' in final_unified_metadata:
         final_mime_type = final_unified_metadata.get("mime_type", "").lower()
+        file_type_group = get_file_type_group(file_path)
 
-        # Erlaube 'audio_channel_count' nur für Audio- und Videodateien.
-        if not (final_mime_type.startswith('audio/') or
-                final_mime_type.startswith('video/')):
-            print(f"Info: Entferne 'audio_channel_count' ({final_unified_metadata['audio_channel_count']}) für unpassenden MIME-Typ: {final_mime_type}")
+        is_media_file = (final_mime_type.startswith('audio/') or
+                        final_mime_type.startswith('video/') or
+                        file_type_group in ['audio', 'video'])
+
+        if not is_media_file:
+            print(f"Info: Entferne 'audio_channel_count' ({final_unified_metadata['audio_channel_count']}) für unpassenden MIME-Typ: {final_mime_type} und Dateityp: {file_type_group}")
             del final_unified_metadata['audio_channel_count']
 
     print(f"\n--- Vereinheitlichte Metadaten für {relative_path} (final) ---")
@@ -1298,7 +1406,7 @@ def write_xml_to_file(element_tree_root, output_file_path):
 def get_file_type_group(filepath):
     suffix = filepath.suffix.lower()
     image_suffixes = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".psd"}
-    audio_suffixes = {".mp3", ".wav", ".flac", ".ogg", ".aac", ".m4a", ".wma"}
+    audio_suffixes = {".mp3", ".wav", ".flac", ".ogg", ".aac", ".m4a", ".wma", ".voc", ".alac"}
     video_suffixes = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".mxf", ".r3d"}
     document_suffixes = {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".odt", ".ods", ".odp", ".rtf", ".txt", ".csv", ".eml", ".sam", ".mxl", ".html", ".htm", ".xhtml"}
     archive_suffixes = {".zip", ".rar", ".7z", ".tar", ".gz"}
