@@ -37,55 +37,49 @@ BRUNHILDE_OUTPUT_DIR = "/Users/gregorneuboeck/Desktop/Brunhilde"
 # Diese Liste basiert auf Ihrer Anfrage und wurde aus allen Ihren Beispielen zusammengestellt.
 # Ein Set wird für maximale Performance bei der Überprüfung verwendet.
 TAGS_TO_REMOVE = {
-    # Redundante und unerwünschte Tags aus Ihrer Liste und dem Canon-Beispiel
-    'image_orientation', 'ycbcrpositioning', 'exifversion', 'componentsconfiguration', 'api_',
-    'spatialfrequencyresponse', 'noise', 'flashpixversion', 'filesource', 'scenetype',
-    'iptcdigest', 'printstyle', 'printposition', 'printscale', 'globalangle',
-    'globalaltitude', 'url_list', 'slicesgroupname', 'numslices', 'hasrealmergeddata',
-    'writername', 'readername', 'photoshopquality', 'photoshopformat', 'about',
-    'documentid', 'dctencodeversion', 'app14flags0', 'app14flags1', 'colortransform',
-    'make', 'exposuretime', 'fnumber', 'exposureprogram', 'shutterspeedvalue', 'aperturevalue',
-    'flash', 'focallength', 'macromode', 'selftimer', 'canonflashmode', 'continuousdrive',
-    'recordmode', 'canonimagesize', 'easymode', 'contrast', 'saturation', 'meteringmode',
-    'focusrange', 'canonexposuremode', 'lenstype', 'maxfocallength', 'minfocallength',
-    'focalunits', 'maxaperture', 'minaperture', 'flashactivity', 'flashbits', 'colortone',
-    'autoiso', 'baseiso', 'measuredev', 'targetaperture', 'targetexposuretime',
-    'cameratemperature', 'flashexposurecomp', 'autoexposurebracketing', 'controlmode',
-    'measuredev2', 'canonimagetype', 'canonfirmwareversion', 'ownername',
-    'flashmeteringmode', 'cameraorientation', 'fileindex', 'directoryindex',
-    'contraststandard', 'sharpnessstandard', 'sharpnessportrait', 'sharpnesslandscape',
-    'sharpnessmonochrome', 'sharpnessuserdef1', 'sharpnessuserdef2', 'sharpnessuserdef3',
-    'userdef1picturestyle', 'userdef2picturestyle', 'userdef3picturestyle', 'canonmodelid',
-    'thumbnailimagevalidarea', 'serialnumberformat', 'afareamode', 'numafpoints',
-    'validafpoints', 'canonimagewidth', 'canonimageheight', 'afimagewidth',
-    'afimageheight', 'afareawidths', 'afareaheights', 'afareaxpositions',
-    'afareaypositions', 'afpointsinfocus', 'afpointsselected', 'bracketmode', 'rawjpgsize',
-    'longexposurenoisereduction2', 'wbbracketmode', 'liveviewshooting', 'focusdistanceupper',
-    'focusdistancelower', 'shuttermode', 'lensmodel', 'internalserialnumber',
-    'dustremovaldata', 'exposurelevelincrements', 'isospeedincrements', 'isoexpansion',
-    'aebautocancel', 'aebsequence', 'safetyshift', 'flashsyncspeedav',
-    'longexposurenoisereduction', 'highisonoisereduction', 'highlighttonepriority',
-    'lensdrivenoaf', 'lensafstopbutton', 'afpointselectionmethod', 'superimposeddisplay',
-    'afassistbeam', 'afduringliveview', 'mirrorlockup', 'shutterbuttonafonbutton',
-    'afonaelockbuttonswitch', 'setbuttonwhenshooting', 'dialdirectiontvav', 'focusingscreen',
-    'addoriginaldecisiondata', 'liveviewexposuresimulation', 'addaspectratioinfo',
-    'croppedimagewidth', 'croppedimageheight', 'tonecurve', 'picturestyle',
-    'measuredrggb', 'sensorwidth', 'sensorheight', 'sensorleftborder', 'sensortopborder',
-    'sensorrightborder', 'sensorbottomborder', 'colordataversion', 'wb_rggblevelsasshot',
-    'colortempasshot', 'wb_rggblevelsauto', 'colortempauto', 'wb_rggblevelsmeasured',
-    'colortempmeasured', 'wb_rggblevelsdaylight', 'colortempdaylight', 'wb_rggblevelsshade',
-    'colortempshade', 'wb_rggblevelscloudy', 'colortempcloudy', 'wb_rggblevelstungsten',
-    'colortemptungsten', 'wb_rggblevelsfluorescent', 'colortempfluorescent',
-    'wb_rggblevelskelvin', 'colortempkelvin', 'wb_rggblevelsflash', 'colortempflash',
-    'averageblacklevel', 'rawmeasuredrggb', 'picturestyleuserdef', 'picturestylepc',
-    'subsectime', 'subsectimeoriginal', 'subsectimedigitized', 'interopindex',
-    'interopversion', 'focalplanexresolution', 'focalplaneyresolution',
-    'focalplaneresolutionunit', 'customrendered', 'exposuremode', 'scenecapturetype',
-    'gpsversionid', 'conditionalfec', 'drivemode', 'filenumber', 'flashtype', 'lens',
-    'redeyereduction', 'shootingmode', 'shuttercurtainhack', 'wb_rggblevels', 'aperture',
-    'bluebalance', 'lensid', 'megapixels', 'redbalance', 'scalefactor35efl', 'shutterspeed',
-    'subseccreatedate', 'subsecdatetimeoriginal', 'subsecmodifydate', 'lens35efl',
-    'circleofconfusion', 'dof', 'fov', 'hyperfocaldistance', 'lightvalue'
+    'about', 'addaspectratioinfo', 'addoriginaldecisiondata', 'aebautocancel', 'aebsequence',
+    'afareamode', 'afareaheights', 'afareawidths', 'afareaxpositions', 'afareaypositions',
+    'afassistbeam', 'afduringliveview', 'afimagewidth', 'afimageheight', 'afonaelockbuttonswitch',
+    'afpointinfocus', 'afpointselectionmethod', 'afpointsselected', 'api_', 'aperture',
+    'aperturevalue', 'app14flags0', 'app14flags1', 'autoexposurebracketing', 'autoiso',
+    'averageblacklevel', 'baseiso', 'bluebalance', 'bracketmode', 'cameraorientation',
+    'cameratemperature', 'canonexposuremode', 'canonfirmwareversion', 'canonflashmode', 'canonimageheight',
+    'canonimagesize', 'canonimagetype', 'canonimagewidth', 'canonmodelid', 'circleofconfusion',
+    'colormap', 'colordataversion', 'colortransform', 'colortempauto', 'colortempasshot',
+    'colortempcloudy', 'colortempdaylight', 'colortempflash', 'colortempfluorescent', 'colortempkelvin',
+    'colortempmeasured', 'colortempshade', 'colortemptungsten', 'colortone', 'componentsconfiguration',
+    'conditionalfec', 'continuousdrive', 'contrast', 'contraststandard', 'controlmode',
+    'croppedimageheight', 'croppedimagewidth', 'customrendered', 'dctencodeversion', 'dialdirectiontvav',
+    'directoryindex', 'documentid', 'dof', 'drivemode', 'dustremovaldata',
+    'easymode', 'exifversion', 'exposurelevelincrements', 'exposuremode', 'exposureprogram',
+    'exposuretime', 'fileindex', 'filenumber', 'filesource', 'flash',
+    'flashactivity', 'flashbits', 'flashexposurecomp', 'flashmeteringmode', 'flashpixversion',
+    'flashsyncspeedav', 'flashtype', 'fnumber', 'focusdistanceupper', 'focusdistancelower',
+    'focallength', 'focalplaneresolutionunit', 'focalplanexresolution', 'focalplaneyresolution', 'focalunits',
+    'focusingscreen', 'focusrange', 'fov', 'globalaltitude', 'globalangle',
+    'gpsversionid', 'hasrealmergeddata', 'highisonoisereduction', 'highlighttonepriority', 'hyperfocaldistance',
+    'image_orientation', 'internalserialnumber', 'interopindex', 'interopversion', 'iptcdigest',
+    'isoexpansion', 'isospeedincrements', 'lens', 'lens35efl', 'lensafstopbutton',
+    'lensdrivenoaf', 'lensid', 'lensmodel', 'lenstype', 'lightvalue',
+    'liveviewexposuresimulation', 'liveviewshooting', 'longexposurenoisereduction', 'longexposurenoisereduction2', 'macromode',
+    'make', 'maxaperture', 'maxfocallength', 'md5signature', 'measuredev',
+    'measuredev2', 'measuredrggb', 'megapixels', 'meteringmode', 'minaperture',
+    'minfocallength', 'mirrorlockup', 'noise', 'numafpoints', 'numslices',
+    'ownername', 'photoshopformat', 'photoshopquality', 'picturestyle', 'picturestylepc',
+    'picturestyleuserdef', 'printposition', 'printscale', 'printstyle', 'rawjpgsize',
+    'rawmeasuredrggb', 'readername', 'recordmode', 'redbalance', 'redeyereduction',
+    'safetyshift', 'saturation', 'scalefactor35efl', 'scenecapturetype', 'selftimer',
+    'sensorbottomborder', 'sensorheight', 'sensorleftborder', 'sensorrightborder', 'sensortopborder',
+    'sensorwidth', 'serialnumberformat', 'setbuttonwhenshooting', 'sharpnesslandscape', 'sharpnessmonochrome',
+    'sharpnessportrait', 'sharpnessstandard', 'sharpnessuserdef1', 'sharpnessuserdef2', 'sharpnessuserdef3',
+    'shootingmode', 'shutterbuttonafonbutton', 'shuttercurtainhack', 'shuttermode', 'shutterspeed',
+    'shutterspeedvalue', 'slicesgroupname', 'spatialfrequencyresponse', 'subseccreatedate', 'subsecdatetimeoriginal',
+    'subsecdigitized', 'subsecmodifydate', 'subsectime', 'subsectimeoriginal', 'superimposeddisplay',
+    'targetaperture', 'targetexposuretime', 'thumbnailimagevalidarea', 'tonecurve', 'url_list',
+    'userdef1picturestyle', 'userdef2picturestyle', 'userdef3picturestyle', 'validafpoints', 'wb_rggblevels',
+    'wb_rggblevelsauto', 'wb_rggblevelsasshot', 'wb_rggblevelscloudy', 'wb_rggblevelsdaylight', 'wb_rggblevelsflash',
+    'wb_rggblevelsfluorescent', 'wb_rggblevelskelvin', 'wb_rggblevelsmeasured', 'wb_rggblevelsshade', 'wb_rggblevelstungsten',
+    'wbbracketmode', 'writername', 'ycbcrpositioning',
 }
 
 
@@ -1287,7 +1281,7 @@ def process_file(file_path, relative_path, structured_warnings, structured_unide
 
     # --- KONSISTENZ-LOGIK FÜR VIDEO-DIMENSIONEN (VERSION 3 - ROBUST) ---
     final_mime_type_for_cleanup = final_unified_metadata.get("mime_type", "").lower()
-    known_video_suffixes = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v", ".3gp", ".mxf", ".r3d"}
+    known_video_suffixes = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v", ".3gp", ".mxf", ".r3d", ".m4v"}
     
     is_video_file = (final_mime_type_for_cleanup.startswith('video/') or 
                      file_path.suffix.lower() in known_video_suffixes)
@@ -1432,7 +1426,7 @@ def get_file_type_group(filepath):
     suffix = filepath.suffix.lower()
     image_suffixes = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".psd"}
     audio_suffixes = {".mp3", ".wav", ".flac", ".ogg", ".aac", ".m4a", ".wma", ".alac", ".aiff", ".aif", ".voc"}
-    video_suffixes = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".mxf", ".r3d"}
+    video_suffixes = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".mxf", ".r3d", ".m4v"}
     document_suffixes = {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".odt", ".ods", ".odp", ".rtf", ".txt", ".csv", ".eml", ".sam", ".mxl", ".html", ".htm", ".xhtml"}
     archive_suffixes = {".zip", ".rar", ".7z", ".tar", ".gz"}
 
