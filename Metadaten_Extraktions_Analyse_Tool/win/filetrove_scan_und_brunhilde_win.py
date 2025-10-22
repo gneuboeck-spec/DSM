@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
+
 #!/usr/bin/env python3
 import os
 import sys
@@ -44,6 +45,53 @@ BASE_DIR = Path(BASE_DIR)
 OUTPUT_XML = Path(OUTPUT_XML)
 YARA_RULES_FILE = Path(YARA_RULES_FILE)
 BRUNHILDE_OUTPUT_DIR = Path(BRUNHILDE_OUTPUT_DIR)
+
+# Die "Schwarze Liste" aller Tags, die aus der finalen XML-Ausgabe entfernt werden sollen.
+TAGS_TO_REMOVE = {
+    'about', 'addaspectratioinfo', 'addoriginaldecisiondata', 'aebautocancel', 'aebsequence',
+    'afareamode', 'afareaheights', 'afareawidths', 'afareaxpositions', 'afareaypositions',
+    'afassistbeam', 'afduringliveview', 'afimagewidth', 'afimageheight', 'afonaelockbuttonswitch',
+    'afpointinfocus', 'afpointselectionmethod', 'afpointsselected', 'api_', 'aperture',
+    'aperturevalue', 'app14flags0', 'app14flags1', 'autoexposurebracketing', 'autoiso',
+    'averageblacklevel', 'baseiso', 'bluebalance', 'bracketmode', 'cameraorientation',
+    'cameratemperature', 'canonexposuremode', 'canonfirmwareversion', 'canonflashmode', 'canonimageheight',
+    'canonimagesize', 'canonimagetype', 'canonimagewidth', 'canonmodelid', 'circleofconfusion',
+    'colormap', 'colordataversion', 'colortransform', 'colortempauto', 'colortempasshot',
+    'colortempcloudy', 'colortempdaylight', 'colortempflash', 'colortempfluorescent', 'colortempkelvin',
+    'colortempmeasured', 'colortempshade', 'colortemptungsten', 'colortone', 'componentsconfiguration',
+    'conditionalfec', 'continuousdrive', 'contrast', 'contraststandard', 'controlmode',
+    'croppedimageheight', 'croppedimagewidth', 'customrendered', 'dctencodeversion', 'dialdirectiontvav',
+    'directoryindex', 'documentid', 'dof', 'drivemode', 'dustremovaldata',
+    'easymode', 'exifversion', 'exposurelevelincrements', 'exposuremode', 'exposureprogram',
+    'exposuretime', 'fileindex', 'filenumber', 'filesource', 'flash',
+    'flashactivity', 'flashbits', 'flashexposurecomp', 'flashmeteringmode', 'flashpixversion',
+    'flashsyncspeedav', 'flashtype', 'fnumber', 'focusdistanceupper', 'focusdistancelower',
+    'focallength', 'focalplaneresolutionunit', 'focalplanexresolution', 'focalplaneyresolution', 'focalunits',
+    'focusingscreen', 'focusrange', 'fov', 'globalaltitude', 'globalangle',
+    'gpsversionid', 'hasrealmergeddata', 'highisonoisereduction', 'highlighttonepriority', 'hyperfocaldistance',
+    'image_orientation', 'internalserialnumber', 'interopindex', 'interopversion', 'iptcdigest',
+    'isoexpansion', 'isospeedincrements', 'lens', 'lens35efl', 'lensafstopbutton',
+    'lensdrivenoaf', 'lensid', 'lensmodel', 'lenstype', 'lightvalue',
+    'liveviewexposuresimulation', 'liveviewshooting', 'longexposurenoisereduction', 'longexposurenoisereduction2', 'macromode',
+    'make', 'maxaperture', 'maxfocallength', 'md5signature', 'measuredev',
+    'measuredev2', 'measuredrggb', 'megapixels', 'meteringmode', 'minaperture',
+    'minfocallength', 'mirrorlockup', 'noise', 'numafpoints', 'numslices',
+    'ownername', 'photoshopformat', 'photoshopquality', 'picturestyle', 'picturestylepc',
+    'picturestyleuserdef', 'printposition', 'printscale', 'printstyle', 'rawjpgsize',
+    'rawmeasuredrggb', 'readername', 'recordmode', 'redbalance', 'redeyereduction',
+    'safetyshift', 'saturation', 'scalefactor35efl', 'scenecapturetype', 'selftimer',
+    'sensorbottomborder', 'sensorheight', 'sensorleftborder', 'sensorrightborder', 'sensortopborder',
+    'sensorwidth', 'serialnumberformat', 'setbuttonwhenshooting', 'sharpnesslandscape', 'sharpnessmonochrome',
+    'sharpnessportrait', 'sharpnessstandard', 'sharpnessuserdef1', 'sharpnessuserdef2', 'sharpnessuserdef3',
+    'shootingmode', 'shutterbuttonafonbutton', 'shuttercurtainhack', 'shuttermode', 'shutterspeed',
+    'shutterspeedvalue', 'slicesgroupname', 'spatialfrequencyresponse', 'subseccreatedate', 'subsecdatetimeoriginal',
+    'subsecdigitized', 'subsecmodifydate', 'subsectime', 'subsectimeoriginal', 'superimposeddisplay',
+    'targetaperture', 'targetexposuretime', 'thumbnailimagevalidarea', 'tonecurve', 'url_list',
+    'userdef1picturestyle', 'userdef2picturestyle', 'userdef3picturestyle', 'validafpoints', 'wb_rggblevels',
+    'wb_rggblevelsauto', 'wb_rggblevelsasshot', 'wb_rggblevelscloudy', 'wb_rggblevelsdaylight', 'wb_rggblevelsflash',
+    'wb_rggblevelsfluorescent', 'wb_rggblevelskelvin', 'wb_rggblevelsmeasured', 'wb_rggblevelsshade', 'wb_rggblevelstungsten',
+    'wbbracketmode', 'writername', 'ycbcrpositioning',
+}
 
 # Sicherstellen, dass die YARA-Regeln existieren, bevor sie kompiliert werden
 if not Path(YARA_RULES_FILE).exists():
@@ -124,7 +172,7 @@ def run_command(command, env=None, stream_output=False):
     stdout_target = sys.stdout if stream_output else subprocess.PIPE
     stderr_target = sys.stderr if stream_output else subprocess.PIPE
     try:
-        result = subprocess.run(command, stdout=stdout_target, stderr=stderr_target, text=True, check=False, env=env, encoding='utf-8', errors='replace')
+        result = subprocess.run(command, stdout=stdout_target, stderr=stderr_target, text=True, check=False, env=env, encoding='utf-8', errors='replace', shell=True)
         return result.stdout, result.stderr, result.returncode
     except FileNotFoundError:
         print(f"Fehler: Befehl nicht gefunden: '{command[0]}'. Stellen Sie sicher, dass das Tool installiert und im PATH verfügbar ist.")
@@ -228,22 +276,25 @@ def extract_metadata_hachoir(filepath):
 def extract_pdf_info(filepath):
     try:
         reader = PdfReader(filepath)
+        # Die PDF-Version ist jetzt Teil der Metadaten, nicht mehr ein separates Attribut
         pdf_info = {
-            "pdf_version": reader.pdf_header_version,
             "pdf_num_pages": str(len(reader.pages))
         }
         doc_info = reader.metadata
         if doc_info:
+            # Die PDF-Version wird hier aus den Metadaten geholt
+            if doc_info.get('/Producer'):
+                # Heuristik: Oft enthält der Producer-String die Version.
+                # Eine direktere Methode gibt es in neueren Versionen nicht immer.
+                # ExifTool ist hier zuverlässiger, dies ist ein Fallback.
+                pass # Wir verlassen uns auf ExifTool, das zuverlässiger ist.
+
             if '/Keywords' in doc_info:
                 pdf_info['document_keywords'] = str(doc_info['/Keywords'])
             if '/CreationDate' in doc_info:
-                # Formatierung hier, bevor es in all_raw_metadata geht
                 pdf_info['asset_created_date'] = format_date_to_iso(str(doc_info['/CreationDate']))
             if '/ModDate' in doc_info:
-                # Formatierung hier, bevor es in all_raw_metadata geht
                 pdf_info['asset_modified_date'] = format_date_to_iso(str(doc_info['/ModDate']))
-
-            # Extrahiere Creator und Producer aus PDF-Metadaten
             if '/Creator' in doc_info:
                 pdf_info['pdf_creator'] = str(doc_info['/Creator'])
             if '/Producer' in doc_info:
@@ -296,6 +347,12 @@ def extract_mutagen_info(filepath):
 
 
 def extract_image_info(filepath):
+    # NEU: Prüfen, ob es eine SVG-Datei ist. Wenn ja, Pillow gar nicht erst versuchen.
+    if str(filepath).lower().endswith('.svg'):
+        # Für SVGs verlassen wir uns auf ExifTool, das diese besser verarbeiten kann.
+        # Pillow würde hier einen Fehler werfen.
+        return {}
+        
     try:
         with Image.open(filepath) as img:
             width, height = img.width, img.height
@@ -517,11 +574,28 @@ def extract_brunhilde_info(source_path):
         print(f"\n--- Führe Brunhilde aus für {source_path} (mit ClamAV)... ---")
         print(f"Befehl: {' '.join(brunhilde_command)}")
         print(f"Verwendeter PATH für Brunhilde: {os.environ.get('PATH', 'PATH not found')}")  # Debug-Ausgabe des PATH
-
+        brunhilde_command_str = ' '.join(brunhilde_command)
         stdout, stderr, returncode = run_command(brunhilde_command, env=os.environ.copy(), stream_output=True)
 
         print(f"Brunhilde Exit Code: {returncode}")
         print(f"--- Brunhilde-Ausführung beendet ---")
+
+        try:
+            tree_output_file = brunhilde_report_path / "tree.txt"
+            print(f"\n--- Erstelle 'tree.txt' manuell als Workaround für Brunhilde ---")
+            
+            # Wir verwenden 'cmd /c' für maximale Kompatibilität unter Windows
+            tree_command = f'cmd /c tree "{str(source_path)}" /A /F > "{str(tree_output_file)}"'
+            
+            print(f"Führe Befehl aus: {tree_command}")
+            subprocess.run(tree_command, shell=True, check=True)
+            
+            if tree_output_file.exists():
+                print(f"--- 'tree.txt' erfolgreich erstellt unter: {tree_output_file} ---")
+            else:
+                print(f"--- FEHLER: 'tree.txt' konnte nicht manuell erstellt werden. ---")
+        except Exception as e:
+            print(f"--- FEHLER beim manuellen Ausführen von 'tree.exe': {e} ---")
 
         # Debug: Inhalt des temporären/Ausgabe-Verzeichnisses auflisten
         print(f"\n--- Debug: Contents of Brunhilde output directory ({brunhilde_output_base_dir}) ---")
@@ -1287,7 +1361,7 @@ def process_file(file_path, relative_path, structured_warnings, structured_unide
 
     # --- KONSISTENZ-LOGIK FÜR VIDEO-DIMENSIONEN (VERSION 3 - ROBUST) ---
     final_mime_type_for_cleanup = final_unified_metadata.get("mime_type", "").lower()
-    known_video_suffixes = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v", ".3gp", ".mxf", ".r3d"}
+    known_video_suffixes = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v", ".3gp", ".mxf", ".r3d", ".m4v"}
 
     is_video_file = (final_mime_type_for_cleanup.startswith('video/') or
                      file_path.suffix.lower() in known_video_suffixes)
@@ -1332,11 +1406,11 @@ def process_file(file_path, relative_path, structured_warnings, structured_unide
 
 
     print(f"\n--- Vereinheitlichte Metadaten für {relative_path} (final) ---")
-    for k, v in final_unified_metadata.items():
+    for k, v in sorted(final_unified_metadata.items()):
         print(f"  {k}: {v}")
     print("--------------------------------------------------")
 
-    add_metadata_to_xml(file_elem, sorted_metadata)
+    add_metadata_to_xml(file_elem, final_unified_metadata)
 
     file_path_str = str(file_path)
     if file_path_str in structured_warnings:
@@ -1434,7 +1508,7 @@ def get_file_type_group(filepath):
     suffix = filepath.suffix.lower()
     image_suffixes = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".psd"}
     audio_suffixes = {".mp3", ".wav", ".flac", ".ogg", ".aac", ".m4a", ".wma", ".alac", ".aiff", ".aif", ".voc"}
-    video_suffixes = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".mxf", ".r3d"}
+    video_suffixes = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".mxf", ".r3d", ".m4v"}
     document_suffixes = {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".odt", ".ods", ".odp", ".rtf", ".txt", ".csv", ".eml", ".sam", ".mxl", ".html", ".htm", ".xhtml"}
     archive_suffixes = {".zip", ".rar", ".7z", ".tar", ".gz"}
 
