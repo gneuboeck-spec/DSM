@@ -54,7 +54,6 @@ BRUNHILDE_OUTPUT_DIR = "/Users/IhrName/Desktop/Brunnhilde_Reports"
 OUTPUT_JSON = "/Users/IhrName/Desktop/brunnhilde_summary.json"
 
 für Windows:
-
 BASE_DIR = r"C:\Users\IhrName\Desktop\Mein_Archiv"
 BRUNHILDE_OUTPUT_DIR = r"C:\Users\IhrName\Desktop\Brunnhilde_Reports"
 OUTPUT_JSON = r"C:\Users\IhrName\Desktop\brunnhilde_summary.json"
