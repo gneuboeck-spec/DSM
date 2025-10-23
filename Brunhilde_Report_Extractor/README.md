@@ -45,13 +45,14 @@ Vor der Ausführung müssen die Pfade am Anfang des Skripts an Ihre Umgebung ang
 *   **`BRUNHILDE_OUTPUT_DIR`**: Ein permanenter Ordner für die detaillierten HTML-, CSV- und `tree`-Berichte, die Brunnhilde erstellt.
 *   **`OUTPUT_JSON`**: Der Pfad, an dem die finale JSON-Zusammenfassung gespeichert werden soll.
 
-#### Beispiel für macOS:
+#### Beispiel für:
+für macOS:
 ```python
 BASE_DIR = "/Users/IhrName/Desktop/Mein_Archiv"
 BRUNHILDE_OUTPUT_DIR = "/Users/IhrName/Desktop/Brunnhilde_Reports"
 OUTPUT_JSON = "/Users/IhrName/Desktop/brunnhilde_summary.json"
 
-#### Beispiel für Windows:
+für Windows:
 ```python
 BASE_DIR = r"C:\Users\IhrName\Desktop\Mein_Archiv"
 BRUNHILDE_OUTPUT_DIR = r"C:\Users\IhrName\Desktop\Brunnhilde_Reports"
