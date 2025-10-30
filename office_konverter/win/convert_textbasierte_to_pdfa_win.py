@@ -1,7 +1,3 @@
-# SPDX-FileCopyrightText: 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
-#
-# SPDX-License-Identifier: MIT
-
 import os
 import subprocess
 from datetime import datetime
@@ -15,7 +11,7 @@ import sys
 libreoffice_path = "C:/Program Files/LibreOffice/program/soffice.exe"
 
 # 2. Eingabe-Ordner (Hier deinen gewünschten Pfad eintragen)
-input_folder = "C:/Users/digit/Desktop/Texdateien_konvertieren"
+input_folder = r"C:\Users\digit\Desktop\AC15993802\ZPH1705-120_04-12-03-01"
 
 # 3. Pfad für die Log-Datei (wird automatisch im Eingabe-Ordner erstellt)
 log_path = os.path.join(input_folder, "konvertierungslog.txt")
@@ -32,7 +28,7 @@ conversion_map = {
     ".abw": ("odt", "writer_pdf_Export"), ".sdw": ("odt", "writer_pdf_Export"),
     ".wri": ("odt", "writer_pdf_Export"), ".html": ("odt", "writer_pdf_Export"),
     ".htm": ("odt", "writer_pdf_Export"), ".txt": ("odt", "writer_pdf_Export"),
-    ".pages": ("odt", "writer_pdf_Export"),
+    ".pages": ("odt", "writer_pdf_Export"), ".wbk": ("odt", "writer_pdf_Export"),
     ".cwk": ("odt", "writer_pdf_Export"), ".cws": ("odt", "writer_pdf_Export"),
 
     # --- Tabellenkalkulationen (Ziel: ODS) ---
