@@ -1,12 +1,12 @@
 # Universelles Bereinigungsskript für Dateisammlungen
 
-Dieses Verzeichnis enthält ein Python-Skript zur aggressiven und permanenten Bereinigung von Dateiverzeichnissen.
+Dieses Verzeichnis enthält ein Python-Skript zur aggressiven und permanenten Bereinigung von Dateiverzeichnissen. Es wurde um wichtige Sicherheitsfunktionen erweitert, um eine kontrollierte Ausführung zu ermöglichen.
 
 ## ⚠️ Wichtige Warnung
 
-Dieses Skript ist ein **destruktives Werkzeug**. Es löscht Dateien und Ordner **permanent und ohne Sicherheitsabfrage**. Es wurde für den speziellen Zweck entwickelt, digitale Nachlässe oder komplexe Dateisammlungen von System-Ballast, temporären Dateien und als irrelevant eingestuften Formaten zu bereinigen.
+Dieses Skript ist ein **destruktives Werkzeug**. Es löscht Dateien und Ordner **permanent**. Obwohl es einen Testlauf-Modus gibt, sollten Sie es niemals auf wichtigen Originaldaten ausführen.
 
-**Führen Sie dieses Skript niemals auf wichtigen Originaldaten aus! Arbeiten Sie immer mit einer Kopie Ihrer Daten.** Die Autoren übernehmen keine Haftung für Datenverlust.
+**Arbeiten Sie immer mit einer Kopie Ihrer Daten!** Die Autoren übernehmen keine Haftung für Datenverlust.
 
 ---
 
@@ -23,56 +23,35 @@ Das Skript durchsucht einen Quellordner und alle seine Unterordner rekursiv und 
     Eine spezifische Liste von Schlüsselwörtern (z.B. `konvertierungslog`) wird verwendet, um Log-Dateien von vorherigen Konvertierungsprozessen zu löschen.
 
 3.  **Löschung von versteckten Systemdateien:**
-    Das Skript zielt auf plattformübergreifende versteckte Dateien ab:
-    *   **macOS:** `.DS_Store`, `._*`-Dateien (AppleDouble) und andere.
-    *   **Allgemein (Unix-artig):** Alle Dateien, deren Name mit einem Punkt (`.`) beginnt.
-    *   **Temporäre Office-Dateien:** Alle Dateien, deren Name mit einer Tilde (`~`) beginnt.
+    Das Skript zielt auf plattformspezifische und allgemeine versteckte Dateien ab:
+    *   **macOS:** `.DS_Store`, `._*`-Dateien (AppleDouble) etc.
+    *   **Windows:** `Thumbs.db`, `desktop.ini`.
+    *   **Allgemein:** Dateien, deren Name mit einem Punkt (`.`) oder einer Tilde (`~`) beginnt.
 
 4.  **Löschung leerer Ordner:**
     Nachdem die Dateien entfernt wurden, durchsucht das Skript den Verzeichnisbaum von unten nach oben und löscht alle Ordner, die nun leer sind.
 
 ---
 
-## Technische Voraussetzungen
+## Neue Funktionen: Testlauf und Report-Erstellung
 
-Das Skript ist extrem schlank und hat minimale Anforderungen.
+Um die destruktive Natur des Skripts kontrollierbar zu machen, wurden zwei Schlüsselfunktionen hinzugefügt:
 
-*   **Python:** Version 3.6 oder neuer.
-*   **Externe Bibliotheken:** Keine. Das Skript verwendet ausschließlich die Python-Standardbibliothek `os`.
-*   **Betriebssystem:** Plattformunabhängig. Funktioniert auf macOS, Windows und Linux.
+### 1. Testlauf-Modus (`dry_run`)
 
----
+Dies ist der wichtigste Sicherheitsschalter. Wenn `dry_run` auf `True` gesetzt ist, führt das Skript eine **vollständige Simulation** durch:
+*   Es werden **keine Dateien oder Ordner gelöscht**.
+*   Das Skript gibt in der Konsole genau aus, welche Aktionen es durchführen *würde*.
+*   Dies ermöglicht eine gefahrlose Überprüfung der Regeln und der zu löschenden Dateien.
 
-## Konfiguration im Skript
+### 2. Report-Datei (`create_log_file`)
 
-Vor der Ausführung müssen die Konfigurationslisten am Anfang des Skripts überprüft und der Hauptpfad angepasst werden.
+Wenn diese Option auf `True` gesetzt ist, erstellt das Skript im Zielverzeichnis eine Textdatei (z.B. `bereinigungs_report.txt`). Diese Datei enthält eine übersichtliche, nach Häufigkeit sortierte Liste aller Dateitypen (Endungen), die gelöscht wurden oder im Testlauf gelöscht würden. Dies ist ideal für eine schnelle Analyse.
 
-*   **`base_directory`**: Dies muss der **absolute Pfad** zum Hauptverzeichnis sein, das bereinigt werden soll.
-*   **`delete_keywords`**: Kann bei Bedarf um weitere Schlüsselwörter ergänzt werden.
-*   **`mac_hidden_files`**: Liste spezifischer macOS-Systemdateien.
-*   **`delete_extensions`**: Die Hauptliste der zu löschenden Dateiendungen. **Änderungen an dieser Liste haben die größten Auswirkungen und sollten mit äußerster Vorsicht vorgenommen werden.**
-
-**Beispiel für macOS:**
-```python
-base_directory = "/Users/IhrBenutzername/Desktop/Kopie_des_Projekts"
-```
-**Beispiel für Windows:**
-```python
-base_directory = "C:/Users/IhrBenutzername/Desktop/Kopie_des_Projekts"
-```
-
----
-
-## Ausführung
-
-1.  **DATEN SICHERN!** Erstellen Sie eine vollständige Kopie des Verzeichnisses, das Sie bereinigen möchten.
-2.  Passen Sie die `base_directory`-Variable im Skript an den Pfad Ihrer **Kopie** an.
-3.  Öffnen Sie ein Terminal (macOS) oder eine Eingabeaufforderung (Windows).
-4.  Führen Sie das Skript mit dem Python-Interpreter aus.
-
-**Beispiel:**
-```bash
-python3 /pfad/zum/skript/cleanup.py
-```
-
-Das Skript beginnt sofort mit dem Löschvorgang und gibt jeden Schritt (erfolgreich gelöschte Datei/Ordner oder Fehler) auf der Konsole aus. Es gibt **keine "Sind Sie sicher?"-Abfrage**.
+**Beispielinhalt einer Report-Datei:**
+```Anzahl und Typ der zu löschenden Dateien
+========================================
+210     .fot
+15      .drv
+4       .tmp
+...
