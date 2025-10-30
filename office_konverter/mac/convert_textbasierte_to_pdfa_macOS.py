@@ -25,7 +25,7 @@ conversion_map = {
     ".abw": ("odt", "writer_pdf_Export"), ".sdw": ("odt", "writer_pdf_Export"),
     ".wri": ("odt", "writer_pdf_Export"), ".html": ("odt", "writer_pdf_Export"),
     ".htm": ("odt", "writer_pdf_Export"), ".txt": ("odt", "writer_pdf_Export"),
-    ".pages": ("odt", "writer_pdf_Export"),
+    ".pages": ("odt", "writer_pdf_Export"), ".wbk": ("odt", "writer_pdf_Export"),
     ".cwk": ("odt", "writer_pdf_Export"), ".cws": ("odt", "writer_pdf_Export"),
 
     # --- Tabellenkalkulationen (Ziel: ODS) ---
