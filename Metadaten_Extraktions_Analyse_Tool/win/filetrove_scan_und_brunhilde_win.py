@@ -25,14 +25,14 @@ import shutil  # Für das Entfernen temporärer Verzeichnisse
 import csv  # Für das Parsen von CSV-Dateien von Brunhilde
 
 # Basispfade setzen - Hier sollten sinnvolle Windows-Standardwerte stehen oder Abfragen erfolgen
-BASE_DIR = sys.argv[1] if len(sys.argv) > 1 else "C:\\Users\\digit\\Desktop\\Test_Metadaten auslesen"
-OUTPUT_XML = "C:\\Users\\digit\\Desktop\\FileTrove_output.xml"
+BASE_DIR = sys.argv[1] if len(sys.argv) > 1 else "C:\\Users\\digit\\Desktop\\AC15993802\\ZPH1705-120_04-12-03-01\\2_ZPH1705-120_04-12-03-01_extracted-files\\Files"
+OUTPUT_XML = "C:\\Users\\digit\\Desktop\\AC15993802\\ZPH1705-120_04-12-03-01\\2_ZPH1705-120_04-12-03-01_extracted-files\\FileTrove_output.xml"
 YARA_RULES_FILE = "C:\\Users\\digit\\Desktop\\Skripte\\rules.yar"
 
 # Konfigurationspfad für Brunhilde-Ausgabe
 # Wenn leer, wird ein temporäres Verzeichnis verwendet, das nach der Ausführung gelöscht wird.
 # Beispiel: BRUNHILDE_OUTPUT_DIR = "C:\\Users\\digit\\Desktop\\Brunhilde"
-BRUNHILDE_OUTPUT_DIR = "C:\\Users\\digit\\Desktop\\Brunhilde"
+BRUNHILDE_OUTPUT_DIR = "C:\\Users\\digit\\Desktop\\AC15993802\\ZPH1705-120_04-12-03-01\\2_ZPH1705-120_04-12-03-01_extracted-files\\Brunhilde"
 
 # Pfade zu externen Tools - ggf. anpassen
 EXIFTOOL_PATH = "C:\\Program Files\\ExifTool\\exiftool.exe"  # Anpassen, falls nötig
