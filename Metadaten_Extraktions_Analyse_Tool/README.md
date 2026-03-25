@@ -1,95 +1,92 @@
-# FileTrove: Umfassendes Metadaten-Extraktions- und Analyse-Tool
+# Umfassender Metadaten-Extraktor (Filetrove XML)
 
-Dieses Verzeichnis enthält ein hochspezialisiertes Python-Skript (`filetrove.py`) zur tiefgehenden Analyse und Extraktion von Metadaten aus einer Vielzahl von Dateiformaten. Das Skript orchestriert eine Kette von professionellen Kommandozeilen-Tools, aggregiert deren Ergebnisse, vereinheitlicht die Daten und gibt sie als strukturierte XML-Datei aus.
+Dieses Skript ist ein hochentwickeltes Werkzeug zur tiefgehenden Analyse und Metadaten-Extraktion für eine Vielzahl von Dateiformaten. Es aggregiert Informationen aus einer Reihe von spezialisierten Kommandozeilen-Tools, vereinheitlicht die gesammelten Daten in ein konsistentes Schema und erstellt eine detaillierte, maschinenlesbare XML-Indexdatei (`.index`) für einen gesamten Datenträger.
 
-## Zweck des Skripts
+Das Skript ist das Herzstück des Archivierungsworkflows und darauf ausgelegt, eine möglichst vollständige technische und deskriptive Dokumentation für jede einzelne Datei zu generieren. Es wird, wie die anderen Skripte im Workflow, über eine `start.bat` mit dynamischen Pfaden gesteuert.
 
-Das Hauptziel von "FileTrove" ist die Erstellung eines detaillierten, maschinenlesbaren "Steckbriefs" für jede Datei in einer Sammlung. Dies ist besonders nützlich für die digitale Archivierung, forensische Analysen und die Katalogisierung großer Datenmengen.
+## Hauptfunktionen
 
-**Der Prozess im Überblick:**
+*   **Umfassende Metadaten-Extraktion:** Integriert eine Vielzahl von Werkzeugen, um ein breites Spektrum an Metadaten abzudecken:
+    *   **ExifTool:** Für EXIF-, IPTC-, XMP- und herstellerspezifische Metadaten.
+    *   **FFprobe:** Für technische Details von Audio- und Videodateien (Codecs, Bitrate, Dauer etc.).
+    *   **Siegfried:** Zur robusten Dateiformat-Identifikation via PRONOM-Signaturen.
+    *   **Mutagen:** Für Audio-Tags in Formaten wie MP3, FLAC, WAV etc.
+    *   **Pillow (PIL):** Für technische Bildinformationen (Dimensionen, Farbmodus, ICC-Profile).
+    *   **PyPDF2:** Zum Auslesen von PDF-spezifischen Metadaten (Seitenzahl, Erstellungsdatum).
+    *   **YARA:** Zum Scannen von Dateien auf Basis von benutzerdefinierten Regeln (z.B. zur PII-Erkennung oder zur Identifikation spezifischer textbasierter Formate).
+    *   **Brunnhilde:** Führt eine initiale, übergreifende Analyse des gesamten Verzeichnisses durch, um globale Statistiken, Warnungen und nicht identifizierte Dateien zu erfassen.
 
-1.  **Globale Analyse:** Das Skript startet mit einem Gesamtdurchlauf über den Quellordner mithilfe von **Brunhilde**, um eine Übersicht über Dateiformate, MIME-Typen und potenzielle Probleme (z.B. Viren, Format-Inkonsistenzen) zu erhalten.
-2.  **Einzeldatei-Extraktion:** Jede Datei wird anschließend einzeln mit einer Reihe von spezialisierten Werkzeugen analysiert, um technische, beschreibende und strukturelle Metadaten zu extrahieren.
-3.  **Intelligente Aggregation & Vereinheitlichung:** Die oft redundanten und unterschiedlich benannten Roh-Metadaten aus allen Quellen werden in einem zentralen Schritt zusammengeführt, bereinigt und auf ein einheitliches, standardisiertes Vokabular abgebildet.
-4.  **Validitätsprüfung:** Das Skript führt eine "Best-Effort"-Validierung durch, um zu beurteilen, ob eine Datei wahrscheinlich intakt oder beschädigt ist.
-5.  **XML-Ausgabe:** Alle gesammelten und aufbereiteten Informationen werden in einer einzigen, gut strukturierten XML-Datei (`FileTrove_output.xml`) gespeichert.
+*   **Intelligente Metadaten-Vereinheitlichung:** Das Herzstück des Skripts. Eine komplexe Logik führt die Rohdaten aller Tools zusammen, entfernt Duplikate, priorisiert die verlässlichsten Quellen und mappt tausende verschiedene Metadaten-Tags auf ein sauberes, konsistentes Set von XML-Tags.
+
+*   **Integrierte Validierungs-Checks:** Führt grundlegende Integritätsprüfungen für gängige Formate durch (z.B. PDF-Lesbarkeit, ZIP-Archiv-Integrität, Bild-Verifizierung), um den Zustand der Dateien zu bewerten.
+
+*   **Strukturierte XML-Ausgabe:** Erzeugt eine einzige, gut formatierte `.index`-XML-Datei, die für jede Datei einen `<file>`-Eintrag mit allen extrahierten und vereinheitlichten Metadaten enthält.
 
 ---
 
 ## Technische Voraussetzungen
 
-Dieses Skript ist ein "Power-User"-Werkzeug und hat eine **umfangreiche Liste an Abhängigkeiten**. Alle der folgenden Komponenten müssen installiert und korrekt konfiguriert sein.
+Die folgenden Programme und Python-Bibliotheken **MÜSSEN** auf dem System installiert und korrekt konfiguriert sein, damit das Skript funktioniert.
 
-### 1. Python
-*   **Version:** 3.9 oder neuer.
-*   **Grund:** Das Skript verwendet Funktionen (`ET.indent`) und Typ-Hinweise, die in neueren Python-Versionen Standard sind.
-*   **Bibliotheken:** Alle folgenden Pakete müssen in einer **virtuellen Umgebung (`venv`)** installiert werden. Erstellen Sie dazu eine `requirements.txt`-Datei mit dem folgenden Inhalt und führen Sie `pip install -r requirements.txt` aus.
-    ```
-    yara-python
-    mutagen
-    PyPDF2
-    Pillow
-    chardet
-    brunnhilde
-    ```
+### Python-Bibliotheken
+Diese müssen über `pip` installiert werden:
+```bash
+pip install yara-python mutagen pypdf2 pillow chardet
+### Externe Kommandozeilen-Tools
 
-### 2. Externe Kommandozeilen-Tools
+Die Pfade zu diesen Programmen müssen am Anfang des Skripts korrekt eingetragen werden.
 
-Alle der folgenden Programme müssen installiert und systemweit verfügbar sein (d.h. ihre Verzeichnisse müssen zur **Systemumgebungsvariable `PATH`** hinzugefügt werden).
-
-| Werkzeug | Zweck | Installationshinweis |
-| :--- | :--- | :--- |
-| **Brunhilde** | Globale Verzeichnis-Analyse, Berichterstattung | `pip install brunnhilde` |
-| **Siegfried** | Format-Identifikation (wird von Brunhilde genutzt) | **macOS:** `brew install siegfried` / **Windows:** `sf.exe` von der Webseite herunterladen |
-| **ExifTool** | Umfassende Metadaten-Extraktion | Von der offiziellen Webseite herunterladen |
-| **FFmpeg** | Analyse von Audio- & Videodateien (`ffprobe`) | **macOS:** `brew install ffmpeg` / **Windows:** Von [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) laden |
-| **ClamAV** | Virenscan (wird von Brunhilde genutzt) | **macOS:** `brew install clamav` / **Windows:** Installer von der Webseite |
-| **YARA** | Mustererkennung in Dateien | Die `yara-python`-Bibliothek benötigt die C-Bibliotheken von YARA. **macOS:** `brew install yara` |
-| **Hachoir** | Zusätzliche Metadaten-Extraktion | `pip install hachoir`, stellt `hachoir-metadata` bereit. |
+1.  **YARA:** Das Regel-Kompilierungswerkzeug. Benötigt wird eine `.yar`-Regeldatei.
+2.  **ExifTool:** Das Standardwerkzeug für eingebettete Metadaten.
+3.  **FFmpeg:** Benötigt wird die `ffprobe.exe` zur Analyse von Mediendateien.
+4.  **Hachoir:** Ein weiteres Metadaten-Extraktionstool (`hachoir-metadata.exe`).
+5.  **Siegfried:** Das primäre Werkzeug zur Dateiformat-Identifikation (`sf.exe`).
 
 ---
 
 ## Konfiguration im Skript
 
-Vor der Ausführung müssen die Pfade am Anfang des Skripts für das jeweilige Betriebssystem angepasst werden.
+Vor der ersten Ausführung müssen die Pfade zu **allen** externen Werkzeugen am Anfang des Skripts überprüft und an die lokale Systemumgebung angepasst werden.
+# --- 1. System-Pfade und Listen (manuell anpassen, falls nötig) ---
+YARA_RULES_FILE = "C:\\Users\\digit\\Desktop\\Skripte\\rules.yar"
+EXIFTOOL_PATH = "C:\\Program Files\\ExifTool\\exiftool.exe"
+FFPROBE_PATH = "C:\\Program Files\\ffmpeg\\ffprobe.exe"
+HACHOIR_METADATA_PATH = "C:\\Users\\digit\\.venv\\Scripts\\hachoir-metadata.exe"
+SIEGFRIED_PATH = "C:\\Program Files\\Siegfried\\sf.exe"
 
-*   **`BASE_DIR`**: Der absolute Pfad zum Hauptordner, der analysiert werden soll. Kann auch als Kommandozeilen-Argument übergeben werden.
-*   **`OUTPUT_XML`**: Der Pfad, an dem die finale XML-Ausgabedatei gespeichert werden soll.
-*   **`YARA_RULES_FILE`**: Der Pfad zu Ihrer `.yar`-Regeldatei für YARA.
-*   **`BRUNHILDE_OUTPUT_DIR`**: (Optional) Ein permanenter Ordner für die detaillierten Berichte, die Brunhilde erstellt.
+### Erwartete Ordnerstruktur
 
-**Beispiel für macOS:**
-```python
-BASE_DIR = "/Users/IhrName/Desktop/Mein_Archiv"
-OUTPUT_XML = "/Users/IhrName/Desktop/FileTrove_output.xml"
-# ... etc.
-```
+Das Skript benötigt die folgende Verzeichnisstruktur im `Documents`-Ordner des Benutzers:
+Documents
+└── Datentraeger_sichern
+    └── [AC-Nummer]
+        └── [Datenträger-ID]
+            └── 3_[Datenträger-ID]_for-transfer
+                ├── Files  <-- AUS DIESEM ORDNER WERDEN DATEIEN ANALYSIERT
+                └── (Hier wird die .index XML-Datei erstellt)
 
-**Beispiel für Windows:**
-```python
-# Verwenden Sie os.path.join für Kompatibilität
-desktop = os.path.join(os.path.expanduser("~"), "Desktop")
-BASE_DIR = os.path.join(desktop, "Mein_Archiv")
-OUTPUT_XML = os.path.join(desktop, "FileTrove_output.xml")
-# ... etc.
-```
-
----
+*   **`[AC-Nummer]`**: Die Haupt-Archivierungsnummer des Projekts.
+*   **`[Datenträger-ID]`**: Die eindeutige ID des zu verarbeitenden Datenträgers.
 
 ## Ausführung
 
-1.  **Vorbereitung:** Stellen Sie sicher, dass **alle** oben genannten Voraussetzungen (Python-Pakete in einer `venv`, externe Tools im `PATH`) erfüllt sind.
-2.  **Virtuelle Umgebung aktivieren:** Öffnen Sie ein Terminal oder eine PowerShell und aktivieren Sie Ihre `venv`.
-    *   **macOS:** `source /pfad/zur/venv/bin/activate`
-    *   **Windows:** `C:\pfad\zur\venv\Scripts\activate`
-3.  **Skript starten:** Führen Sie das Skript mit dem Python-Interpreter aus.
-    *   **Standard-Ausführung (verwendet `BASE_DIR` aus dem Skript):**
-        ```bash
-        python3 filetrove_scan_und_brunhilde.py
-        ```
-    *   **Flexible Ausführung (analysiert einen anderen Ordner):**
-        ```bash
-        python3 filetrove_scan_und_brunhilde.py "/pfad/zu/einem/anderen/Ordner"
-        ```
+Das Skript ist für den Start über eine Wrapper-Datei (z.B. eine `start.bat`) konzipiert, welche die `AC-Nummer` und `Datenträger-ID` als Argumente übergibt.
 
-Das Skript ist sehr gibt seinen Fortschritt sowie eventuelle Fehler live auf der Konsole aus. Der Prozess kann je nach Größe des Quellordners sehr lange dauern.
+**Beispielhafter Aufruf in einer `start.bat`:**
+@echo off
+set AC_NUMBER=AC_0001
+set DISK_ID=CD_01
+python metadata_extractor_skript.py %AC_NUMBER% %DISK_ID%
+pause
+
+### Ablauf der Ausführung
+
+1.  **Validierung:** Das Skript prüft die übergebenen Argumente, die Ordnerstruktur und die Existenz aller konfigurierten externen Tools.
+2.  **Globale Analyse:** Zuerst wird **Brunnhilde** auf das gesamte `Files`-Verzeichnis angewendet, um eine Übersicht (Formatstatistiken, Warnungen, etc.) zu erstellen.
+3.  **Iterative Verarbeitung:** Das Skript durchläuft nun jede einzelne Datei im `Files`-Verzeichnis.
+4.  **Metadaten-Extraktion (pro Datei):** Für jede Datei wird eine Kaskade von Extraktions-Tools (Siegfried, ExifTool, FFprobe, etc.) ausgeführt. Alle Roh-Metadaten werden gesammelt.
+5.  **Metadaten-Vereinheitlichung:** Die gesammelten Roh-Metadaten werden durch die `unify_metadata_keys`-Funktion verarbeitet, um ein sauberes, standardisiertes Set von Schlüssel-Wert-Paaren zu erzeugen.
+6.  **Validierung (pro Datei):** Es werden grundlegende Integritätsprüfungen durchgeführt.
+7.  **XML-Generierung:** Die vereinheitlichten Metadaten werden als XML-Tags unter einem `<file>`-Element zusammengefasst und dem Haupt-XML-Baum hinzugefügt.
+8.  **Finalisierung:** Nachdem alle Dateien verarbeitet wurden, wird der vollständige XML-Baum in die finale `.index`-Datei geschrieben.
+9.  **Abschluss:** Das Skript fragt, ob der Zielordner im Datei-Explorer geöffnet werden soll.

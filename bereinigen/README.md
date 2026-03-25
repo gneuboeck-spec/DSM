@@ -1,57 +1,91 @@
-# Universelles Bereinigungsskript für Dateisammlungen
+# Automatisches Bereinigungsskript
 
-Dieses Verzeichnis enthält ein Python-Skript zur aggressiven und permanenten Bereinigung von Dateiverzeichnissen. Es wurde um wichtige Sicherheitsfunktionen erweitert, um eine kontrollierte Ausführung zu ermöglichen.
+Dieses Skript dient zur automatisierten und tiefgehenden Bereinigung von Verzeichnissen. Es wurde entwickelt, um Dateistrukturen (z.B. von alten Datenträgern) für die Archivierung vorzubereiten, indem es eine Vielzahl von Systemdateien, temporären Dateien, ausführbaren Programmen und sonstigem "Datenmüll" entfernt.
 
-## ⚠️ Wichtige Warnung
+Das Skript ist für die Integration in eine vordefinierte Ordnerstruktur konzipiert und wird über Kommandozeilenargumente gesteuert, typischerweise durch eine Start-Datei wie `start.bat`.
 
-Dieses Skript ist ein **destruktives Werkzeug**. Es löscht Dateien und Ordner **permanent**. Obwohl es einen Testlauf-Modus gibt, sollten Sie es niemals auf wichtigen Originaldaten ausführen.
+## Hauptfunktionen
 
-**Arbeiten Sie immer mit einer Kopie Ihrer Daten!** Die Autoren übernehmen keine Haftung für Datenverlust.
-
----
-
-## Zweck des Skripts
-
-Das Skript durchsucht einen Quellordner und alle seine Unterordner rekursiv und wendet eine Reihe von vordefinierten Regeln an, um unerwünschte Dateien zu löschen. Anschließend entfernt es alle Verzeichnisse, die durch den Prozess leer geworden sind.
-
-**Die Bereinigung erfolgt auf Basis von vier Hauptkriterien:**
-
-1.  **Löschung nach Dateiendung:**
-    Eine sehr umfangreiche, kuratierte Liste von über 200 Dateiendungen (`.exe`, `.dll`, `.tmp`, `.bak`, `.log` etc.) wird verwendet, um System-, Cache-, temporäre und veraltete Dateien zu entfernen.
-
-2.  **Löschung nach Schlüsselwort im Namen:**
-    Eine spezifische Liste von Schlüsselwörtern (z.B. `konvertierungslog`) wird verwendet, um Log-Dateien von vorherigen Konvertierungsprozessen zu löschen.
-
-3.  **Löschung von versteckten Systemdateien:**
-    Das Skript zielt auf plattformspezifische und allgemeine versteckte Dateien ab:
-    *   **macOS:** `.DS_Store`, `._*`-Dateien (AppleDouble) etc.
-    *   **Windows:** `Thumbs.db`, `desktop.ini`.
-    *   **Allgemein:** Dateien, deren Name mit einem Punkt (`.`) oder einer Tilde (`~`) beginnt.
-
-4.  **Löschung leerer Ordner:**
-    Nachdem die Dateien entfernt wurden, durchsucht das Skript den Verzeichnisbaum von unten nach oben und löscht alle Ordner, die nun leer sind.
+*   **Dynamische Pfad-Konfiguration:** Das Skript erfordert keine manuelle Bearbeitung von Pfaden im Quellcode. Alle Pfade werden dynamisch basierend auf einer `AC-Nummer` und einer `Datenträger-ID` generiert.
+*   **Umfassende Löschkriterien:** Dateien werden anhand einer umfangreichen Liste von Dateiendungen, Schlüsselwörtern im Namen sowie typischen Mustern für versteckte oder temporäre Dateien identifiziert.
+*   **Sicherheitsmechanismen:**
+    *   **Testlauf (`Dry Run`):** Kann in einem reinen Simulationsmodus ausgeführt werden, der anzeigt, was gelöscht *würde*, ohne tatsächlich Änderungen vorzunehmen.
+    *   **Vorschau-Protokoll:** Erstellt vor dem Löschen eine detaillierte Log-Datei aller zur Löschung identifizierten Elemente.
+    *   **Bestätigungsabfrage:** Fordert vor dem Start des eigentlichen Löschvorgangs eine explizite Bestätigung vom Benutzer an.
+*   **Detaillierte Protokollierung:** Erstellt nach Abschluss ein finales Protokoll, das alle tatsächlich durchgeführten Löschaktionen dokumentiert.
+*   **Interaktive Bedienung:** Bietet am Ende an, den Zielordner direkt im Datei-Explorer zu öffnen.
 
 ---
 
-## Neue Funktionen: Testlauf und Report-Erstellung
+## Was wird gelöscht?
 
-Um die destruktive Natur des Skripts kontrollierbar zu machen, wurden zwei Schlüsselfunktionen hinzugefügt:
+Das Skript durchsucht den Zielordner rekursiv und identifiziert Elemente anhand der folgenden Kriterien zur Löschung:
 
-### 1. Testlauf-Modus (`dry_run`)
+#### 1. Nach Dateiendung
+Eine fest definierte Liste von über 200 Dateiendungen (`.exe`, `.dll`, `.tmp`, `.bak`, `.sys` etc.), die typischerweise Systemdateien, temporäre Dateien oder ausführbare Programme darstellen.
 
-Dies ist der wichtigste Sicherheitsschalter. Wenn `dry_run` auf `True` gesetzt ist, führt das Skript eine **vollständige Simulation** durch:
-*   Es werden **keine Dateien oder Ordner gelöscht**.
-*   Das Skript gibt in der Konsole genau aus, welche Aktionen es durchführen *würde*.
-*   Dies ermöglicht eine gefahrlose Überprüfung der Regeln und der zu löschenden Dateien.
+#### 2. Nach Schlüsselwörtern im Dateinamen
+Dateien und Ordner, deren Name bestimmte Schlüsselwörter enthält (z.B. `video_konvertierung`, `konvertierungslog`), die auf prozessinterne Protokolle hinweisen.
 
-### 2. Report-Datei (`create_log_file`)
+#### 3. Nach Dateinamen-Mustern und Systemdateien
+*   Versteckte Systemdateien wie `Thumbs.db` oder `desktop.ini`.
+*   macOS-spezifische Metadaten-Dateien (beginnend mit `._`).
+*   Versteckte Unix-Dateien (beginnend mit `.`, ausgenommen `.git` und `.gitignore`).
+*   Temporäre Office-Dateien (beginnend mit `~`).
 
-Wenn diese Option auf `True` gesetzt ist, erstellt das Skript im Zielverzeichnis eine Textdatei (z.B. `bereinigungs_report.txt`). Diese Datei enthält eine übersichtliche, nach Häufigkeit sortierte Liste aller Dateitypen (Endungen), die gelöscht wurden oder im Testlauf gelöscht würden. Dies ist ideal für eine schnelle Analyse.
+#### 4. Leere Ordner
+Alle Ordner, die nach dem Löschen der Dateien leer sind, werden ebenfalls entfernt.
 
-**Beispielinhalt einer Report-Datei:**
-```Anzahl und Typ der zu löschenden Dateien
-========================================
-210     .fot
-15      .drv
-4       .tmp
-...
+---
+
+## Technische Voraussetzungen
+
+*   **Python:** Version 3.6 oder neuer. Es sind keine externen Bibliotheken erforderlich.
+
+---
+
+## Konfiguration und Ordnerstruktur
+
+Das Skript wird **nicht** im Code selbst konfiguriert. Stattdessen erwartet es eine bestimmte Ordnerstruktur und erhält die notwendigen Informationen über Kommandozeilenargumente.
+
+### Erwartete Ordnerstruktur
+
+Das Skript muss innerhalb dieser Verzeichnisstruktur ausgeführt werden, die sich im `Documents`-Ordner des Benutzers befinden sollte:
+
+Documents
+└── Datentraeger_sichern
+└── [AC-Nummer]
+└── [Datenträger-ID]
+└── 3_[Datenträger-ID]_for-transfer
+├── Files <-- DIESER ORDNER WIRD BEREINIGT
+└── (Hier werden die Log-Dateien erstellt)
+
+*   **`[AC-Nummer]`**: Die Haupt-Archivierungsnummer des Projekts.
+*   **`[Datenträger-ID]`**: Die eindeutige ID des zu verarbeitenden Datenträgers.
+
+---
+
+## Ausführung
+
+Das Skript sollte über eine Wrapper-Datei (z.B. `start.bat` unter Windows) gestartet werden, die die `AC-Nummer` und `Datenträger-ID` als Argumente übergibt.
+
+**Direkter Aufruf wird nicht empfohlen!**
+
+**Beispielhafter Aufruf in einer `start.bat`:**
+
+```batch
+@echo off
+set AC_NUMBER=AC_0001
+set DISK_ID=CD_01
+python bereinigungsskript.py %AC_NUMBER% %DISK_ID%
+pause
+
+### Ablauf der Ausführung
+
+1.  **Validierung:** Das Skript prüft, ob die Ordnerstruktur korrekt ist.
+2.  **Analyse:** Das Verzeichnis `Files` wird durchsucht und eine Liste der zu löschenden Elemente erstellt.
+3.  **Vorschau-Protokoll:** Eine Log-Datei (`..._delete_preview_all.log`) wird mit allen gefundenen Elementen erstellt. Sie werden aufgefordert, diese Datei zu prüfen.
+4.  **Bestätigung:** Das Skript fragt, ob der Löschvorgang gestartet werden soll (`j/n`).
+5.  **Löschvorgang:** Nach Bestätigung werden die identifizierten Dateien und leeren Ordner entfernt.
+6.  **Finales Protokoll:** Eine zweite Log-Datei (`..._delete_all.log`) wird mit einer Liste der tatsächlich gelöschten Elemente erstellt.
+7.  **Abschluss:** Das Skript fragt, ob der bereinigte Ordner geöffnet werden soll.

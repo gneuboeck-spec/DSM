@@ -1,59 +1,92 @@
-# Brunnhilde Report Extractor
+# Automatisches Analyse-Skript (Brunnhilde)
 
-Dieses Verzeichnis enthält ein spezialisiertes Python-Skript (`brunnhilde_macOS.py`) zur automatisierten Ausführung von **Brunnhilde**, einem mächtigen Werkzeug zur Analyse von Dateisammlungen. Das Skript orchestriert den Scan eines Verzeichnisses, parst die resultierenden Berichte und aggregiert die wichtigsten Informationen in einer einzigen, maschinenlesbaren JSON-Datei.
+Dieses Skript automatisiert die Analyse von Dateisammlungen mithilfe des digitalen Archivierungs-Tools [Brunnhilde](https://github.com/timothyryanwalsh/brunnhilde). Es integriert Siegfried zur Dateiformat-Identifikation und optional ClamAV für Virenscans, um umfassende Berichte zu erstellen.
 
-## Zweck des Skripts
+Das Skript ist für die wiederholte Anwendung in einer standardisierten Ordnerstruktur konzipiert und wird über Kommandozeilenargumente gesteuert, typischerweise durch eine Start-Datei (`start.bat`).
 
-Das Hauptziel dieses Skripts ist es, einen schnellen, aber umfassenden Überblick über eine digitale Sammlung zu erhalten. Anstatt die detaillierten Einzelberichte von Brunnhilde manuell zu sichten, extrahiert dieses Skript die Kernaussagen und fasst sie zusammen. Dies ist ideal für die Erstbewertung von digitalen Archiven, die Qualitätskontrolle oder die Vorbereitung weiterführender Analysen.
+## Hauptfunktionen
 
-### Der Prozess im Überblick:
+*   **Vollständige Automatisierung:** Führt den gesamten Analyseprozess von Brunnhilde mit einem einzigen Befehl aus.
+*   **Dynamische Pfad-Konfiguration:** Alle Pfade werden zur Laufzeit basierend auf einer `AC-Nummer` und einer `Datenträger-ID` generiert.
+*   **Integration externer Tools:** Nutzt die Stärken von Siegfried (Format-Erkennung) und ClamAV (Virenscan) innerhalb des Brunnhilde-Workflows.
+*   **Zusammenfassender Bericht:** Parsed die verschiedenen CSV-Berichte von Brunnhilde und fasst die wichtigsten Ergebnisse in einer einzigen, strukturierten JSON-Datei zusammen.
+*   **Robuste Ausführung:** Enthält Workarounds, um bekannte Probleme bei der Ausführung von Brunnhilde unter Windows (insbesondere bei der Erstellung der `tree.txt`-Datei) zu umgehen.
+*   **Finalisierung:** Benennt die finalen Berichte (`tree.txt` und die JSON-Zusammenfassung) automatisch um und legt sie im Zielverzeichnis ab.
 
-1.  **Automatisierte Ausführung:** Das Skript ruft Brunnhilde für ein spezifiziertes Quellverzeichnis auf. Dies beinhaltet standardmäßig die Ausführung von Werkzeugen wie Siegfried (Format-Identifikation) und ClamAV (Virenscan).
-2.  **Berichts-Parsing:** Nach Abschluss des Scans lokalisiert das Skript die von Brunnhilde erstellten CSV-Berichte (`formats.csv`, `mimetypes.csv`, `unidentified.csv` etc.) sowie die Log-Datei des Virenscanners.
-3.  **Datenextraktion & Aggregation:** Die relevanten Informationen aus diesen Berichten – wie Format- und MIME-Typ-Statistiken, Warnungen, nicht identifizierte Dateien und Virenfunde – werden extrahiert und in einer strukturierten Form zusammengefasst.
-4.  **JSON-Ausgabe:** Alle gesammelten und aufbereiteten Informationen werden in einer einzigen, sauberen JSON-Datei (`brunnhilde_summary.json`) gespeichert, die sich ideal für die weitere maschinelle Verarbeitung oder schnelle manuelle Durchsicht eignet.
+---
 
 ## Technische Voraussetzungen
 
-Dieses Skript ist ein "Power-User"-Werkzeug und hat eine Reihe von Abhängigkeiten. Alle der folgenden Komponenten müssen installiert und korrekt konfiguriert sein.
+Um dieses Skript auszuführen, müssen die folgenden Programme auf Ihrem **Windows-System** installiert und konfiguriert sein:
 
-### 1. Python
+1.  **Python:**
+    *   Version: 3.6 oder neuer.
+    *   **Bibliotheken:** `brunnhilde` muss über `pip` installiert sein (`pip install brunnhilde`).
 
-*   **Version:** 3.9 oder neuer.
-*   **Bibliotheken:** Das Skript benötigt das `brunnhilde`-Paket. Es wird dringend empfohlen, eine virtuelle Umgebung (venv) zu verwenden.
-    1.  Erstellen Sie eine venv: `python3 -m venv brunnhilde-venv`
-    2.  Aktivieren Sie sie: `source brunnhilde-venv/bin/activate`
-    3.  Installieren Sie Brunnhilde: `pip install brunnhilde`
+2.  **Siegfried:**
+    *   **Zweck:** Wird von Brunnhilde zur Identifizierung von Dateiformaten benötigt.
+    *   **Installation:** Laden Sie Siegfried herunter und entpacken Sie es in ein Verzeichnis, z.B. `C:\Program Files\Siegfried`. Der Pfad zu diesem Verzeichnis muss im Skript konfiguriert werden.
 
-### 2. Externe Kommandozeilen-Tools
+3.  **ClamAV (Optional):**
+    *   **Zweck:** Wird von Brunnhilde für Virenscans verwendet.
+    *   **Installation:** Wenn Sie Virenscans durchführen möchten, installieren Sie ClamAV und konfigurieren Sie den Pfad im Skript.
 
-Brunnhilde selbst ist ein Wrapper-Skript, das andere Werkzeuge aufruft. Die folgenden Programme müssen installiert und systemweit verfügbar sein (d.h. ihre Verzeichnisse müssen zur Systemumgebungsvariable `PATH` hinzugefügt werden).
-
-*   **Siegfried**
-    *   **Zweck:** Format-Identifikation
-    *   **Installationshinweis (macOS):** `brew install siegfried`
-
-*   **ClamAV**
-    *   **Zweck:** Virenscan
-    *   **Installationshinweis (macOS):** `brew install clamav`
+---
 
 ## Konfiguration im Skript
 
-Vor der Ausführung müssen die Pfade am Anfang des Skripts an Ihre Umgebung angepasst werden.
-
-*   **`BASE_DIR`**: Der absolute Pfad zum Hauptordner, der analysiert werden soll. Kann auch als Kommandozeilen-Argument übergeben werden.
-*   **`BRUNHILDE_OUTPUT_DIR`**: Ein permanenter Ordner für die detaillierten HTML-, CSV- und `tree`-Berichte, die Brunnhilde erstellt.
-*   **`OUTPUT_JSON`**: Der Pfad, an dem die finale JSON-Zusammenfassung gespeichert werden soll.
-
-#### Beispiel für:
+Vor der ersten Ausführung müssen die Pfade zu den externen Werkzeugen am Anfang des Skripts angepasst werden.
 
 ```python
-macOS:
-BASE_DIR = "/Users/IhrName/Desktop/Mein_Archiv"
-BRUNHILDE_OUTPUT_DIR = "/Users/IhrName/Desktop/Brunnhilde_Reports"
-OUTPUT_JSON = "/Users/IhrName/Desktop/brunnhilde_summary.json"
+# ==============================================================================
+# 🔧 KONFIGURATION (BITTE FÜR IHR WINDOWS-SYSTEM ANPASSEN)
+# ==============================================================================
 
-Windows:
-BASE_DIR = r"C:\Users\IhrName\Desktop\Mein_Archiv"
-BRUNHILDE_OUTPUT_DIR = r"C:\Users\IhrName\Desktop\Brunnhilde_Reports"
-OUTPUT_JSON = r"C:\Users\IhrName\Desktop\brunnhilde_summary.json"
+SIEGFRIED_DIR = r"C:\Program Files\Siegfried"
+CLAMAV_DIR = ""  # Leer lassen, wenn nicht verwendet, z.B.: r"C:\Program Files\ClamAV"
+
+*   **`SIEGFRIED_DIR`**: Tragen Sie hier den vollständigen Pfad zum Installationsverzeichnis von Siegfried ein. Das Skript erwartet, in diesem Ordner eine `sf.exe` zu finden.
+*   **`CLAMAV_DIR`**: Tragen Sie hier den Pfad zum Installationsverzeichnis von ClamAV ein, falls es verwendet werden soll. Andernfalls lassen Sie den String leer (`""`).
+
+### Erwartete Ordnerstruktur
+
+Das Skript ist für eine spezifische Ordnerstruktur ausgelegt, die sich im `Documents`-Ordner des Benutzers befinden muss:
+Documents
+└── Datentraeger_sichern
+    └── [AC-Nummer]
+        └── [Datenträger-ID]
+            └── 2_[Datenträger-ID]_extracted-files
+                ├── Files  <-- DIESER ORDNER WIRD ANALYSIERT
+                └── (Hier werden die Analyseberichte erstellt)
+
+*   **[AC-Nummer]**: Die Haupt-Archivierungsnummer des Projekts.
+*   **[Datenträger-ID]**: Die eindeutige ID des zu verarbeitenden Datenträgers.
+
+## Ausführung
+
+Das Skript sollte über eine Wrapper-Datei (z.B. eine `start.bat` unter Windows) gestartet werden, die die `AC-Nummer` und die `Datenträger-ID` als Argumente übergibt.
+
+**Beispielhafter Aufruf in einer `start.bat`:**
+@echo off
+set AC_NUMBER=AC_0001
+set DISK_ID=CD_01
+python analyse_skript.py %AC_NUMBER% %DISK_ID%
+pause
+
+### Ablauf der Ausführung
+
+1.  **Validierung:** Das Skript überprüft die übergebenen Argumente, die Ordnerstruktur und die Pfade zu den konfigurierten Tools (Siegfried, ClamAV).
+2.  **Brunnhilde-Ausführung:** Das Skript startet Brunnhilde und zielt auf das `Files`-Verzeichnis. Die Ausgabe wird in einen `Brunnhilde_[Datenträger-ID]`-Ordner geschrieben.
+3.  **Tree-Workaround:** Da Brunnhilde unter Windows manchmal keine `tree.txt` erstellt, führt das Skript den `tree`-Befehl manuell aus, um diese wichtige Datei zu erzeugen.
+4.  **Parsing:** Die von Brunnhilde erstellten CSV-Berichte und Log-Dateien werden eingelesen.
+5.  **JSON-Erstellung:** Die extrahierten Informationen (Format-Zusammenfassung, MIME-Typen, Warnungen, Virenfunde etc.) werden in einer einzigen JSON-Datei zusammengefasst.
+6.  **Finalisierung:** Die erstellte JSON-Datei und die `tree.txt` werden in das Zielverzeichnis verschoben und erhalten ihre finalen, standardisierten Namen.
+7.  **Abschluss:** Das Skript fragt, ob der Zielordner im Datei-Explorer geöffnet werden soll.
+
+### Generierte Berichte
+
+Nach erfolgreicher Ausführung befinden sich im Ordner `2_[Datenträger-ID]_extracted-files` folgende primäre Berichte:
+
+*   **`Brunnhilde_[Datenträger-ID]`**: Der vollständige Brunnhilde-Berichtsordner mit allen Details.
+*   **`2_[Datenträger-ID]_Brunnhilde_output.json`**: Die strukturierte JSON-Zusammenfassung der Analyse.
+*   **`2_[Datenträger-ID]_extracted-Files-Tree.txt`**: Eine Textdatei mit der vollständigen Verzeichnisstruktur der analysierten Dateien.

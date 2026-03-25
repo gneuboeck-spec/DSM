@@ -1,79 +1,74 @@
-# Video-Konverter nach MP4
+# Video-Konverter nach MP4 (FFmpeg)
 
-Dieses Verzeichnis enthält Skripte zur Batch-Konvertierung einer Vielzahl von Videoformaten in das hochkompatible MP4-Format.
+Dieses Skript dient zur automatisierten Batch-Konvertierung einer Vielzahl von Videoformaten in das hochkompatible MP4-Containerformat. Es wurde entwickelt, um eine heterogene Sammlung von Videodateien für eine bessere Wiedergabekompatibilität und Langzeitarchivierung zu normalisieren.
 
-## Zweck des Skripts
+Das Skript ist als Teil eines standardisierten Archivierungsworkflows konzipiert. Es wird über eine Start-Datei (`start.bat`) gesteuert, die dynamische Pfade basierend auf einer Projekt- und Datenträger-ID generiert.
 
-Das Skript durchsucht einen Quellordner und alle seine Unterordner nach unterstützten Videodateien. Jede gefundene Datei (außer bereits existierende `.mp4`-Dateien) wird in eine **hochkompatible und web-optimierte MP4-Datei** konvertiert.
+## Kernfunktionalität
 
-**Hauptmerkmale:**
+Das Skript durchsucht einen Zielordner rekursiv und wendet die folgenden Konvertierungsregeln an:
 
-1.  **Standardisierung:** Wandelt diverse Formate wie `.mov`, `.avi`, `.mkv` etc. in den universellen MP4-Standard um.
-2.  **Qualität und Kompatibilität:** Verwendet den H.264-Videocodec und den AAC-Audiocodec, um eine breite Abspielbarkeit auf fast allen Geräten und im Web zu gewährleisten.
-3.  **Web-Optimierung:** Die erstellten MP4-Dateien sind für Streaming optimiert (`+faststart`), was bedeutet, dass sie abgespielt werden können, bevor der Download vollständig abgeschlossen ist.
-4.  **Überschreiben:** Bei wiederholter Ausführung des Skripts werden bereits existierende Zieldateien automatisch überschrieben, um sicherzustellen, dass sie immer auf dem neuesten Stand sind.
-5.  **Namenskonvention:** Die Zieldateien folgen dem Muster `Originalname.originalendung.mp4`, um die Herkunft der Datei nachvollziehbar zu machen.
+*   **Zielformat:** Alle unterstützten Quellvideos werden in einen **MP4-Container** konvertiert.
+*   **Codecs:**
+    *   **Video:** H.264 (`libx264`), ein weit verbreiteter und qualitativ hochwertiger Codec.
+    *   **Audio:** AAC (`aac`) mit einer Bitrate von 192k, für gute Audioqualität.
+*   **Namenskonvention:** Die Zieldatei wird nach dem Muster `Originalname.originalendung.mp4` benannt. Dies stellt sicher, dass die Herkunft der Datei immer nachvollziehbar bleibt (z.B. wird `urlaub_2005.mov` zu `urlaub_2005.mov.mp4`).
+*   **Intelligente Dateisuche:** Das Skript identifiziert und überspringt automatisch Dateien, die bereits nach diesem Muster konvertiert wurden, um doppelte Arbeit bei wiederholter Ausführung zu vermeiden.
+*   **Protokollierung:** Alle durchgeführten Aktionen, Erfolge und detaillierte FFmpeg-Fehlermeldungen werden in einer Log-Datei festgehalten.
 
 ---
 
 ## Technische Voraussetzungen
 
-Um dieses Skript auszuführen, müssen die folgenden Programme installiert und korrekt konfiguriert sein:
-
-### 1. Python
-*   **Version:** 3.6 oder neuer.
-*   **Bibliotheken:** Keine externen Bibliotheken erforderlich.
-
-### 2. FFmpeg
-*   **Version:** Eine aktuelle, stabile Version (z.B. 4.x oder neuer) wird dringend empfohlen.
-*   **Zweck:** Dies ist das **zentrale Konvertierungswerkzeug**. Das Skript ruft FFmpeg im Hintergrund auf, um die gesamte Videoverarbeitung durchzuführen.
-*   **Installation:** FFmpeg muss so installiert sein, dass der Befehl `ffmpeg` systemweit verfügbar ist (im System-`PATH`).
-
-#### Installationsanleitung für FFmpeg:
-
-*   **macOS (empfohlen):**
-    *   Öffnen Sie das Terminal und installieren Sie FFmpeg mit Homebrew:
-        ```bash
-        brew install ffmpeg
-        ```
-
-*   **Windows 11:**
-    1.  Laden Sie einen "release build" von [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) herunter.
-    2.  Entpacken Sie die Datei.
-    3.  Kopieren Sie den Inhalt des `bin`-Ordners (insb. `ffmpeg.exe` und `ffprobe.exe`) in ein einfaches Verzeichnis, z.B. `C:\ffmpeg`.
-    4.  Fügen Sie dieses Verzeichnis (`C:\ffmpeg`) zur **Systemumgebungsvariable `PATH`** hinzu.
+1.  **Python:** Version 3.6 oder neuer.
+2.  **FFmpeg:** Eine aktuelle Version von FFmpeg muss installiert sein. Die ausführbare Datei (`ffmpeg.exe` unter Windows) muss systemweit verfügbar sein, d.h., das Installationsverzeichnis muss zum System-`PATH` hinzugefügt worden sein.
 
 ---
 
-## Konfiguration im Skript
+## Konfiguration
 
-Vor der Ausführung muss die Variable `input_folder` am Anfang des Skripts für das jeweilige Betriebssystem angepasst werden.
+Die Konfiguration erfolgt direkt am Anfang des Skripts, ist aber in der Regel minimal:
 
-*   **`input_folder`**: Der absolute Pfad zum Hauptordner, der die zu konvertierenden Videodateien enthält.
-
-**Beispiel für macOS:**
 ```python
-input_folder = "/Users/IhrBenutzername/Desktop/Videodateien_konvertieren"
-```
+# Name des FFmpeg-Programms. Wenn FFmpeg im System-PATH ist, reicht dies.
+FFMPEG_PATH = "ffmpeg.exe"
 
-**Beispiel für Windows:**
-```python
-input_folder = "C:/Users/IhrBenutzername/Desktop/Videodateien_konvertieren"
-```
+# Liste der zu verarbeitenden Quellformate.
+SOURCE_VIDEO_EXTENSIONS = {".avi", ".mov", ".mkv", ...}
 
----
+*   **`FFMPEG_PATH`**: Muss nur geändert werden, wenn FFmpeg nicht im System-`PATH` ist.
+*   **`SOURCE_VIDEO_EXTENSIONS`**: Definiert, welche Dateiendungen als Quellvideos für die Konvertierung berücksichtigt werden.
+
+### Erwartete Ordnerstruktur
+
+Das Skript benötigt die folgende Verzeichnisstruktur im `Documents`-Ordner des Benutzers:
+Documents
+└── Datentraeger_sichern
+    └── [AC-Nummer]
+        └── [Datenträger-ID]
+            └── 3_[Datenträger-ID]_for-transfer
+                ├── Files  <-- IN DIESEM ORDNER WIRD GESUCHT
+                └── (Hier wird die Log-Datei erstellt)
+
+*   **`[AC-Nummer]`**: Die Haupt-Archivierungsnummer des Projekts.
+*   **`[Datenträger-ID]`**: Die eindeutige ID des zu verarbeitenden Datenträgers.
 
 ## Ausführung
 
-Die Skripte für die verschiedenen Betriebssysteme befinden sich in den jeweiligen Unterordnern (`mac/`, `win/`).
+Das Skript ist für den Start über eine Wrapper-Datei (z.B. eine `start.bat`) konzipiert, welche die `AC-Nummer` und `Datenträger-ID` als Argumente übergibt.
 
-1.  Öffnen Sie ein Terminal (macOS) oder eine Eingabeaufforderung/PowerShell (Windows).
-2.  Stellen Sie sicher, dass alle oben genannten Voraussetzungen erfüllt und die Pfade im Skript korrekt konfiguriert sind.
-3.  Führen Sie das Skript mit dem Python-Interpreter aus.
+**Beispielhafter Aufruf in einer `start.bat`:**
+@echo off
+set AC_NUMBER=AC_0001
+set DISK_ID=CD_01
+python video_conversion_skript.py %AC_NUMBER% %DISK_ID%
+pause
 
-**Beispiel:**
-```bash
-python3 /pfad/zum/skript/mac/convert_video.py
-```
+### Ablauf der Ausführung
 
-Das Skript gibt den Fortschritt live auf der Konsole aus und erstellt eine detaillierte Log-Datei (`video_konvertierung.log`) im `input_folder`.
+1.  **Validierung:** Das Skript prüft die übergebenen Argumente, die Ordnerstruktur und die Verfügbarkeit von FFmpeg.
+2.  **Suche:** Das `Files`-Verzeichnis wird rekursiv nach allen unterstützten Videodateien durchsucht, die noch nicht konvertiert wurden.
+3.  **Konvertierung:** Jede gefundene Datei wird mit FFmpeg in das MP4-Format konvertiert.
+4.  **Protokollierung:** Alle Aktionen, Erfolge und Fehler werden detailliert in die Log-Datei `3_[Datenträger-ID]_video_conversion.log` geschrieben.
+5.  **Zusammenfassung:** Am Ende wird eine Übersicht über die Anzahl der erfolgreich konvertierten Dateien ausgegeben.
+6.  **Abschluss:** Das Skript fragt, ob der Zielordner im Datei-Explorer geöffnet werden soll.

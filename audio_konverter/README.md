@@ -1,14 +1,16 @@
 # Intelligenter Audio-Konverter (MP3 & WAV)
 
-Dieses Verzeichnis enthält Skripte zur Batch-Konvertierung einer Vielzahl von Audioformaten. Das Hauptziel ist die Erstellung eines standardisierten Archivs, das für jede Quelldatei sowohl eine hochkompatible, komprimierte Version als auch eine verlustfreie Archivkopie enthält.
+Dieses Verzeichnis enthält ein Skript zur automatisierten Batch-Konvertierung einer Vielzahl von Audioformaten. Das Hauptziel ist die Erstellung eines standardisierten Archivs, das für jede Quelldatei sowohl eine hochkompatible, komprimierte Version (MP3) als auch eine verlustfreie Archivkopie (WAV) enthält.
+
+Das Skript ist für die Integration in eine vordefinierte Ordnerstruktur konzipiert und wird über Kommandozeilenargumente gesteuert, typischerweise durch eine Start-Datei wie `start.bat`.
 
 ## Zweck des Skripts
 
-Das Skript durchsucht einen Quellordner und alle seine Unterordner nach unterstützten Audiodateien. Es wendet dann eine intelligente "Digital Twin"-Logik an, um sicherzustellen, dass für jede Originaldatei ein Paar aus MP3- und WAV-Version existiert:
+Das Skript durchsucht einen spezifischen `Files`-Ordner innerhalb einer Projektstruktur und wendet eine intelligente "Digital Twin"-Logik an. Es stellt sicher, dass für jede Originaldatei ein Paar aus MP3- und WAV-Version existiert.
 
 1.  **Erstellung von Derivaten:**
-    *   Für jedes Audioformat (z.B. `.flac`, `.aiff`, `.m4a`) werden **zwei** neue Dateien erstellt:
-        *   Eine **MP3-Datei** in hoher Qualität (VBR) für maximale Kompatibilität und Portabilität.
+    *   Für jedes Audioformat, das nicht bereits MP3 oder WAV ist (z.B. `.flac`, `.aiff`, `.m4a`), werden **zwei** neue Dateien erstellt:
+        *   Eine **MP3-Datei** in hoher Qualität (VBR `q:a 2`) für maximale Kompatibilität.
         *   Eine **WAV-Datei** (unkomprimiertes PCM 16-bit) für verlustfreie Archivqualität.
     *   Die Zieldateien folgen der Namenskonvention `Originalname.originalendung.mp3` und `Originalname.originalendung.wav`, um die Herkunft lückenlos zu dokumentieren.
 
@@ -16,60 +18,64 @@ Das Skript durchsucht einen Quellordner und alle seine Unterordner nach unterst�
     *   Wenn die Quelldatei bereits eine `.mp3` ist, wird nur die fehlende `.wav`-Version erstellt.
     *   Wenn die Quelldatei bereits eine `.wav` ist, wird nur die fehlende `.mp3`-Version erstellt.
 
-3.  **Überschreiben:** Bei wiederholter Ausführung des Skripts werden bereits existierende Zieldateien automatisch überschrieben, um sicherzustellen, dass sie immer auf dem neuesten Stand sind.
+3.  **Überschreiben:** Bei wiederholter Ausführung werden bereits existierende Zieldateien automatisch überschrieben (`-y` Flag), um sicherzustellen, dass sie immer auf dem neuesten Stand der Konvertierungseinstellungen sind.
 
 ---
 
 ## Technische Voraussetzungen
 
-Um dieses Skript auszuführen, müssen die folgenden Programme installiert und konfiguriert sein:
-
 ### 1. Python
 *   **Version:** 3.6 oder neuer.
-*   **Bibliotheken:** Keine externen Bibliotheken erforderlich. Es werden nur Standardmodule (`os`, `subprocess`, etc.) verwendet.
+*   **Bibliotheken:** Keine externen Bibliotheken erforderlich. Es werden nur Standardmodule verwendet.
 
 ### 2. FFmpeg
-*   **Version:** Eine aktuelle, stabile Version (z.B. 4.x oder neuer) wird dringend empfohlen.
-*   **Zweck:** Dies ist das **zentrale Konvertierungswerkzeug**. Das Skript ruft FFmpeg im Hintergrund auf für:
-    *   **Analyse (`ffprobe`):** Ermittlung der exakten Dauer einer Audiodatei für die Fortschrittsanzeige.
-    *   **Konvertierung (`ffmpeg`):** Umwandlung der Quelldateien in MP3 und WAV.
-*   **Installation:** FFmpeg muss so installiert sein, dass die Befehle `ffmpeg` und `ffprobe` systemweit verfügbar sind (im System-`PATH`).
+*   **Zweck:** Dies ist das **zentrale Konvertierungswerkzeug**. Das Skript benötigt `ffmpeg` und `ffprobe` für die Audio-Analyse und -Konvertierung.
+*   **Installation:** FFmpeg muss so installiert sein, dass die Befehle `ffmpeg.exe` und `ffprobe.exe` systemweit verfügbar sind (d.h. zum System-`PATH` hinzugefügt wurden). Das Skript prüft beim Start automatisch, ob die Programme gefunden werden können.
 
 ---
 
-## Konfiguration im Skript
+## Konfiguration und Ordnerstruktur
 
-Vor der Ausführung müssen die Pfade am Anfang des Skripts für das jeweilige Betriebssystem angepasst werden.
+Das Skript erfordert **keine manuelle Bearbeitung** der Pfade im Quellcode mehr. Stattdessen arbeitet es mit einer dynamischen Ordnerstruktur, die durch zwei Parameter (`AC-Nummer` und `Datenträger-ID`) definiert wird.
 
-*   **`input_folder`**: Der absolute Pfad zum Hauptordner, der die zu konvertierenden Audiodateien enthält.
-*   **`log_file_path`**: (Optional) Der Pfad, an dem die `audio_conversion_log.txt`-Datei erstellt werden soll.
-*   **`ffmpeg_path` / `ffprobe_path` (Für Windows):**
-    *   Wenn FFmpeg zum System-`PATH` hinzugefügt wurde, reichen die Standardnamen (`ffmpeg.exe`, `ffprobe.exe`).
-    *   Andernfalls muss hier der vollständige, absolute Pfad zur jeweiligen `.exe`-Datei eingetragen werden.
+### Erwartete Ordnerstruktur
 
-**Beispiel für macOS:**
-```python
-input_folder = "/Users/IhrBenutzername/Desktop/Audiodateien_konvertieren"
-```
+Das Skript erwartet die folgende Verzeichnisstruktur in Ihrem Benutzer-Dokumentenordner:
+Documents
+└── Datentraeger_sichern
+    └── [AC-Nummer]
+        └── [Datenträger-ID]
+            └── 3_[Datenträger-ID]_for-transfer
+                ├── Files <-- HIER MÜSSEN DIE AUDIODATEIEN LIEGEN
+                └── (Hier wird die Log-Datei erstellt)
+*   **`[AC-Nummer]`**: Die Haupt-Archivierungsnummer des Projekts (z.B. `AC_0001`).
+*   **`[Datenträger-ID]`**: Die eindeutige ID des zu verarbeitenden Datenträgers (z.B. `CD_01`).
 
-**Beispiel für Windows:**
-```python
-input_folder = "C:/Users/IhrBenutzername/Desktop/Audiodateien_konvertieren"
-```
+Das Skript leitet aus diesen beiden Werten automatisch alle benötigten Pfade ab:
+*   **Eingabe-Ordner:** `.../Files`
+*   **Log-Datei:** `.../3_[Datenträger-ID]_audio_conversion.log`
 
 ---
 
 ## Ausführung
 
-Die Skripte für die verschiedenen Betriebssysteme befinden sich in den jeweiligen Unterordnern (`mac/`, `win/`).
+Das Skript ist für den Start über eine Wrapper-Datei (z.B. eine Batch-Datei unter Windows) vorgesehen, die die `AC-Nummer` und die `Datenträger-ID` als Argumente übergibt.
 
-1.  Öffnen Sie ein Terminal (macOS) oder eine Eingabeaufforderung/Git Bash (Windows).
-2.  Stellen Sie sicher, dass alle oben genannten Voraussetzungen erfüllt und die Pfade im Skript korrekt konfiguriert sind.
-3.  Führen Sie das Skript mit dem Python-Interpreter aus.
+**Direkter Aufruf wird nicht empfohlen!** Nutzen Sie stattdessen eine Start-Datei (`start.bat` o.ä.), die den Aufruf für Sie übernimmt.
 
-**Beispiel:**
-```bash
-python3 /pfad/zum/skript/mac/convert_audio.py
-```
+**Beispielhafter Aufruf in einer `start.bat`:**
 
-Das Skript gibt den Fortschritt jeder Konvertierung live in der Konsole aus und erstellt eine detaillierte Log-Datei, die alle Aktionen, Erfolge und eventuelle Fehler von FFmpeg protokolliert.
+```batch
+@echo off
+set AC_NUMBER=AC_0001
+set DISK_ID=CD_01
+python script.py %AC_NUMBER% %DISK_ID%
+pause
+
+### Ablauf der Ausführung
+
+1.  Das Skript validiert die übergebenen Argumente und prüft, ob die erwartete Ordnerstruktur und die FFmpeg-Programme existieren.
+2.  Es durchsucht den `Files`-Ordner nach unterstützten Audiodateien.
+3.  Für jede gefundene Datei wird die Konvertierung gestartet und ein **Live-Fortschrittsbalken** in der Konsole angezeigt.
+4.  Alle Aktionen, Erfolge und Fehler werden in der Log-Datei `3_[Datenträger-ID]_audio_conversion.log` protokolliert. Die alte Log-Datei wird bei jedem neuen Start gelöscht.
+5.  Nach Abschluss aller Konvertierungen fragt das Skript, ob der Zielordner (`for-transfer`) im Datei-Explorer geöffnet werden soll.

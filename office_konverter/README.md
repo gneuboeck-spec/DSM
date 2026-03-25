@@ -1,66 +1,78 @@
-# Office-Dokumenten-Konverter (ODF & PDF/A)
+# Universeller Office-Dokumenten-Konverter (ODF & PDF/A)
 
-Dieses Verzeichnis enthält Skripte zur Batch-Konvertierung einer Vielzahl von Office- und textbasierten Dateiformaten. Der Hauptzweck ist die Standardisierung von Dokumenten in offene Formate und die Erstellung von langzeitarchivierbaren PDF/A-Derivaten.
+Dieses Skript ist ein leistungsstarkes Werkzeug zur automatisierten Batch-Konvertierung einer breiten Palette von Office-Dokumenten (Text, Tabellen, Präsentationen) in standardisierte Archivformate. Es nutzt die Kommandozeilen-Schnittstelle von LibreOffice, um für jede Quelldatei sowohl eine offene, bearbeitbare Version als auch ein stabiles, archivsicheres PDF/A zu erstellen.
 
-## Zweck des Skripts
+Das Skript ist als integraler Bestandteil eines automatisierten Archivierungsworkflows konzipiert und wird über eine Start-Datei (`start.bat`) mit dynamischen Pfaden gesteuert.
 
-Das Skript durchsucht rekursiv einen angegebenen Quellordner und führt für jede gefundene Datei einen zweistufigen Konvertierungsprozess durch:
+## Das "Digital Twin"-Konvertierungsprinzip
 
-1.  **Konvertierung nach OpenDocument Format (ODF):** Jedes proprietäre Format (z.B. `.doc`, `.xls`, `.ppt`) wird in sein modernes, offenes Gegenstück (`.odt`, `.ods`, `.odp`) umgewandelt. Diese ODF-Datei wird als bearbeitbares Archivformat **behalten**.
-2.  **Export nach PDF/A:** Aus der (originalen oder neu erstellten) ODF-Datei wird eine **PDF/A-2b**-Datei exportiert. Dies ist ein ISO-standardisiertes Format für die Langzeitarchivierung, das sicherstellt, dass die visuelle Darstellung des Dokuments über Jahrzehnte erhalten bleibt.
-3.  **Spezialfall PDF:** Bereits existierende PDF-Dateien, die nicht dem PDF/A-Standard entsprechen, werden ebenfalls erkannt und in eine neue PDF/A-Version konvertiert.
+Für jede unterstützte Quelldatei (z.B. `.doc`, `.xls`, `.ppt`) führt das Skript einen zweistufigen Prozess durch, um ein "digitales Zwillingspaar" zu erzeugen:
 
-Alle erstellten Dateien folgen der Namenskonvention `Originalname.originalendung.zielendung`, um die Herkunft nachvollziehbar zu machen.
+1.  **Konvertierung zu OpenDocument Format (ODF):**
+    *   Die Originaldatei wird zuerst in ihr modernes, offenes Gegenstück konvertiert (`.odt`, `.ods` oder `.odp`). Dies stellt die zukünftige Bearbeitbarkeit und Interoperabilität sicher.
+    *   *Beispiel: `bericht.doc` → `bericht.doc.odt`*
+
+2.  **Konvertierung zu PDF/A:**
+    *   Die neu erstellte ODF-Datei wird anschließend in ein PDF/A-2 konvertiert. Dieses Format ist für die Langzeitarchivierung optimiert und garantiert eine konsistente Darstellung über die Zeit.
+    *   *Beispiel: `bericht.doc.odt` → `bericht.doc.pdf`*
+
+**Sonderfall:** Bereits existierende `.pdf`-Dateien werden direkt in das PDF/A-Format überführt, um ihre Archivtauglichkeit zu verbessern.
+
+Die Namenskonvention `Originalname.originalendung.zielendung` stellt sicher, dass die Herkunft jeder konvertierten Datei lückenlos nachvollziehbar bleibt.
 
 ---
 
 ## Technische Voraussetzungen
 
-Um dieses Skript auszuführen, müssen die folgenden Programme installiert und konfiguriert sein:
-
-### 1. Python
-*   **Version:** 3.6 oder neuer
-*   **Grund:** Das Skript verwendet f-Strings für die Formatierung.
-
-### 2. LibreOffice
-*   **Version:** Eine aktuelle, stabile Version (z.B. 7.x oder neuer) wird dringend empfohlen.
-*   **Zweck:** Dies ist das **zentrale Konvertierungswerkzeug**. Das Skript ruft LibreOffice im Hintergrund (`headless`) auf, um alle Dokumenten-Transformationen durchzuführen.
-*   **Konfiguration:** Der Pfad zur ausführbaren `soffice`-Datei muss im Skript in der Variable `libreoffice_path` korrekt angegeben werden.
-    *   **macOS (Standard):** `/Applications/LibreOffice.app/Contents/MacOS/soffice`
-    *   **Windows (Standard):** `C:/Program Files/LibreOffice/program/soffice.exe`
-
-### 3. Betriebssystem-spezifische Befehle
-*   **macOS / Linux:** Das Skript verwendet den Befehl `pkill`, um eventuell hängengebliebene LibreOffice-Prozesse zu beenden. Dieser ist standardmäßig verfügbar.
+1.  **Python:** Version 3.6 oder neuer.
+2.  **LibreOffice:** Eine vollständige Installation von LibreOffice ist erforderlich. Das Skript benötigt Zugriff auf die ausführbare Datei `soffice.exe`.
 
 ---
 
 ## Konfiguration im Skript
 
-Vor der Ausführung müssen die folgenden Variablen am Anfang des Skripts überprüft und angepasst werden:
+Vor der ersten Ausführung muss der Pfad zur LibreOffice-Installation am Anfang des Skripts überprüft und bei Bedarf angepasst werden.
 
-*   `libreoffice_path`: Der exakte Pfad zur ausführbaren `soffice`-Datei (siehe oben).
-*   `input_folder`: Der absolute Pfad zum Hauptordner, der die zu konvertierenden Dateien enthält.
-*   `log_path`: (Optional) Der Pfad, an dem die `konvertierungslog.txt`-Datei erstellt werden soll. Standardmäßig wird sie im `input_folder` angelegt.
-*   `conversion_map`: Dieses Dictionary definiert, welche Dateiendungen erkannt und wie sie verarbeitet werden sollen. Es kann bei Bedarf um weitere Formate erweitert werden.
+```python
+# --- 1. System-Pfade (manuell anpassen, falls nötig) ---
+LIBREOFFICE_PATH = "C:/Program Files/LibreOffice/program/soffice.exe"
+*   **`LIBREOFFICE_PATH`**: Dieser Pfad muss exakt auf die `soffice.exe` (oder `soffice.bin` auf anderen Systemen) in Ihrem LibreOffice-Installationsverzeichnis zeigen. Der Standardpfad im Skript ist ein häufiges Beispiel für Windows.
+
+Die `CONVERSION_MAP` im Skript definiert alle unterstützten Quellformate und die entsprechenden LibreOffice-Exportfilter.
+
+### Erwartete Ordnerstruktur
+
+Das Skript benötigt die folgende Verzeichnisstruktur im `Documents`-Ordner des Benutzers:
+└── Datentraeger_sichern
+    └── [AC-Nummer]
+        └── [Datenträger-ID]
+            └── 3_[Datenträger-ID]_for-transfer
+                ├── Files  <-- IN DIESEM ORDNER WIRD GESUCHT
+                └── (Hier wird die Log-Datei erstellt)```
+
+*   **`[AC-Nummer]`**: Die Haupt-Archivierungsnummer des Projekts.
+*   **`[Datenträger-ID]`**: Die eindeutige ID des zu verarbeitenden Datenträgers.
 
 ---
 
 ## Ausführung
 
-Die Skripte für die verschiedenen Betriebssysteme befinden sich in den jeweiligen Unterordnern (`mac/`, `win/`).
+Das Skript ist für den Start über eine Wrapper-Datei (z.B. eine `start.bat`) konzipiert, welche die `AC-Nummer` und `Datenträger-ID` als Argumente übergibt.
 
-1.  Öffnen Sie ein Terminal (macOS) oder eine Eingabeaufforderung/PowerShell (Windows).
-2.  Stellen Sie sicher, dass alle oben genannten Voraussetzungen erfüllt sind.
-3.  Führen Sie das Skript mit dem Python-Interpreter aus.
+**Beispielhafter Aufruf in einer `start.bat`:**
 
-**Beispiel für macOS:**
-```bash
-python3 /pfad/zum/skript/mac/office_konverter.py
-```
+```batch
+@echo off
+set AC_NUMBER=AC_0001
+set DISK_ID=CD_01
+python office_conversion_skript.py %AC_NUMBER% %DISK_ID%
+pause
 
-**Beispiel für Windows:**
-```cmd
-python C:\pfad\zum\skript\win\office_konverter.py
-```
+### Ablauf der Ausführung
 
-Das Skript gibt den Fortschritt live auf der Konsole aus und erstellt eine detaillierte Log-Datei im `input_folder`. Bei wiederholter Ausführung werden bereits erstellte Derivat-Dateien überschrieben, um sicherzustellen, dass sie immer auf dem neuesten Stand sind.
+1.  **Validierung:** Das Skript prüft die übergebenen Argumente, die Ordnerstruktur und ob die `soffice.exe` am konfigurierten Pfad gefunden wird.
+2.  **Suche:** Das `Files`-Verzeichnis wird rekursiv nach allen unterstützten Office-Dateien durchsucht. Eine intelligente Logik stellt sicher, dass bereits konvertierte Dateien übersprungen werden.
+3.  **Konvertierung (pro Datei):** Für jede neue Datei wird der zweistufige Konvertierungsprozess (ODF, dann PDF/A) gestartet. Der Fortschritt wird mit einem Balken in der Konsole angezeigt.
+4.  **Protokollierung:** Alle Aktionen, Erfolge und insbesondere Fehler werden detailliert in die Log-Datei `3_[Datenträger-ID]_text_conversion.log` geschrieben.
+5.  **Zusammenfassung:** Nach Abschluss aller Vorgänge wird eine finale Statusmeldung in der Konsole und im Log ausgegeben.
+6.  **Abschluss:** Das Skript fragt, ob der Zielordner im Datei-Explorer geöffnet werden soll.

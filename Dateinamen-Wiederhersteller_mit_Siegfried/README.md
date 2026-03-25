@@ -1,81 +1,89 @@
-# Intelligenter Dateinamen-Wiederhersteller
+# Skript zur Reparatur von Dateiendungen
 
-Dieses Verzeichnis enthält ein Python-Skript, um Dateiendungen für Dateien wiederherzustellen, die diese verloren haben (z.B. durch Kopiervorgänge von klassischen Mac-Systemen). Es nutzt die professionellen Kommandozeilen-Tools **Siegfried** und **FFprobe**, um den wahren Dateityp anhand des Inhalts zu erkennen und die korrekte Endung intelligent anzuhängen.
+Dieses Skript ist ein spezialisiertes Werkzeug zur Wiederherstellung von Dateien, denen eine Dateiendung fehlt. Es analysiert den Inhalt jeder endungslosen Datei, um ihren wahren Typ zu ermitteln und benennt sie entsprechend um.
 
-## Zweck des Skripts
+Das Skript ist für die Integration in einen standardisierten Archivierungsworkflow konzipiert. Es wird über Kommandozeilenargumente gesteuert, die typischerweise von einer Start-Datei (`start.bat`) übergeben werden, und erwartet eine spezifische Ordnerstruktur.
 
-Beim Transfer von alten Dateien gehen oft die Metadaten verloren, die den Dateityp definieren. Das Ergebnis sind "nackte" Dateien ohne Endung, die von modernen Betriebssystemen falsch interpretiert werden. Dieses Skript löst dieses Problem durch eine mehrstufige, automatisierte Analyse.
+## Hauptfunktionen
 
-**Der Prozess im Überblick:**
+*   **Intelligente Dateianalyse:** Verwendet eine mehrstufige Logik, um den korrekten Dateityp zu bestimmen.
+*   **Siegfried-Integration:** Nutzt Siegfried (`sf.exe`) als primäres Werkzeug zur Identifizierung von Dateiformaten anhand von Signaturen.
+*   **Erweiterte Fallback-Logik:** Wenn Siegfried keine eindeutige Antwort liefert, kommen spezialisierte Routinen zum Einsatz, um z.B. verschiedene Tabellenformate (CSV, SYLK) oder OpenDocument-Typen zu erkennen.
+*   **Multimedia-Prüfung:** Verwendet FFprobe (`ffprobe.exe`), um bei MPEG-4-Containern zwischen Videodateien (`.mp4`) und reinen Audiodateien (`.m4a`) zu unterscheiden.
+*   **Sicherheitsmechanismen:** Beinhaltet einen `DRY_RUN`-Modus (Testlauf), um Umbenennungen zu simulieren, ohne Dateien tatsächlich zu verändern.
+*   **Detaillierte Protokollierung:** Jede Aktion – ob erfolgreich, fehlgeschlagen oder simuliert – wird in einer Log-Datei festgehalten.
+*   **Dynamische Pfad-Konfiguration:** Alle Arbeitsverzeichnisse werden automatisch basierend auf einer `AC-Nummer` und einer `Datenträger-ID` abgeleitet.
 
-1.  **Dateisuche:** Das Skript durchsucht rekursiv einen angegebenen Ordner nach allen Dateien, die **keine Dateiendung** besitzen.
-2.  **Inhaltsanalyse mit Siegfried:** Jede endungslose Datei wird mit Siegfried analysiert. Siegfried liest die "Magic Numbers" (die ersten Bytes einer Datei), um den exakten Dateityp aus der PRONOM-Datenbank zu ermitteln und liefert Formatname, PRONOM-ID und MIME-Typ.
-3.  **Intelligente Umbenennung:** Das Skript verwendet eine Prioritäten-Kaskade, um die korrekteste Dateiendung zu bestimmen:
-    *   **Priorität 1 (Manuelle PRONOM-Regeln):** Zuerst prüft es, ob für die gefundene PRONOM-ID eine Regel in der `pronom_to_ext_map` existiert. Dies dient als präzises "Override" für mehrdeutige Fälle.
-    *   **Priorität 2 (Tiefenanalyse mit FFprobe):** Für generische Containerformate wie MPEG-4 (`fmt/199`) wird **FFprobe** aufgerufen, um zu prüfen, ob die Datei eine Videospur enthält. Basierend darauf wird intelligent zwischen `.mp4` (mit Video) und `.m4a` (nur Audio) unterschieden.
-    *   **Priorität 3 (Automatische MIME-Typ-Erkennung):** Wenn die oberen Regeln nicht greifen, versucht das Skript, aus dem von Siegfried gelieferten MIME-Typ automatisch die Standard-Dateiendung abzuleiten. Dies deckt die meisten gängigen Formate ab.
-    *   **Priorität 4 (Manuelle Formatnamen-Regeln):** Als letzter Fallback dient die `format_name_to_ext_map`.
-4.  **Sicherheitsmodus (`DRY_RUN`):** Standardmäßig läuft das Skript in einem Simulationsmodus. Es zeigt nur an, welche Dateien es umbenennen *würde*, ohne tatsächlich Änderungen vorzunehmen.
+---
+
+## Analyse-Methoden
+
+Das Skript findet alle Dateien ohne Endung und analysiert sie in einem mehrstufigen Prozess:
+
+1.  **Stufe 1: Siegfried-Analyse**
+    *   Jede Datei wird zuerst mit Siegfried (`sf.exe`) gescannt.
+    *   Das Ergebnis (PRONOM-ID, MIME-Typ) wird mit einer internen Mapping-Tabelle (`pronom_to_ext_map`) abgeglichen, um eine Endung zuzuweisen.
+    *   Ein generisches `text/plain`-Ergebnis von Siegfried wird bewusst ignoriert, um die genauere Fallback-Analyse für Textdateien zu erzwingen.
+
+2.  **Stufe 2: Fallback-Analyse (wenn Stufe 1 fehlschlägt)**
+    *   **ZIP-Archiv-Prüfung:** Das Skript prüft, ob es sich um eine ZIP-Datei handelt. Wenn ja, sucht es nach einer `mimetype`-Datei im Inneren, was typisch für OpenDocument-Formate (`.odt`, `.ods`, `.odp`) ist.
+    *   **XML-Inhaltsprüfung:** Es wird nach spezifischen XML-Tags in Textdateien gesucht, die auf "flache" OpenDocument-Formate hinweisen.
+    *   **Text-Tabellen-Analyse:** Eine spezielle Funktion prüft den Dateiinhalt auf Signaturen (z.B. `ID;` für SYLK `.slk`-Dateien) oder auf eine konsistente Struktur mit Trennzeichen (`;`, `,`, `\t`), um CSV-Dateien zu identifizieren.
+    *   **Allgemeine Textdatei-Prüfung:** Als letzte Instanz wird geprüft, ob die Datei überwiegend aus druckbaren Textzeichen besteht und dann als `.txt` klassifiziert.
 
 ---
 
 ## Technische Voraussetzungen
 
-### 1. Python
-*   **Version:** 3.8 oder neuer (wegen `shutil.which`).
-*   **Bibliotheken:** Keine externen Python-Bibliotheken erforderlich.
+Die folgenden Programme müssen installiert und über den System-`PATH` global aufrufbar sein:
 
-### 2. Externe Kommandozeilen-Tools
-Alle der folgenden Programme müssen installiert und systemweit verfügbar sein (d.h. ihre Verzeichnisse müssen zur **Systemumgebungsvariable `PATH`** hinzugefügt werden).
-
-| Werkzeug | Zweck | Installationshinweis |
-| :--- | :--- | :--- |
-| **Siegfried** | Primäre Dateiidentifikation | **macOS:** `brew install siegfried` / **Windows:** `sf.exe` von der Webseite |
-| **FFmpeg** | Tiefenanalyse von Mediendateien (`ffprobe`) | **macOS:** `brew install ffmpeg` / **Windows:** Von [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) laden |
+1.  **Python:** Version 3.6 oder neuer.
+2.  **Siegfried:** Die `sf.exe` muss im `PATH` verfügbar sein.
+3.  **FFmpeg:** Die `ffprobe.exe` muss für die Multimedia-Analyse im `PATH` verfügbar sein.
 
 ---
 
-## Konfiguration im Skript
+## Konfiguration
 
-Vor der Ausführung müssen die folgenden Variablen am Anfang des Skripts angepasst werden:
-
-*   `base_path`: Der absolute Pfad zum Hauptordner, in dem die Suche nach Dateien ohne Endung beginnen soll.
-*   `ffprobe_path_config`: Der exakte Pfad zur `ffprobe`-Executable. Wenn FFprobe im System-`PATH` ist, kann der Standardwert (`"ffprobe"`) meist beibehalten werden.
-*   `pronom_to_ext_map`: Das wichtigste "Wörterbuch". Hier tragen Sie Regeln für Formate ein, die entweder keinen klaren MIME-Typ haben (z.B. ClarisWorks) oder bei denen Sie die automatische MIME-Erkennung übersteuern möchten.
-*   `DRY_RUN`: Setzen Sie diesen Wert auf `False`, um die Dateien tatsächlich umzubenennen, nachdem Sie die Simulationsausgabe überprüft haben.
+*   **`DRY_RUN` (Testlauf):** Im Skript kann die globale Variable `DRY_RUN = True` gesetzt werden. In diesem Modus werden alle Aktionen nur simuliert und protokolliert, ohne dass Dateien tatsächlich umbenannt werden.
+*   **`pronom_to_ext_map`:** Wenn das Skript unbekannte Dateitypen findet, aber eine PRONOM-ID im Log anzeigt, kann diese ID manuell zur Mapping-Tabelle im Skript hinzugefügt werden, um die Erkennung zukünftig zu verbessern.
 
 ---
 
-## Anpassung für neue Dateitypen
+## Erwartete Ordnerstruktur
 
-Das Skript ist so konzipiert, dass es die meisten Standardformate automatisch erkennt. Wenn Sie im Simulationsmodus eine Zeile wie diese sehen:
+Das Skript benötigt die folgende Verzeichnisstruktur im `Documents`-Ordner des Benutzers:
+Documents
+└── Datentraeger_sichern
+    └── [AC-Nummer]
+        └── [Datenträger-ID]
+            └── 3_[Datenträger-ID]_for-transfer
+                ├── Files  <-- IN DIESEM ORDNER WIRD GESUCHT
+                └── (Hier wird die Log-Datei erstellt)
 
-`❓ Nicht zugeordnet: 'MeineAlteDatei' (Erkannt als: Some Obscure Format)`
-
-... können Sie dem Skript den neuen Dateityp am besten über die **PRONOM-ID** beibringen, die in der erweiterten Debug-Ausgabe angezeigt wird.
-
-1.  **Informationen sammeln:**
-    *   PRONOM ID (aus der Ausgabe): `fmt/123`
-    *   Korrekte Endung (recherchiert): `.obscure`
-
-2.  **Skript anpassen:** Öffnen Sie das Skript und fügen Sie einen neuen Eintrag zur **`pronom_to_ext_map`**-Liste hinzu:
-
-    ```python
-    pronom_to_ext_map = {
-        # ... andere Einträge ...
-        "fmt/123": ".obscure"  # <-- NEUER EINTRAG
-    }
-    ```
+*   **`[AC-Nummer]`**: Die Haupt-Archivierungsnummer des Projekts.
+*   **`[Datenträger-ID]`**: Die eindeutige ID des zu verarbeitenden Datenträgers.
 
 ---
 
 ## Ausführung
 
-1.  Öffnen Sie ein Terminal (macOS) oder eine Eingabeaufforderung/PowerShell (Windows).
-2.  Passen Sie den `base_path` und ggf. den `ffprobe_path_config` im Skript an.
-3.  Führen Sie das Skript aus (standardmäßig im sicheren `DRY_RUN`-Modus).
-    ```bash
-    python3 dateityp_erkennen_dateiendung_anhaengen.py
-    ```
-4.  Überprüfen Sie die Ausgabe. Passen Sie bei Bedarf die `pronom_to_ext_map` an und wiederholen Sie Schritt 3.
-5.  Wenn Sie mit dem Ergebnis zufrieden sind, setzen Sie `DRY_RUN = False` im Skript und führen Sie es erneut aus, um die Dateien umzubenennen.```
+Das Skript ist für den Start über eine Wrapper-Datei (z.B. eine `start.bat`) konzipiert, welche die `AC-Nummer` und `Datenträger-ID` als Argumente übergibt.
+
+**Beispielhafter Aufruf in einer `start.bat`:**
+
+```batch
+@echo off
+set AC_NUMBER=AC_0001
+set DISK_ID=CD_01
+python repair_extensions_skript.py %AC_NUMBER% %DISK_ID%
+pause
+
+### Ablauf der Ausführung
+
+1.  **Validierung:** Das Skript prüft die übergebenen Argumente, die Ordnerstruktur und die Verfügbarkeit von `sf.exe` und `ffprobe.exe`.
+2.  **Suche:** Das `Files`-Verzeichnis wird rekursiv nach Dateien ohne Dateiendung durchsucht.
+3.  **Analyse & Umbenennung:** Jede gefundene Datei durchläuft den oben beschriebenen, mehrstufigen Analyseprozess. Bei erfolgreicher Identifizierung wird sie umbenannt.
+4.  **Protokollierung:** Jede Aktion (Simulation, Umbenennung, Fehler, nicht identifizierte Datei) wird in die Log-Datei `3_[Datenträger-ID]_repair_file_extension.log` geschrieben.
+5.  **Zusammenfassung:** Am Ende wird eine Übersicht über die Anzahl der umbenannten und nicht zugeordneten Dateien ausgegeben.
+6.  **Abschluss:** Das Skript fragt, ob der Zielordner im Datei-Explorer geöffnet werden soll.

@@ -1,88 +1,81 @@
-# Universeller Grafik-Konverter (Raster & Vektor)
+# Universeller Grafik-Konverter (TIFF & PDF)
 
-Dieses Verzeichnis enthält Skripte zur Batch-Konvertierung einer Vielzahl von Raster- und Vektorgrafikformaten in standardisierte, archivsichere Zielformate.
+Dieses Skript ist ein leistungsstarkes Werkzeug zur automatisierten Batch-Konvertierung von diversen Raster- und Vektorgrafikformaten in standardisierte Archivformate. Es dient dazu, eine heterogene Sammlung von Bilddateien für die Langzeitarchivierung zu normalisieren.
 
-## Zweck des Skripts
+Das Skript ist für die Integration in einen vordefinierten Archivierungsworkflow konzipiert. Es wird über Kommandozeilenargumente gesteuert, die typischerweise von einer Start-Datei (`start.bat`) übergeben werden, und erwartet eine spezifische Ordnerstruktur.
 
-Das Skript durchsucht einen Quellordner und alle seine Unterordner nach unterstützten Grafikdateien. Es wendet dann intelligent das jeweils beste Konvertierungswerkzeug an, um archivwürdige Derivate zu erstellen:
+## Kernfunktionalität
 
-1.  **Rastergrafiken** (`.jpg`, `.png`, `.heic`, etc.) werden in das verlustfreie **TIFF-Format (`.tiff`)** konvertiert.
-2.  **Vektorgrafiken** (`.svg`, `.eps`, `.ai`, etc.) werden in ein visuell stabiles **PDF-Format** umgewandelt.
+Das Skript verfolgt zwei Hauptziele, indem es die Stärken spezialisierter Kommandozeilen-Tools nutzt:
 
-Alle erstellten Dateien folgen der Namenskonvention `Originalname.originalendung.zielendung`, um die Herkunft nachvollziehbar zu machen. Bei wiederholter Ausführung des Skripts werden bereits existierende Zieldateien **überschrieben**, um sicherzustellen, dass sie immer auf dem neuesten Stand sind.
+1.  **Rastergrafiken nach TIFF:**
+    *   **Quelle:** Gängige Rasterformate wie `.jpg`, `.png`, `.bmp`, `.webp`, `.heic` etc.
+    *   **Ziel:** Verlustfreies `.tiff`-Format.
+    *   **Werkzeug:** [ImageMagick](https://imagemagick.org/)
+
+2.  **Vektorgrafiken nach PDF:**
+    *   **Quelle:** Gängige Vektorformate wie `.svg`, `.wmf`, `.eps`, `.ai`.
+    *   **Ziel:** Archivierungsfähiges `.pdf`-Format.
+    *   **Werkzeuge:** [Inkscape](https://inkscape.org/) (für SVG, WMF) und [Ghostscript](https://www.ghostscript.com/) (für EPS, AI).
+
+Die Zieldateien folgen der Namenskonvention `Originalname.originalendung.zielendung` (z.B. `logo.svg.pdf`), um die Herkunft der Datei nachvollziehbar zu machen. Bereits konvertierte Dateien werden bei erneuter Ausführung übersprungen.
 
 ---
 
 ## Technische Voraussetzungen
 
-Um dieses Skript auszuführen, müssen mehrere externe Programme installiert und korrekt konfiguriert sein.
+Die folgenden Programme müssen auf dem System installiert und korrekt konfiguriert sein:
 
-### 1. Python
-*   **Version:** 3.6 oder neuer.
-*   **Bibliotheken:** Keine externen Bibliotheken erforderlich. Es werden nur Standardmodule (`os`, `subprocess`, etc.) verwendet.
-
-### 2. ImageMagick (für Rastergrafiken)
-*   **Zweck:** Konvertiert Formate wie JPEG, PNG, HEIC und GIF nach TIFF.
-*   **Installation:** Muss installiert sein, sodass der Befehl `magick` (`magick.exe` unter Windows) systemweit verfügbar ist (im `PATH`).
-    *   **macOS:** `brew install imagemagick`
-    *   **Windows:** Installer von [imagemagick.org](https://imagemagick.org/script/download.php) herunterladen und bei der Installation die Option "Add application directory to your system path" aktivieren.
-
-### 3. Inkscape (für SVG und andere Vektorformate)
-*   **Zweck:** Konvertiert Vektorformate wie SVG oder WMF in PDF.
-*   **Installation:** Muss installiert sein, sodass der Befehl `inkscape` (`inkscape.exe`) systemweit verfügbar ist.
-    *   **macOS:** `brew install --cask inkscape`
-    *   **Windows:** Installer von [inkscape.org](https://inkscape.org/release/inkscape-1.3.2/windows/64-bit/) herunterladen und bei der Installation die Option "Add Inkscape to system PATH" aktivieren.
-
-### 4. Ghostscript (Wichtiger Helfer für EPS, PDF, AI)
-*   **Zweck:** Wird von Inkscape und ImageMagick im Hintergrund benötigt, um PostScript-basierte Dateien (`.eps`, `.ai`, `.pdf`) korrekt zu lesen.
-*   **Installation:** Muss installiert und systemweit verfügbar sein.
-    *   **macOS:** `brew install ghostscript`
-    *   **Windows:** Installer von [ghostscript.com](https://www.ghostscript.com/releases/gsdnld.html) herunterladen. Es wird dringend empfohlen, den Installationspfad (insb. das `bin`-Verzeichnis) zur Systemumgebungsvariable `PATH` hinzuzufügen.
+1.  **Python:** Version 3.6 oder neuer.
+2.  **ImageMagick:** Muss installiert sein. Die `magick.exe` sollte entweder im System-`PATH` sein oder der Pfad muss im Skript direkt angegeben werden.
+3.  **Inkscape:** Muss installiert sein. Da Inkscape sich selten zum `PATH` hinzufügt, muss der vollständige Pfad zur `inkscape.exe` im Skript wahrscheinlich manuell eingetragen werden.
+4.  **Ghostscript:** Muss installiert sein. Die `gswin64c.exe` (oder `gswin32c.exe`) sollte entweder im System-`PATH` sein oder der Pfad muss im Skript angegeben werden.
 
 ---
 
 ## Konfiguration im Skript
 
-Vor der Ausführung müssen die Pfade am Anfang des Skripts für das jeweilige Betriebssystem angepasst werden.
+Vor der ersten Ausführung müssen die Pfade zu den externen Werkzeugen am Anfang des Skripts überprüft und bei Bedarf angepasst werden.
 
-*   **`input_folder`**: Der absolute Pfad zum Hauptordner, der die zu konvertierenden Grafikdateien enthält.
-*   **Pfade zu den Tools** (`imagemagick_path`, `inkscape_path`, `ghostscript_path`):
-    *   Wenn die Programme wie oben beschrieben zum System-`PATH` hinzugefügt wurden, reichen die Standardnamen (`magick.exe`, `inkscape.exe`, `gswin64c.exe`).
-    *   Andernfalls muss hier der vollständige, absolute Pfad zur jeweiligen `.exe`-Datei (Windows) oder zur Binärdatei (macOS) eingetragen werden.
-
-**Beispiel für macOS:**
 ```python
-input_folder = "/Users/IhrBenutzername/Desktop/Bildformate_konvertieren"
-imagemagick_path = "magick"
-inkscape_path = "/Applications/Inkscape.app/Contents/MacOS/inkscape"
-ghostscript_path = "gs"
-```
+# Pfade zu den Kommandozeilen-Tools
+IMAGEMAGICK_PATH = "magick.exe"
+INKSCAPE_PATH = r"C:\Program Files\Inkscape\bin\inkscape.exe" # Beispielpfad, ggf. anpassen
+GHOSTSCRIPT_PATH = "gswin64c.exe"
 
-**Beispiel für Windows:**```python
-input_folder = "C:/Users/IhrBenutzername/Desktop/Bildformate_konvertieren"
-imagemagick_path = "magick.exe"
-inkscape_path = "inkscape.exe"
-ghostscript_path = "gswin64c.exe"
-```
+*   Wenn ein Werkzeug im System-`PATH` ist, reicht der Name der `.exe`-Datei.
+*   Andernfalls muss der vollständige, absolute Pfad zur jeweiligen `.exe`-Datei eingetragen werden (siehe `INKSCAPE_PATH`-Beispiel).
 
----
+### Erwartete Ordnerstruktur
+
+Das Skript benötigt die folgende Verzeichnisstruktur im `Documents`-Ordner des Benutzers:
+Documents
+└── Datentraeger_sichern
+    └── [AC-Nummer]
+        └── [Datenträger-ID]
+            └── 3_[Datenträger-ID]_for-transfer
+                ├── Files  <-- IN DIESEM ORDNER WIRD GESUCHT
+                └── (Hier wird die Log-Datei erstellt)
+
+*   **`[AC-Nummer]`**: Die Haupt-Archivierungsnummer des Projekts.
+*   **`[Datenträger-ID]`**: Die eindeutige ID des zu verarbeitenden Datenträgers.
 
 ## Ausführung
 
-Die Skripte für die verschiedenen Betriebssysteme befinden sich in den jeweiligen Unterordnern (`mac/`, `win/`).
+Das Skript ist für den Start über eine Wrapper-Datei (z.B. eine `start.bat`) konzipiert, welche die `AC-Nummer` und `Datenträger-ID` als Argumente übergibt.
 
-1.  Öffnen Sie ein Terminal (macOS) oder eine Eingabeaufforderung/PowerShell (Windows).
-2.  Stellen Sie sicher, dass alle oben genannten Voraussetzungen erfüllt und die Pfade im Skript korrekt konfiguriert sind.
-3.  Führen Sie das Skript mit dem Python-Interpreter aus.
+**Beispielhafter Aufruf in einer `start.bat`:**
+@echo off
+set AC_NUMBER=AC_0001
+set DISK_ID=CD_01
+python image_conversion_skript.py %AC_NUMBER% %DISK_ID%
+pause
 
-**Beispiel für macOS:**
-```bash
-python3 /pfad/zum/skript/mac/convert_graphics.py
-```
+### Ablauf der Ausführung
 
-**Beispiel für Windows:**
-```cmd
-python C:\pfad\zum\skript\win\convert_graphics.py
-```
-
-Das Skript gibt den Fortschritt live auf der Konsole aus und erstellt eine detaillierte Log-Datei (`konvertierungs_log.txt`) im `input_folder`.
+1.  **Validierung:** Das Skript prüft die übergebenen Argumente, die Ordnerstruktur und die Verfügbarkeit der konfigurierten Tools.
+2.  **Suche:** Das `Files`-Verzeichnis wird rekursiv nach allen unterstützten Bilddateien durchsucht.
+3.  **Konvertierung:** Jede gefundene Datei wird mit dem passenden Werkzeug (ImageMagick, Inkscape oder Ghostscript) in das jeweilige Zielformat konvertiert. Der Fortschritt wird in der Konsole angezeigt.
+4.  **Protokollierung:** Alle Aktionen, Erfolge und Fehler werden detailliert in die Log-Datei `3_[Datenträger-ID]_image_conversion.log` geschrieben.
+5.  **Zusammenfassung:** Am Ende wird eine Übersicht über die Anzahl der erfolgreich konvertierten Dateien und aufgetretenen Fehler ausgegeben.
+6.  **Abschluss:** Das Skript fragt, ob der Zielordner im Datei-Explorer geöffnet werden soll.

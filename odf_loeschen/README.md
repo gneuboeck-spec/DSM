@@ -1,58 +1,66 @@
-# Aufräum-Skript für ODF-Zwischendateien
+# Aufräumskript für konvertierte OpenDocument-Dateien
 
-Dieses Python-Skript dient als intelligentes Bereinigungswerkzeug, das speziell als Ergänzung zum universellen Office-Konverter (`office_konverter.py`) entwickelt wurde.
+Dieses Skript ist ein spezialisiertes Werkzeug zur Bereinigung nach einem Dokumenten-Konvertierungsprozess. Seine einzige Aufgabe ist es, OpenDocument-Dateien (`.odt`, `.ods`, `.odp`) zu identifizieren und zu löschen, die zuvor von einem Konvertierungsskript als Archivkopien (`Originalname.originalendung.odf_endung`) erstellt wurden.
 
-## Zweck des Skripts
+Der Zweck ist es, die Dateisammlung zu bereinigen, indem diese temporären oder redundanten Zwischenformate entfernt werden, während die ursprünglichen Quelldateien erhalten bleiben.
 
-Nachdem der Office-Konverter aus verschiedenen Quellformaten (`.doc`, `.xls` etc.) sowohl ein OpenDocument-Format (`.odt`, `.ods`, etc.) als auch ein PDF/A erstellt hat, verbleiben die ODF-Dateien als Zwischendateien im Verzeichnis.
+## Kernfunktionen
 
-Dieses Skript durchsucht einen Ordner und **löscht gezielt nur jene ODF-Dateien, die als Nebenprodukt einer Konvertierung erstellt wurden**. Ursprüngliche ODF-Dateien, die bereits vor der Konvertierung existierten, werden **nicht** gelöscht.
-
-**Die Kernlogik:**
-Eine Datei wie `Bericht.doc.odt` wird gelöscht, weil die Originaldatei `Bericht.doc` ebenfalls existiert. Eine Datei wie `MeinDokument.odt` wird hingegen ignoriert, da keine dazugehörige "Originaldatei" (`MeinDokument`) gefunden wird.
-
-Das Ziel ist es, nach dem Aufräumprozess nur noch die Originaldateien und die finalen PDF/A-Derivate im Ordner zu haben.
-
----
-
-## Technische Voraussetzungen
-
-Das Skript ist sehr schlank und hat minimale Anforderungen.
-
-*   **Python:** Version 3.6 oder neuer (wegen der Verwendung von f-Strings).
-*   **Externe Bibliotheken:** Keine. Das Skript verwendet ausschließlich Python-Standardbibliotheken (`os`, `sys`).
-*   **Betriebssystem:** Plattformunabhängig. Funktioniert auf macOS, Windows und Linux.
+*   **Präzise Identifikationslogik:** Löscht eine Datei nur, wenn sie eindeutig als Konvertierungsergebnis identifiziert werden kann (z.B. `bericht.doc.odt`). Dabei wird sichergestellt, dass die Originaldatei (`bericht.doc`) noch existiert, um Datenverlust zu vermeiden.
+*   **Sicherheitsmechanismen:**
+    *   **Testlauf (`Dry Run`):** Das Skript kann in einem reinen Simulationsmodus ausgeführt werden. In diesem Modus werden keine Dateien gelöscht, sondern es wird lediglich eine Log-Datei mit den zur Löschung identifizierten Dateien erstellt.
+    *   **Bestätigungsabfrage:** Im Echt-Modus listet das Skript alle zu löschenden Dateien auf und fordert eine explizite Bestätigung vom Benutzer (`j/n`), bevor der Löschvorgang gestartet wird.
+*   **Detaillierte Protokollierung:** Alle Aktionen – ob im Testlauf oder im Echt-Modus – werden in einer Log-Datei festgehalten. Im Echt-Modus werden erfolgreiche und fehlgeschlagene Löschungen getrennt protokolliert.
+*   **Dynamische Pfad-Konfiguration:** Alle Arbeitsverzeichnisse werden automatisch basierend auf einer `AC-Nummer` und einer `Datenträger-ID` abgeleitet, die über die Kommandozeile übergeben werden.
 
 ---
 
 ## Konfiguration im Skript
 
-Vor der Ausführung muss eine Variable am Anfang des Skripts angepasst werden:
+Die primäre Konfiguration erfolgt über einen einzigen Schalter am Anfang des Skripts:
 
-*   **`target_folder`**: Dies muss der **absolute Pfad** zum Hauptverzeichnis sein, das aufgeräumt werden soll. Dieser Pfad sollte mit dem `input_folder` des Konvertierungs-Skripts übereinstimmen.
-
-**Beispiel für macOS:**
 ```python
-target_folder = "/Users/gregorneuboeck/Desktop/Texdateien_konvertieren"
-```
-**Beispiel für Windows:**
-```python
-target_folder = "C:/Users/DeinBenutzer/Desktop/Texdateien_konvertieren"
-```
+# True:  Nur simulieren und eine Liste der zu löschenden Dateien im Log erstellen. Es wird nichts gelöscht.
+# False: Dateien nach Bestätigung tatsächlich löschen und den Vorgang protokollieren.
+DRY_RUN = False
+*   **`DRY_RUN = True`**: Sicherer Modus zur Überprüfung.
+*   **`DRY_RUN = False`**: Produktiver Modus zum tatsächlichen Löschen.
 
----
+### Erwartete Ordnerstruktur
+
+Das Skript benötigt die folgende Verzeichnisstruktur im `Documents`-Ordner des Benutzers:
+Documents
+└── Datentraeger_sichern
+    └── [AC-Nummer]
+        └── [Datenträger-ID]
+            └── 3_[Datenträger-ID]_for-transfer
+                ├── Files  <-- IN DIESEM ORDNER WIRD AUFGERÄUMT
+                └── (Hier wird die Log-Datei erstellt)
+
+*   **`[AC-Nummer]`**: Die Haupt-Archivierungsnummer des Projekts.
+*   **`[Datenträger-ID]`**: Die eindeutige ID des zu verarbeitenden Datenträgers.
 
 ## Ausführung
 
-1.  Öffnen Sie ein Terminal (macOS) oder eine Eingabeaufforderung/Git Bash (Windows).
-2.  Stellen Sie sicher, dass der `target_folder` im Skript korrekt konfiguriert ist.
-3.  Führen Sie das Skript mit dem Python-Interpreter aus.
+Das Skript ist für den Start über eine Wrapper-Datei (z.B. eine `start.bat`) konzipiert, welche die `AC-Nummer` und `Datenträger-ID` als Argumente übergibt.
 
-**Beispiel:**
-```bash
-python3 /pfad/zum/skript/cleanup_odf_files.py
-```
+@echo off
+set AC_NUMBER=AC_0001
+set DISK_ID=CD_01
+python cleanup_odf_skript.py %AC_NUMBER% %DISK_ID%
+pause
 
-### Sicherheitsabfrage
+**Beispielhafter Aufruf in einer `start.bat`:**
 
-Das Skript ist sicher in der Anwendung. Bevor Dateien endgültig gelöscht werden, listet es alle identifizierten Zwischendateien auf und stellt eine explizite Ja/Nein-Sicherheitsabfrage (`Möchten Sie diese Dateien wirklich löschen? (j/n):`). Der Löschvorgang wird nur nach einer Bestätigung mit `j` gestartet.
+### Ablauf der Ausführung
+
+1.  **Validierung:** Das Skript prüft die übergebenen Argumente und die Ordnerstruktur.
+2.  **Modus-Erkennung:** Das Skript stellt fest, ob es im `DRY_RUN` (Testlauf) oder im Echt-Modus läuft.
+3.  **Suche:** Das `Files`-Verzeichnis wird rekursiv nach OpenDocument-Dateien durchsucht, die den Kriterien für konvertierte Dateien entsprechen.
+4.  **Aktion (je nach Modus):**
+    *   **Im Testlauf:** Es wird eine Log-Datei mit allen Dateien erstellt, die gelöscht *würden*.
+    *   **Im Echt-Modus:** Die gefundenen Dateien werden aufgelistet, und eine Bestätigung vom Benutzer wird eingeholt.
+5.  **Löschvorgang (nur im Echt-Modus):** Nach der Bestätigung werden die Dateien gelöscht.
+6.  **Protokollierung:** Die Ergebnisse (simuliert oder echt) werden in die Log-Datei `3_[Datenträger-ID]_delete_converted_odfs.log` geschrieben.
+7.  **Zusammenfassung:** Am Ende wird eine Übersicht über die durchgeführten Aktionen ausgegeben.
+8.  **Abschluss:** Das Skript fragt, ob der Zielordner im Datei-Explorer geöffnet werden soll.
