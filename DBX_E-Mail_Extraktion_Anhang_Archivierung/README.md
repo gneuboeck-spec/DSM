@@ -79,7 +79,6 @@ main_input_dir = "C:/Users/IhrName/Desktop/Email_Archiv"
 
 **Beispiel:**```bash
 python3 /pfad/zum/skript/email_archivierer.py
-```
 
 Das Skript gibt seinen Fortschritt live auf der Konsole aus. Es gibt **keine** separate Log-Datei, daher wird empfohlen, die Konsolenausgabe bei Bedarf in eine Datei umzuleiten.
 
