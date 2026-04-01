@@ -47,7 +47,6 @@ log_file_path = "/Users/IhrName/Desktop/Sicherung/sam_file_mapping.txt"```
 ```python
 sam_dir = "C:\\Users\\IhrName\\Desktop\\Sicherung\\SAM"
 log_file_path = "C:\\Users\\IhrName\\Desktop\\Sicherung\\sam_file_mapping.txt"
----
 
 ## Anpassung für andere Dateitypen
 
