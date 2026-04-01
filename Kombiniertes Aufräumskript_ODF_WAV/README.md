@@ -75,13 +75,11 @@ Das Skript erwartet folgende Verzeichnisstruktur:
 Nach erfolgreicher Pfadvalidierung erscheint ein interaktives Menü:
 
 
-
   Wählen Sie eine Aufräum-Aktion:
 
   1 - Zwischendateien (ODF) löschen
   2 - Konvertierte WAV-Dateien löschen
   Q - Beenden
-
 
 
 **Option 1: ODF-Zwischendateien löschen**
