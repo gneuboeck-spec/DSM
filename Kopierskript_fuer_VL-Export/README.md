@@ -1,150 +1,162 @@
-# Kopierskript für VL-Export
+# VL-Export Kopiertool
 
+Ein Python-Skript zum automatisierten Kopieren von Dateien für den VL-Export (Verzeichnislieferung) im Rahmen digitaler Archivierungsprojekte.
 
+## Funktionsumfang
 
-Dieses Skript ist ein automatisiertes Werkzeug, das den Prozess der Zusammenstellung der finalen Lieferpakete für den VL-Export (Verbund-Lagerung) standardisiert. Es sammelt gezielt alle relevanten Ergebnisse aus den verschiedenen Phasen des Archivierungsworkflows und kopiert sie in einen dedizierten Export-Ordner.
+- Kopiert TIF-Dateien aus dem Picture-Carrier-Ordner
+- Kopiert content-, tree- und index-Dateien aus den entsprechenden Ordnern
+- Kopiert den kompletten Files-Ordner
+- Prüft auf bereits existierende Dateien im Zielordner
+- Farbige Konsolenausgabe für bessere Lesbarkeit
+- Optionales Öffnen des Zielordners nach Abschluss
+- Keine Überschreibung vorhandener Dateien
 
+## Voraussetzungen
 
+- Python 3.6 oder höher
+- Benötigte Python-Bibliothek: colorama (für farbige Konsolenausgabe)
+- Betriebssystem: Windows, macOS oder Linux
 
-Das Skript ist als finaler Schritt im lokalen Verarbeitungsprozess konzipiert. Es wird, wie die anderen Skripte im Workflow, über eine `start.bat` mit dynamischen Pfaden gesteuert, um Konsistenz und Nachvollziehbarkeit zu gewährleisten.
+## Installation
 
+1. Skript herunterladen und in einer Datei speichern, z.B. copy_for_vl_export.py
 
+2. Benötigte Bibliothek installieren:
+   pip install colorama
 
-## Kernfunktionalität
+## Verwendung
 
+### Aufruf des Skripts
 
+Das Skript benötigt zwei Parameter:
+- AC-Nummer (Archivierungsprojekt-Kennung)
+- Datenträger-ID (eindeutige Kennung des Datenträgers)
 
-Das Skript führt eine Reihe von gezielten Kopieroperationen durch, um das finale Lieferpaket zu erstellen. Es sammelt die folgenden Artefakte:
+python copy_for_vl_export.py <AC_NUMMER> <DATENTRÄGER_ID>
 
+Beispiel:
+python copy_for_vl_export.py AC-2024-001 DISK-12345
 
+Das Skript erwartet folgende Verzeichnisstruktur:
+~/Documents/data/<AC_NUMMER>/<DATENTRÄGER_ID>/
+├── 0_<ID>_picture-carrier/
+│   └── *.tif
+├── 2_<ID>_extracted-files/
+│   ├── 2_<ID>_extracted-files.content
+│   └── 2_<ID>_extracted-files_tree.txt
+├── 3_<ID>_for-transfer/
+│   ├── 3_<ID>_for-transfer.index
+│   └── files/
+│       └── [beliebige Dateien]
+└── 4_<ID>_VL/ (Zielordner, muss bereits existieren)
 
-1.  **Abbildungen des physischen Datenträgers**
+## Ablauf im Detail
 
-&nbsp;   *   **Quelle:** Ordner `0_[ID]_picture-carrier`
+Das Skript führt folgende Schritte aus:
 
-&nbsp;   *   **Dateien:** Alle `.tif`-Dateien (z.B. Scans oder Fotos des Original-Datenträgers).
+### 1. Pfadvalidierung
+- Überprüft, ob alle erforderlichen Quell- und Zielordner existieren
+- Bei fehlenden Ordnern wird das Skript mit einer Fehlermeldung beendet
 
+### 2. TIF-Dateien kopieren
+- Durchsucht den 0_<ID>_picture-carrier-Ordner nach .tif-Dateien
+- Kopiert jede gefundene TIF-Datei in den VL-Zielordner
+- Bestehende Dateien werden nicht überschrieben
 
+### 3. content-Datei kopieren
+- Kopiert die .content-Datei aus dem extracted-files-Ordner
+- Enthält Metadaten über die extrahierten Dateien
 
-2.  **Statistische Berichte:**
+### 4. tree-Datei kopieren
+- Kopiert die _tree.txt-Datei aus dem extracted-files-Ordner
+- Enthält die Verzeichnisstruktur der extrahierten Daten
 
-&nbsp;   *   **Quelle:** Ordner `2_[ID]_extracted-files`
+### 5. index-Datei kopieren
+- Kopiert die .index-Datei aus dem for-transfer-Ordner
+- Enthält Index-Informationen für den Transfer
 
-&nbsp;   *   **Dateien:**
+### 6. Files-Ordner kopieren
+- Kopiert den gesamten files-Ordner rekursiv in den VL-Zielordner
+- Bei bereits existierendem Zielordner wird der Vorgang übersprungen
 
-&nbsp;       *   Die `.content`-Datei (XML-Zusammenfassung der Brunnhilde-Analyse).
+### 7. Zielordner öffnen (optional)
+- Nach Abschluss kann der Zielordner interaktiv geöffnet werden
+- Unterstützt Windows (explorer), macOS (finder) und Linux (xdg-open)
 
-&nbsp;       *   Die `...Tree.txt`-Datei (Verzeichnisbaum der extrahierten Dateien).
+## Ausgabe
 
+Das Skript gibt während der Ausführung farbige Statusmeldungen aus:
 
+- Grün: Erfolgreich kopierte Dateien
+- Gelb: Warnungen (fehlende Dateien/Ordner, bereits existierende Dateien)
+- Rot: Fehlermeldungen
+- Cyan/Magenta: Überschriften und Strukturinformationen
 
-3.  **Detaillierte Metadaten:**
+## Sicherheitshinweise
 
-&nbsp;   *   **Quelle:** Ordner `3_[ID]_for-transfer`
+1. Keine Überschreibung: Bereits im Zielordner existierende Dateien werden nicht überschrieben
+2. Prüfung vorher: Alle Quellordner werden vor dem Kopieren auf Existenz geprüft
+3. Zielordner muss existieren: Der VL-Zielordner (4_<ID>_VL) muss vorab manuell erstellt werden
+4. Nur Kopieren: Das Skript löscht keine Dateien, es werden nur Kopien erstellt
 
-&nbsp;   *   **Datei:** Die `.index`-Datei (umfassende Metadaten-XML für jede einzelne Datei).
+## Fehlerbehandlung
 
+Das Skript behandelt verschiedene Fehlersituationen:
 
+- Fehlende Parameter: Ausgabe einer Fehlermeldung mit Hinweis zur korrekten Verwendung
+- Fehlende Ordner: Ausgabe einer Fehlermeldung und Abbruch des Skripts
+- Fehlende Dateien: Ausgabe einer Warnung, Vorgang wird fortgesetzt
+- Bereits existierende Dateien: Ausgabe einer Warnung, Datei wird nicht überschrieben
 
-4.  **Die finalen Dateien:**
+## Beispiel für die Ausgabe
 
-&nbsp;   *   **Quelle:** Ordner `3_[ID]_for-transfer/Files`
+Werte aus der Kommandozeile erhalten: AC=AC-2024-001, ID=DISK-12345
 
-&nbsp;   *   **Inhalt:** Der gesamte `Files`-Ordner, der die originalen und die konvertierten, archivsicheren Dateien enthält.
+========================================
+  DATEIEN FUER VL-EXPORT KOPIEREN
+========================================
 
+Pfade definieren
+  BasePath: C:\Users\user\Documents\data\AC-2024-001
+  MainFolder: C:\Users\user\Documents\data\AC-2024-001\DISK-12345
+  DestinationFolder: C:\Users\user\Documents\data\AC-2024-001\DISK-12345\4_DISK-12345_VL
 
+Pfade validieren
+Alle Pfade vorhanden
 
-Das Skript ist so konzipiert, dass es keine existierenden Dateien oder Ordner im Zielverzeichnis überschreibt, um versehentlichen Datenverlust zu verhindern.
+Kopiervorgang starten
 
+1. TIF-Dateien kopieren
+  Kopiert: image001.tif
+  Kopiert: image002.tif
 
+2. content-Datei kopieren
+  Kopiert: 2_DISK-12345_extracted-files.content
 
----
+3. tree-Datei kopieren
+  Kopiert: 2_DISK-12345_extracted-files_tree.txt
 
+4. index-Datei kopieren
+  Kopiert: 3_DISK-12345_for-transfer.index
 
+5. Files-Ordner kopieren
+  Files-Ordner komplett kopiert
 
-## Technische Voraussetzungen
+Zielordner oeffnen? (j/n): j
+Zielordner geoeffnet
 
-
-
-*   **Python:** Version 3.6 oder neuer.
-
-*   **Bibliotheken:** `colorama` für eine farbige Konsolenausgabe.
-
-&nbsp;   
-
-&nbsp;   pip install colorama
-
-&nbsp;   
-
-
-## Erwartete Ordnerstruktur
-
-
-
-Das Skript ist von einer präzisen Ordnerstruktur abhängig, die durch die vorherigen Schritte im Workflow erzeugt wurde. Alle Pfade werden dynamisch basierend auf einer `AC-Nummer` und einer `Datenträger-ID` generiert.
-
-
-Die erwartete Struktur innerhalb des `Documents\\Datentraeger\_sichern\\\[AC-Nummer]\\\[Datenträger-ID]`-Verzeichnisses ist:
-
-
-
-
-*   **`\[AC-Nummer]`**: Die Haupt-Archivierungsnummer des Projekts.
-
-*   **`\[Datenträger-ID]`\*\*: Die eindeutige ID des zu verarbeitenden Datenträgers.
-
-.
-
-├── 0_[ID]_picture-carrier/         <-- QUELL-ORDNER 1
-
-├── 2_[ID]_extracted-files/         <-- QUELL-ORDNER 2
-
-├── 3_[ID]_for-transfer/            <-- QUELL-ORDNER 3
-
-│   └── Files/                      <-- QUELL-ORDNER 4
-
-│
-
-└── 4_[ID]_VL/                      <-- ZIEL-ORDNER
-
-
-
-## Ausführung
-
-
-Das Skript ist für den Start über eine Wrapper-Datei (z.B. eine `start.bat`) konzipiert, welche die `AC-Nummer` und `Datenträger-ID` als Argumente übergibt.
-
-
-**Beispielhafter Aufruf in einer `start.bat`:**
-
-@echo off
-
-set AC\_NUMBER=AC\_0001
-
-set DISK\_ID=CD\_01
-
-python vl\_export\_skript.py %AC\_NUMBER% %DISK\_ID%
-
-pause
-
-
-### Ablauf der Ausführung
-
-
-1.  **Validierung:** Das Skript prüft die übergebenen Argumente und verifiziert, dass alle benötigten Quell- und Zielverzeichnisse vorhanden sind.
-
-2.  **Iteratives Kopieren:** Das Skript führt die fünf oben beschriebenen Kopiervorgänge nacheinander aus.
-
-3.  **Status-Feedback Für jede Aktion wird eine klare Erfolgs- oder Warnmeldung in der Konsole ausgegeben (z.B. `"Kopiert"`, `"Datei existiert bereits"`, `"Ordner nicht gefunden"`).
-
-4.  **Abschluss:** Nach Abschluss aller Kopiervorgänge fragt das Skript, ob der Zielordner (`4_[ID]_VL`) im Datei-Explorer geöffnet werden soll.
+========================================
+  KOPIERVORGANG ABGESCHLOSSEN
+========================================
 
 ## Lizenz
 
-**Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>**
+SPDX-FileCopyrightText: 2025 Florian Lüftner <florian.lueftner@posteo.com>
+SPDX-License-Identifier: MIT
 
-Dieses Skript ist unter der **MIT-Lizenz** lizenziert. Das bedeutet, es darf frei verwendet, kopiert und modifiziert werden, solange der obige Copyright-Hinweis erhalten bleibt.
+Dieses Projekt ist unter der MIT-Lizenz lizenziert.
 
 ---
-**SPDX-FileCopyrightText:** 2025 Gregor Neuboeck  
-**SPDX-License-Identifier:** MIT
+
+Hinweis: Dieses Skript ist speziell für die Anforderungen digitaler Archivierungsprojekte entwickelt worden. Stellen Sie sicher, dass der VL-Zielordner (4_<ID>_VL) vor der Ausführung manuell erstellt wurde.
