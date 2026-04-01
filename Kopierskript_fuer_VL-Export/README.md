@@ -40,16 +40,16 @@ python copy_for_vl_export.py AC-2024-001 DISK-12345
 
 Das Skript erwartet folgende Verzeichnisstruktur:
 ~/Documents/data/<AC_NUMMER>/<DATENTRÄGER_ID>/
-├── 0_<ID>_picture-carrier/
-│   └── *.tif
-├── 2_<ID>_extracted-files/
-│   ├── 2_<ID>_extracted-files.content
-│   └── 2_<ID>_extracted-files_tree.txt
-├── 3_<ID>_for-transfer/
-│   ├── 3_<ID>_for-transfer.index
-│   └── files/
-│       └── [beliebige Dateien]
-└── 4_<ID>_VL/ (Zielordner, muss bereits existieren)
++-- 0_<ID>_picture-carrier/
+¦   +-- *.tif
++-- 2_<ID>_extracted-files/
+¦   +-- 2_<ID>_extracted-files.content
+¦   +-- 2_<ID>_extracted-files_tree.txt
++-- 3_<ID>_for-transfer/
+¦   +-- 3_<ID>_for-transfer.index
+¦   +-- files/
+¦       +-- [beliebige Dateien]
++-- 4_<ID>_VL/ (Zielordner, muss bereits existieren)
 
 ## Ablauf im Detail
 
