@@ -41,16 +41,16 @@ python copy_for_vl_export.py AC-2024-001 DISK-12345
 Das Skript erwartet folgende Verzeichnisstruktur:
 
 ~/Documents/data/<AC_NUMMER>/<DATENTRÄGER_ID>/
-├── 0_<ID>_picture-carrier/
-│   └── *.tif
-├── 2_<ID>_extracted-files/
-│   ├── 2_<ID>_extracted-files.content
-│   └── 2_<ID>_extracted-files_tree.txt
-├── 3_<ID>_for-transfer/
-│   ├── 3_<ID>_for-transfer.index
-│   └── files/
-│       └── [beliebige Dateien]
-└── 4_<ID>_VL/ (Zielordner, muss bereits existieren)
++-- 0_<ID>_picture-carrier/
+¦   +-- *.tif
++-- 2_<ID>_extracted-files/
+¦   +-- 2_<ID>_extracted-files.content
+¦   +-- 2_<ID>_extracted-files_tree.txt
++-- 3_<ID>_for-transfer/
+¦   +-- 3_<ID>_for-transfer.index
+¦   +-- files/
+¦       +-- [beliebige Dateien]
++-- 4_<ID>_VL/ (Zielordner, muss bereits existieren)
 
 ## Ablauf im Detail
 
@@ -153,10 +153,13 @@ Zielordner geoeffnet
 
 ## Lizenz
 
-SPDX-FileCopyrightText: 2025 Florian Lüftner <florian.lueftner@posteo.com>
-SPDX-License-Identifier: MIT
+**Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>**
 
-Dieses Projekt ist unter der MIT-Lizenz lizenziert.
+Dieses Skript ist unter der **MIT-Lizenz** lizenziert. Das bedeutet, es darf frei verwendet, kopiert und modifiziert werden, solange der obige Copyright-Hinweis erhalten bleibt.
+
+---
+**SPDX-FileCopyrightText:** 2025 Gregor Neuboeck  
+**SPDX-License-Identifier:** MIT
 
 ---
 
