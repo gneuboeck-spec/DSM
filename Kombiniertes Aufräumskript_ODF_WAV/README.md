@@ -1,4 +1,3 @@
-```md
 # Data Cleanup Tool für Archivierungsprozesse
 
 Ein Python-Skript zur automatisierten Bereinigung von Zwischendateien im Rahmen von digitalen Archivierungsprojekten. Das Tool identifiziert und löscht sicher konvertierte ODF-Dateien sowie temporäre WAV-Dateien.
@@ -59,7 +58,7 @@ python data_cleanup.py <AC_NUMMER> <DATENTRÄGER_ID>
 ```
 
 Beispiel:
-```bash
+
 python data_cleanup.py AC-2024-001 DISK-12345
 ```
 
