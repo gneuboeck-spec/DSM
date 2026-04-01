@@ -38,10 +38,6 @@ Um dieses Skript auszuführen, müssen die folgenden Programme auf Ihrem **Windo
 Vor der ersten Ausführung müssen die Pfade zu den externen Werkzeugen am Anfang des Skripts angepasst werden.
 
 
-# ==============================================================================
-# 🔧 KONFIGURATION (BITTE FÜR IHR WINDOWS-SYSTEM ANPASSEN)
-# ==============================================================================
-
 SIEGFRIED_DIR = r"C:\Program Files\Siegfried"
 CLAMAV_DIR = ""  # Leer lassen, wenn nicht verwendet, z.B.: r"C:\Program Files\ClamAV"
 
