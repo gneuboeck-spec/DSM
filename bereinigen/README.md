@@ -1,8 +1,10 @@
 # Automatisches Bereinigungsskript
 
-Dieses Skript dient zur automatisierten und tiefgehenden Bereinigung von Verzeichnissen. Es wurde entwickelt, um Dateistrukturen (z.B. von alten Datenträgern) für die Archivierung vorzubereiten, indem es eine Vielzahl von Systemdateien, temporären Dateien, ausführbaren Programmen und sonstigem "Datenmüll" entfernt.
+Dieses Skript dient zur automatisierten und tiefgehenden Bereinigung von Verzeichnissen. Es wurde entwickelt, um Dateistrukturen (z. B. von alten Datenträgern) für die Archivierung vorzubereiten, indem es eine Vielzahl von Systemdateien, temporären Dateien, ausführbaren Programmen und sonstigem "Datenmüll" entfernt.
 
 Das Skript ist für die Integration in eine vordefinierte Ordnerstruktur konzipiert und wird über Kommandozeilenargumente gesteuert, typischerweise durch eine Start-Datei wie `start.bat`.
+
+---
 
 ## Hauptfunktionen
 
@@ -25,7 +27,7 @@ Das Skript durchsucht den Zielordner rekursiv und identifiziert Elemente anhand 
 Eine fest definierte Liste von über 200 Dateiendungen (`.exe`, `.dll`, `.tmp`, `.bak`, `.sys` etc.), die typischerweise Systemdateien, temporäre Dateien oder ausführbare Programme darstellen.
 
 #### 2. Nach Schlüsselwörtern im Dateinamen
-Dateien und Ordner, deren Name bestimmte Schlüsselwörter enthält (z.B. `video_konvertierung`, `konvertierungslog`), die auf prozessinterne Protokolle hinweisen.
+Dateien und Ordner, deren Name bestimmte Schlüsselwörter enthält (z. B. `video_konvertierung`, `konvertierungslog`), die auf prozessinterne Protokolle hinweisen.
 
 #### 3. Nach Dateinamen-Mustern und Systemdateien
 *   Versteckte Systemdateien wie `Thumbs.db` oder `desktop.ini`.
@@ -40,7 +42,7 @@ Alle Ordner, die nach dem Löschen der Dateien leer sind, werden ebenfalls entfe
 
 ## Technische Voraussetzungen
 
-*   **Python:** Version 3.6 oder neuer. Es sind keine externen Bibliotheken erforderlich.
+*   **Python:** Version 3.6 oder neuer. Es sind keine externen Bibliotheken erforderlich (nur Standardmodule).
 
 ---
 
@@ -52,13 +54,15 @@ Das Skript wird **nicht** im Code selbst konfiguriert. Stattdessen erwartet es e
 
 Das Skript muss innerhalb dieser Verzeichnisstruktur ausgeführt werden, die sich im `Documents`-Ordner des Benutzers befinden sollte:
 
-Documents
-└── Datentraeger_sichern
-└── [AC-Nummer]
-└── [Datenträger-ID]
-└── 3_[Datenträger-ID]_for-transfer
-├── Files <-- DIESER ORDNER WIRD BEREINIGT
-└── (Hier werden die Log-Dateien erstellt)
+```text
+Documents/
+└── Datentraeger_sichern/
+    └── [AC-Nummer]/
+        └── [Datenträger-ID]/
+            └── 3_[Datenträger-ID]_for-transfer/
+                ├── Files/                      <-- DIESER ORDNER WIRD BEREINIGT
+                └── (Hier werden die Log-Dateien erstellt)
+```
 
 *   **`[AC-Nummer]`**: Die Haupt-Archivierungsnummer des Projekts.
 *   **`[Datenträger-ID]`**: Die eindeutige ID des zu verarbeitenden Datenträgers.
@@ -67,9 +71,7 @@ Documents
 
 ## Ausführung
 
-Das Skript sollte über eine Wrapper-Datei (z.B. `start.bat` unter Windows) gestartet werden, die die `AC-Nummer` und `Datenträger-ID` als Argumente übergibt.
-
-**Direkter Aufruf wird nicht empfohlen!**
+Das Skript sollte über eine Wrapper-Datei (z. B. `start.bat` unter Windows) gestartet werden, die die `AC-Nummer` und `Datenträger-ID` als Argumente übergibt.
 
 **Beispielhafter Aufruf in einer `start.bat`:**
 
@@ -79,6 +81,7 @@ set AC_NUMBER=AC_0001
 set DISK_ID=CD_01
 python bereinigungsskript.py %AC_NUMBER% %DISK_ID%
 pause
+```
 
 ### Ablauf der Ausführung
 
@@ -89,6 +92,8 @@ pause
 5.  **Löschvorgang:** Nach Bestätigung werden die identifizierten Dateien und leeren Ordner entfernt.
 6.  **Finales Protokoll:** Eine zweite Log-Datei (`..._delete_all.log`) wird mit einer Liste der tatsächlich gelöschten Elemente erstellt.
 7.  **Abschluss:** Das Skript fragt, ob der bereinigte Ordner geöffnet werden soll.
+
+---
 
 ## Lizenz
 
