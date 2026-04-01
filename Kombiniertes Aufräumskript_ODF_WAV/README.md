@@ -34,16 +34,16 @@ Ein Python-Skript zur automatisierten Bereinigung von Zwischendateien im Rahmen 
 ## Installation
 
 1. Skript herunterladen:
-   ```bash
+   
    git clone [repository-url]
    # oder
    curl -O [skript-url]
-   ```
+
 
 2. Ausführungsberechtigungen setzen (Linux/macOS):
-   ```bash
+   
    chmod +x data_cleanup.py
-   ```
+
 
 ## Verwendung
 
@@ -53,28 +53,28 @@ Das Skript benötigt zwei Parameter:
 - **AC-Nummer** (Archivierungsprojekt-Kennung)
 - **Datenträger-ID** (eindeutige Kennung des Datenträgers)
 
-```bash
+
 python data_cleanup.py <AC_NUMMER> <DATENTRÄGER_ID>
-```
+
 
 Beispiel:
 
 python data_cleanup.py AC-2024-001 DISK-12345
-```
+
 
 Das Skript erwartet folgende Verzeichnisstruktur:
-```
+
 ~/Documents/data/<AC_NUMMER>/<DATENTRÄGER_ID>/
 └── 3_<DATENTRÄGER_ID>_for-transfer/
     └── files/
         └── [zu bereinigende Dateien]
-```
+
 
 ### Menüoptionen
 
 Nach erfolgreicher Pfadvalidierung erscheint ein interaktives Menü:
 
-```
+
 ========================================
   Wählen Sie eine Aufräum-Aktion:
 ========================================
@@ -82,7 +82,7 @@ Nach erfolgreicher Pfadvalidierung erscheint ein interaktives Menü:
   2 - Konvertierte WAV-Dateien löschen
   Q - Beenden
 ========================================
-```
+
 
 **Option 1: ODF-Zwischendateien löschen**
 - Identifiziert `.odt`-Dateien, die aus Originaldokumenten konvertiert wurden
@@ -121,7 +121,7 @@ Das Skript identifiziert WAV-Dateien, die durch Konvertierung aus anderen Audiof
 
 Am Anfang des Skripts können folgende Parameter angepasst werden:
 
-```python
+
 # Testlauf-Modus für ODF-Löschungen
 DELETE_ODF_DRY_RUN = False  # True = nur Testlauf (keine tatsächlichen Löschungen)
 
@@ -134,7 +134,7 @@ original_extensions = {
 SOURCE_AUDIO_EXTENSIONS_FOR_WAV_CLEANUP = {
     ".aiff", ".flac", ".ogg", ".wav", ".m4a", ".wma", ".aac", ".mp3"
 }
-```
+
 
 ## Logging
 
