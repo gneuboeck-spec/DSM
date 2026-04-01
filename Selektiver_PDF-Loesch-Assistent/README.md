@@ -2,6 +2,8 @@
 
 Ein Python-Skript zur automatischen Bereinigung von Verzeichnissen. Es löscht gezielt PDF-Dateien, die bestimmte Kriterien in Bezug auf Namenskonvention und Erstellungsdatum erfüllen.
 
+---
+
 ## Zweck
 
 Das Skript durchsucht einen Ordner und dessen Unterordner rekursiv nach PDF-Dateien. Eine PDF-Datei wird gelöscht, wenn **alle** der folgenden Bedingungen zutreffen:
@@ -12,6 +14,8 @@ Das Skript durchsucht einen Ordner und dessen Unterordner rekursiv nach PDF-Date
     -   **Wird ignoriert:** `Scan.tif.pdf`, `Brief.docx.pdf`
 3.  **Erstellungsdatum:** Die Datei wurde im konfigurierten Schwellenjahr oder später erstellt.
 
+---
+
 ## Features
 
 -   **Rekursive Suche:** Durchsucht den gesamten Verzeichnisbaum ab dem Startordner.
@@ -20,16 +24,20 @@ Das Skript durchsucht einen Ordner und dessen Unterordner rekursiv nach PDF-Date
 -   **Klare Berichte:** Gibt eine übersichtliche Zusammenfassung der durchgeführten Aktionen aus.
 -   **Einfache Konfiguration:** Alle wichtigen Parameter sind am Anfang des Skripts zentral gebündelt.
 
+---
+
 ## Voraussetzungen
 
--   Python 3.x
--   Keine externen Bibliotheken notwendig.
+-   **Python:** Version 3.x oder neuer.
+-   **Bibliotheken:** Keine externen Bibliotheken notwendig (nur Standardmodule).
+
+---
 
 ## Anwendung
 
 ### 1. Skript konfigurieren
 
-Öffnen Sie die Skript-Datei und passen Sie die Variablen im `KONFIGURATION`-Abschnitt an.
+Öffnen Sie die Skript-Datei und passen Sie die Variablen im `KONFIGURATION`-Abschnitt an Ihre Bedürfnisse an.
 
 ```python
 # ==============================================================================
@@ -46,6 +54,17 @@ min_year = 2025
 # True  = Zeigt nur an, was gelöscht werden würde (Simulation).
 # False = LÖSCHT DIE DATEIEN WIRKLICH.
 DRY_RUN = True
+```
+
+### 2. Skript ausführen
+
+Starten Sie das Skript über das Terminal oder die Eingabeaufforderung:
+
+```bash
+python pdf_loesch_assistent.py
+```
+
+---
 
 ## Lizenz
 
