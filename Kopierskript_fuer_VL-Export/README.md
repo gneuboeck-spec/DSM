@@ -77,8 +77,6 @@ Das Skript ist so konzipiert, dass es keine existierenden Dateien oder Ordner im
 &nbsp;   
 
 
-
-
 ## Erwartete Ordnerstruktur
 
 
