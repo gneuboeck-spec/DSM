@@ -36,7 +36,7 @@ Ein Python-Skript zur automatisierten Bereinigung von Zwischendateien im Rahmen 
 1. Skript herunterladen:
    
    git clone [repository-url]
-   # oder
+   oder
    curl -O [skript-url]
 
 
