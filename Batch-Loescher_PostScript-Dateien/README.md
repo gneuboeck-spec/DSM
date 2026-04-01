@@ -1,4 +1,3 @@
-```md
 # PS-Dateien Löschtool
 
 Ein einfaches Python-Skript zum rekursiven Löschen aller `.ps`-Dateien (PostScript) in einem angegebenen Verzeichnis und allen seinen Unterordnern.
