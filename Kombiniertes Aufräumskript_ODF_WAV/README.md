@@ -119,16 +119,12 @@ Das Skript identifiziert WAV-Dateien, die durch Konvertierung aus anderen Audiof
 
 Am Anfang des Skripts können folgende Parameter angepasst werden:
 
-
-# Testlauf-Modus für ODF-Löschungen
 DELETE_ODF_DRY_RUN = False  # True = nur Testlauf (keine tatsächlichen Löschungen)
 
-# Unterstützte Original-Dokumentformate
 original_extensions = {
     ".doc", ".docx", ".rtf", ".wpd", ".wps", ".dot", ".dotx", ".wbk"
 }
 
-# Unterstützte Original-Audioformate für WAV-Bereinigung
 SOURCE_AUDIO_EXTENSIONS_FOR_WAV_CLEANUP = {
     ".aiff", ".flac", ".ogg", ".wav", ".m4a", ".wma", ".aac", ".mp3"
 }
