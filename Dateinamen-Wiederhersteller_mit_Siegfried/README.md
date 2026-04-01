@@ -72,7 +72,7 @@ Das Skript ist für den Start über eine Wrapper-Datei (z.B. eine `start.bat`) k
 
 **Beispielhafter Aufruf in einer `start.bat`:**
 
-```batch
+
 @echo off
 set AC_NUMBER=AC_0001
 set DISK_ID=CD_01
