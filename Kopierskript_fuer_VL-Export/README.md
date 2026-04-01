@@ -52,6 +52,7 @@ Das Skript erwartet folgende Verzeichnisstruktur:
 │   └── files/
 │       └── [beliebige Dateien]
 └── 4_<ID>_VL/ (Zielordner, muss bereits existieren)
+```
 
 ## Ablauf im Detail
 
