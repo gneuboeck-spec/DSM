@@ -71,7 +71,7 @@ Obwohl dieses Skript für das Zurückkopieren von `.ps`-Dateien konfiguriert ist
 3.  Führen Sie das Skript mit dem Python-Interpreter aus.
 
 **Beispiel:**
-```bash
+
 python3 /pfad/zum/skript/rueckverteilung.py
 
 ## Lizenz
