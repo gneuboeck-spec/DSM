@@ -1,4 +1,4 @@
-\# Umfassender Metadaten-Extraktor (Filetrove XML)
+# Umfassender Metadaten-Extraktor (Filetrove XML)
 
 
 
@@ -10,7 +10,7 @@ Dieses Skript ist für den finalen Schritt der Dateianalyse in einem Archivierun
 
 
 
-\## Hauptfunktionen
+## Hauptfunktionen
 
 
 
@@ -50,7 +50,7 @@ Dieses Skript ist für den finalen Schritt der Dateianalyse in einem Archivierun
 
 
 
-\## Technische Voraussetzungen
+## Technische Voraussetzungen
 
 
 
@@ -58,7 +58,7 @@ Die folgenden Programme und Python-Bibliotheken \*\*MÜSSEN\*\* auf dem System i
 
 
 
-\### Python-Bibliotheken
+### Python-Bibliotheken
 
 Diese müssen über `pip` installiert werden:
 
@@ -68,7 +68,7 @@ pip install yara-python mutagen pypdf2 pillow chardet
 
 
 
-\### Externe Kommandozeilen-Tools
+### Externe Kommandozeilen-Tools
 
 
 
@@ -92,7 +92,7 @@ Die Pfade zu diesen Programmen müssen am Anfang des Skripts korrekt eingetragen
 
 
 
-\## Konfiguration im Skript
+## Konfiguration im Skript
 
 
 
@@ -100,7 +100,7 @@ Vor der ersten Ausführung müssen die Pfade zu \*\*allen\*\* externen Werkzeuge
 
 
 
-\# --- 1. System-Pfade und Listen (manuell anpassen, falls nötig) ---
+# --- 1. System-Pfade und Listen (manuell anpassen, falls nötig) ---
 
 YARA\_RULES\_FILE = "C:\\\\Users\\\\digit\\\\Desktop\\\\Skripte\\\\rules.yar"
 
@@ -118,7 +118,7 @@ SIEGFRIED\_PATH = "C:\\\\Program Files\\\\Siegfried\\\\sf.exe"
 
 
 
-\### Erwartete Ordnerstruktur
+### Erwartete Ordnerstruktur
 
 
 
@@ -146,7 +146,7 @@ Documents
 
 
 
-\## Ausführung
+## Ausführung
 
 
 
@@ -168,7 +168,7 @@ pause
 
 
 
-\### Ablauf der Ausführung
+### Ablauf der Ausführung
 
 
 
@@ -187,4 +187,14 @@ pause
 7\.  \*\*Finalisierung:\*\* Nachdem alle Dateien verarbeitet wurden, wird der vollständige XML-Baum in die finale `.index`-Datei geschrieben.
 
 8\.  \*\*Abschluss:\*\* Das Skript fragt, ob der Zielordner im Datei-Explorer geöffnet werden soll.
+
+## Lizenz
+
+**Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>**
+
+Dieses Skript ist unter der **MIT-Lizenz** lizenziert. Das bedeutet, es darf frei verwendet, kopiert und modifiziert werden, solange der obige Copyright-Hinweis erhalten bleibt.
+
+---
+**SPDX-FileCopyrightText:** 2025 Gregor Neuboeck  
+**SPDX-License-Identifier:** MIT
 

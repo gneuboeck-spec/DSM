@@ -50,3 +50,13 @@ ps_dir = "C:\\Users\\IhrName\\Documents\\PostScript_Files"
 
 # Pfad zu Ghostscript (Die Versionsnummer im Pfad kann variieren!)
 gs_path = "C:\\Program Files\\gs\\gs10.03.1\\bin\\gswin64c.exe"
+
+## Lizenz
+
+**Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>**
+
+Dieses Skript ist unter der **MIT-Lizenz** lizenziert. Das bedeutet, es darf frei verwendet, kopiert und modifiziert werden, solange der obige Copyright-Hinweis erhalten bleibt.
+
+---
+**SPDX-FileCopyrightText:** 2025 Gregor Neuboeck  
+**SPDX-License-Identifier:** MIT

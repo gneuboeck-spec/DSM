@@ -46,3 +46,13 @@ Obwohl dieses Skript standardmäßig für `.sam`-Dateien konfiguriert ist, kann 
 1.  Ändern Sie in beiden `for`-Schleifen die Bedingung `if file.lower().endswith(".sam"):` zu `if file.lower().endswith(".jpg"):`.
 2.  Passen Sie die Zeile für die Umbenennung von `new_name = f"{base_name}{counter:03d}.sam"` zu `new_name = f"{base_name}{counter:03d}.jpg"` an.
 3.  (Optional) Benennen Sie die Variablen `target_dir` und `log_file_path` um, um die Übersichtlichkeit zu wahren.
+
+## Lizenz
+
+**Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>**
+
+Dieses Skript ist unter der **MIT-Lizenz** lizenziert. Das bedeutet, es darf frei verwendet, kopiert und modifiziert werden, solange der obige Copyright-Hinweis erhalten bleibt.
+
+---
+**SPDX-FileCopyrightText:** 2025 Gregor Neuboeck  
+**SPDX-License-Identifier:** MIT

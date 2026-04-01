@@ -1,4 +1,4 @@
-\# XML-Zusammenfassungs-Generator (.content)
+# XML-Zusammenfassungs-Generator (.content)
 
 
 
@@ -10,7 +10,7 @@ Diese `.content`-Datei dient als zentrale Übersicht über den Inhalt und die te
 
 
 
-\## Kernfunktionalität
+## Kernfunktionalität
 
 
 
@@ -54,7 +54,7 @@ Das Skript führt die folgenden Aktionen aus:
 
 
 
-\## Technische Voraussetzungen
+## Technische Voraussetzungen
 
 
 
@@ -74,7 +74,7 @@ Das Skript führt die folgenden Aktionen aus:
 
 
 
-\## Erwartete Ordner- und Dateistruktur
+## Erwartete Ordner- und Dateistruktur
 
 
 
@@ -116,7 +116,7 @@ Die erwartete Struktur innerhalb des `Documents\\Datentraeger\_sichern\\\[AC-Num
 
 
 
-\## Ausführung
+## Ausführung
 
 
 
@@ -138,7 +138,7 @@ pause
 
 
 
-\### Ablauf der Ausführung
+### Ablauf der Ausführung
 
 
 
@@ -154,3 +154,13 @@ pause
 
 6\.  \*\*Abschluss:\*\* Das Skript fragt, ob der Zielordner im Datei-Explorer geöffnet werden soll.
 
+
+## Lizenz
+
+**Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>**
+
+Dieses Skript ist unter der **MIT-Lizenz** lizenziert. Das bedeutet, es darf frei verwendet, kopiert und modifiziert werden, solange der obige Copyright-Hinweis erhalten bleibt.
+
+---
+**SPDX-FileCopyrightText:** 2025 Gregor Neuboeck  
+**SPDX-License-Identifier:** MIT

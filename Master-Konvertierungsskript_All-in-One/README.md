@@ -1,4 +1,4 @@
-\# Master-Konvertierungsskript (All-in-One)
+# Master-Konvertierungsskript (All-in-One)
 
 
 
@@ -10,7 +10,7 @@ Das Skript ist als integraler Bestandteil eines automatisierten Archivierungswor
 
 
 
-\## Kernfunktionalität: Der "Digital Twin"-Ansatz
+## Kernfunktionalität: Der "Digital Twin"-Ansatz
 
 
 
@@ -64,7 +64,7 @@ Alle erstellten Dateien folgen der konsistenten Namenskonvention `Originalname.o
 
 
 
-\## Technische Voraussetzungen
+## Technische Voraussetzungen
 
 
 
@@ -90,7 +90,7 @@ Damit dieses Skript funktioniert, müssen \*\*alle\*\* folgenden Programme insta
 
 
 
-\## Konfiguration im Skript
+## Konfiguration im Skript
 
 
 
@@ -100,7 +100,7 @@ Alle wichtigen Einstellungen sind zentral am Anfang des Skripts gebündelt. Insb
 
 ```python
 
-\# Beispiele für Pfad-Konfigurationen
+# Beispiele für Pfad-Konfigurationen
 
 INKSCAPE\_PATH = r"C:\\Program Files\\Inkscape\\bin\\inkscape.exe"
 
@@ -112,7 +112,7 @@ Zusätzlich sind hier die Listen der unterstützten Dateiendungen für jede Kate
 
 
 
-\### Erwartete Ordnerstruktur
+### Erwartete Ordnerstruktur
 
 
 
@@ -140,7 +140,7 @@ Documents
 
 
 
-\## Ausführung
+## Ausführung
 
 
 
@@ -162,7 +162,7 @@ pause
 
 
 
-\### Ablauf der Ausführung
+### Ablauf der Ausführung
 
 
 
@@ -177,4 +177,14 @@ pause
 5\.  \*\*Zusammenfassung:\*\* Am Ende wird eine finale Statusmeldung ausgegeben.
 
 6\.  \*\*Abschluss:\*\* Das Skript fragt, ob der Zielordner im Datei-Explorer geöffnet werden soll.
+
+## Lizenz
+
+**Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>**
+
+Dieses Skript ist unter der **MIT-Lizenz** lizenziert. Das bedeutet, es darf frei verwendet, kopiert und modifiziert werden, solange der obige Copyright-Hinweis erhalten bleibt.
+
+---
+**SPDX-FileCopyrightText:** 2025 Gregor Neuboeck  
+**SPDX-License-Identifier:** MIT
 

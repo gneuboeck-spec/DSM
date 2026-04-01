@@ -1,4 +1,4 @@
-\# Kopierskript für VL-Export
+# Kopierskript für VL-Export
 
 
 
@@ -10,7 +10,7 @@ Das Skript ist als finaler Schritt im lokalen Verarbeitungsprozess konzipiert. E
 
 
 
-\## Kernfunktionalität
+## Kernfunktionalität
 
 
 
@@ -62,7 +62,7 @@ Das Skript ist so konzipiert, dass es keine existierenden Dateien oder Ordner im
 
 
 
-\## Technische Voraussetzungen
+## Technische Voraussetzungen
 
 
 
@@ -82,7 +82,7 @@ Das Skript ist so konzipiert, dass es keine existierenden Dateien oder Ordner im
 
 
 
-\## Erwartete Ordnerstruktur
+## Erwartete Ordnerstruktur
 
 
 
@@ -116,7 +116,7 @@ Die erwartete Struktur innerhalb des `Documents\\Datentraeger\_sichern\\\[AC-Num
 
 
 
-\## Ausführung
+## Ausführung
 
 
 
@@ -138,7 +138,7 @@ pause
 
 
 
-\### Ablauf der Ausführung
+### Ablauf der Ausführung
 
 
 
@@ -150,3 +150,12 @@ pause
 
 4\.  \*\*Abschluss:\*\* Nach Abschluss aller Kopiervorgänge fragt das Skript, ob der Zielordner (`4\_\[ID]\_VL`) im Datei-Explorer geöffnet werden soll.
 
+## Lizenz
+
+**Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>**
+
+Dieses Skript ist unter der **MIT-Lizenz** lizenziert. Das bedeutet, es darf frei verwendet, kopiert und modifiziert werden, solange der obige Copyright-Hinweis erhalten bleibt.
+
+---
+**SPDX-FileCopyrightText:** 2025 Gregor Neuboeck  
+**SPDX-License-Identifier:** MIT

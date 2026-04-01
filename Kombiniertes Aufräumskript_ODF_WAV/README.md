@@ -1,158 +1,183 @@
-\# Kombiniertes Aufräumskript (ODF \& WAV)
+```md
+# Data Cleanup Tool für Archivierungsprozesse
 
+Ein Python-Skript zur automatisierten Bereinigung von Zwischendateien im Rahmen von digitalen Archivierungsprojekten. Das Tool identifiziert und löscht sicher konvertierte ODF-Dateien sowie temporäre WAV-Dateien.
 
+## Inhaltsverzeichnis
 
-Dieses Skript ist ein zentrales Werkzeug zur Bereinigung des Arbeitsverzeichnisses nach Abschluss der Konvertierungsprozesse. Es vereint zwei spezialisierte Aufräum-Funktionen in einem einzigen, menügesteuerten Skript: das Löschen von temporären OpenDocument-Dateien und das Löschen von unkomprimierten WAV-Archivdateien.
+- [Funktionsumfang](#funktionsumfang)
+- [Voraussetzungen](#voraussetzungen)
+- [Installation](#installation)
+- [Verwendung](#verwendung)
+- [Funktionsweise im Detail](#funktionsweise-im-detail)
+- [Konfiguration](#konfiguration)
+- [Logging](#logging)
+- [Sicherheitshinweise](#sicherheitshinweise)
+- [Fehlerbehandlung](#fehlerbehandlung)
+- [Lizenz](#lizenz)
 
+## Funktionsumfang
 
+- Automatische Pfadvalidierung basierend auf AC-Nummer und Datenträger-ID
+- Intelligente Erkennung von ODF-Zwischendateien (Dateien mit `.odt`-Endung, die aus Originaldokumenten konvertiert wurden)
+- Sicheres Löschen von konvertierten WAV-Dateien unter Beibehaltung der Original-Audiodateien
+- Testlauf-Modus für ODF-Löschungen (konfigurierbar)
+- Detaillierte Protokollierung aller Löschvorgänge
+- Interaktives Menü für benutzerfreundliche Bedienung
+- Optionaler Ordner-Öffner nach Abschluss der Aktionen
 
-Der Zweck des Skripts ist es, Speicherplatz zu sparen und die endgültige Dateisammlung zu finalisieren, indem nur die Quelldateien und die finalen, archivsicheren Derivate (z.B. PDF, MP3) zurückbleiben.
+## Voraussetzungen
 
+- Python 3.6 oder höher
+- Betriebssystem: Windows, macOS oder Linux
+- Keine externen Python-Bibliotheken erforderlich (nur Standardbibliothek)
 
+## Installation
 
-\## Kernfunktionen und Sicherheitsmechanismen
+1. Skript herunterladen:
+   ```bash
+   git clone [repository-url]
+   # oder
+   curl -O [skript-url]
+   ```
 
+2. Ausführungsberechtigungen setzen (Linux/macOS):
+   ```bash
+   chmod +x data_cleanup.py
+   ```
 
+## Verwendung
 
-Das Skript bietet dem Benutzer über ein Menü zwei voneinander unabhängige Aufräum-Aktionen an. Beide Aktionen basieren auf einer präzisen und sicheren Identifikationslogik:
+### Aufruf des Skripts
 
+Das Skript benötigt zwei Parameter:
+- **AC-Nummer** (Archivierungsprojekt-Kennung)
+- **Datenträger-ID** (eindeutige Kennung des Datenträgers)
 
+```bash
+python data_cleanup.py <AC_NUMMER> <DATENTRÄGER_ID>
+```
 
-1\.  \*\*Zwischendateien (ODF) löschen:\*\*
+Beispiel:
+```bash
+python data_cleanup.py AC-2024-001 DISK-12345
+```
 
-&nbsp;   \*   \*\*Ziel:\*\* Löscht `.odt`, `.ods` und `.odp` Dateien.
+Das Skript erwartet folgende Verzeichnisstruktur:
+```
+~/Documents/data/<AC_NUMMER>/<DATENTRÄGER_ID>/
+└── 3_<DATENTRÄGER_ID>_for-transfer/
+    └── files/
+        └── [zu bereinigende Dateien]
+```
 
-&nbsp;   \*   \*\*Logik:\*\* Eine Datei wie `bericht.doc.odt` wird nur gelöscht, wenn die Originaldatei `bericht.doc` noch im selben Ordner existiert.
+### Menüoptionen
 
-&nbsp;   \*   \*\*Sicherheit:\*\* Verfügt über einen `DRY\_RUN`-Modus (Testlauf) und erfordert im Echt-Modus eine explizite Benutzerbestätigung.
+Nach erfolgreicher Pfadvalidierung erscheint ein interaktives Menü:
 
+```
+========================================
+  Wählen Sie eine Aufräum-Aktion:
+========================================
+  1 - Zwischendateien (ODF) löschen
+  2 - Konvertierte WAV-Dateien löschen
+  Q - Beenden
+========================================
+```
 
+**Option 1: ODF-Zwischendateien löschen**
+- Identifiziert `.odt`-Dateien, die aus Originaldokumenten konvertiert wurden
+- Prüft, ob die Originaldatei noch existiert
+- Löscht nur dann die ODF-Datei
 
-2\.  \*\*Konvertierte WAV-Dateien löschen:\*\*
+**Option 2: Konvertierte WAV-Dateien löschen**
+- Identifiziert WAV-Dateien, die aus anderen Audioformaten konvertiert wurden
+- Unterstützte Originalformate: `.aiff`, `.flac`, `.ogg`, `.wav`, `.m4a`, `.wma`, `.aac`, `.mp3`
+- Löscht die WAV-Datei, wenn das Original noch vorhanden ist
 
-&nbsp;   \*   \*\*Ziel:\*\* Löscht `.wav` Dateien.
+## Funktionsweise im Detail
 
-&nbsp;   \*   \*\*Logik:\*\* Eine Datei wie `lied.mp3.wav` wird nur gelöscht, wenn die Originaldatei `lied.mp3` noch im selben Ordner existiert.
+### ODF-Zwischendateien löschen
 
-&nbsp;   \*   \*\*Sicherheit:\*\* Fordert immer eine explizite Benutzerbestätigung vor dem Löschen an.
+Das Skript durchsucht rekursiv den `files`-Ordner nach `.odt`-Dateien. Für jede gefundene Datei wird geprüft, ob:
 
+1. Der Dateiname (ohne `.odt`) auf eine der folgenden Endungen endet: `.doc`, `.docx`, `.rtf`, `.wpd`, `.wps`, `.dot`, `.dotx`, `.wbk`
+2. Die ursprüngliche Quelldatei im selben Verzeichnis existiert
 
+Beispiel:
+- Gefunden: `dokument.doc.odt`
+- Original: `dokument.doc`
+- Wenn Original existiert → ODF-Datei wird zur Löschung vorgemerkt
 
-Beide Aktionen erstellen ihre eigenen, separaten Log-Dateien, um die durchgeführten Löschungen nachvollziehbar zu machen.
+### Konvertierte WAV-Dateien löschen
 
+Das Skript identifiziert WAV-Dateien, die durch Konvertierung aus anderen Audioformaten entstanden sind:
 
+1. Sucht nach allen `.wav`-Dateien
+2. Analysiert den Dateinamen auf Muster wie `original.flac.wav`
+3. Prüft, ob die Original-Audiodatei noch vorhanden ist
+4. Löscht die WAV-Datei bei vorhandenem Original
 
----
+## Konfiguration
 
-
-
-\## Technische Voraussetzungen
-
-
-
-\*   \*\*Python:\*\* Version 3.6 oder neuer. Es sind keine externen Bibliotheken erforderlich.
-
-
-
----
-
-
-
-\## Konfiguration im Skript
-
-
-
-Die Konfiguration erfolgt über Schalter und Listen am Anfang des Skripts:
-
-
+Am Anfang des Skripts können folgende Parameter angepasst werden:
 
 ```python
+# Testlauf-Modus für ODF-Löschungen
+DELETE_ODF_DRY_RUN = False  # True = nur Testlauf (keine tatsächlichen Löschungen)
 
-\# --- Konfiguration für "Zwischendateien (ODF) löschen" ---
+# Unterstützte Original-Dokumentformate
+original_extensions = {
+    ".doc", ".docx", ".rtf", ".wpd", ".wps", ".dot", ".dotx", ".wbk"
+}
 
-DELETE\_ODF\_DRY\_RUN = False
+# Unterstützte Original-Audioformate für WAV-Bereinigung
+SOURCE_AUDIO_EXTENSIONS_FOR_WAV_CLEANUP = {
+    ".aiff", ".flac", ".ogg", ".wav", ".m4a", ".wma", ".aac", ".mp3"
+}
+```
 
+## Logging
 
+Das Skript erstellt für jede Aktion eine separate Log-Datei im `for-transfer`-Ordner:
 
-\# --- Konfiguration für "Konvertierte WAVs löschen" ---
+- **ODF-Löschung**: `3_<ID>_for-transfer_delete-converted-odfs.log`
+- **WAV-Löschung**: `3_<ID>_for-transfer_delete-converted-wavs.log`
 
-SOURCE\_AUDIO\_EXTENSIONS\_FOR\_WAV\_CLEANUP = {".aiff", ".flac", ...}
+Jede Log-Datei enthält:
+- Zeitstempel der Ausführung
+- Liste der erfolgreich gelöschten Dateien
+- Fehler beim Löschen (falls aufgetreten)
+- Im Testlauf: Liste der Dateien, die gelöscht worden wären
 
+## Sicherheitshinweise
 
+1. **Bestätigung erforderlich**: Vor jedem Löschvorgang müssen Sie die Aktion mit `j` bestätigen
+2. **Testlauf-Modus**: Für ODF-Löschungen kann der Testlauf aktiviert werden (`DELETE_ODF_DRY_RUN = True`)
+3. **Keine automatischen Löschungen**: Alle Aktionen erfordern manuelle Bestätigung
+4. **Prüfung auf Originaldateien**: Es werden nur Dateien gelöscht, deren Originale noch existieren
+5. **Ausführliche Protokollierung**: Alle Aktionen werden detailliert protokolliert
 
-\*   \*\*`DELETE\_ODF\_DRY\_RUN`\*\*: `True` für einen sicheren Testlauf (nur für ODF), `False` für den echten Löschvorgang.
+## Fehlerbehandlung
 
-\*   \*\*`SOURCE\_AUDIO\_EXTENSIONS\_FOR\_WAV\_CLEANUP`\*\*: Diese Liste muss exakt mit der Liste der Quellformate aus dem Audio-Konvertierungsskript übereinstimmen.
+Das Skript behandelt verschiedene Fehlersituationen:
 
+- **Fehlende Pfade**: Detaillierte Fehlermeldung und Abbruch
+- **Fehlende Parameter**: Hinweis auf korrekte Verwendung
+- **Löschfehler**: Einzelfehler werden protokolliert, der Vorgang wird fortgesetzt
+- **Schreibfehler bei Logs**: Fehlermeldung wird ausgegeben, Skript läuft weiter
 
+## Lizenz
 
-\### Erwartete Ordnerstruktur
+**Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>**
 
+Dieses Skript ist unter der **MIT-Lizenz** lizenziert. Das bedeutet, es darf frei verwendet, kopiert und modifiziert werden, solange der obige Copyright-Hinweis erhalten bleibt.
 
+---
+**SPDX-FileCopyrightText:** 2025 Gregor Neuboeck  
+**SPDX-License-Identifier:** MIT
 
-Das Skript benötigt die folgende Verzeichnisstruktur im `Documents`-Ordner des Benutzers:
+---
 
-Documents
-
-└── Datentraeger\_sichern
-
-&nbsp;   └── \[AC-Nummer]
-
-&nbsp;       └── \[Datenträger-ID]
-
-&nbsp;           └── 3\_\[Datenträger-ID]\_for-transfer
-
-&nbsp;               ├── Files  <-- IN DIESEM ORDNER WIRD AUFGERÄUMT
-
-&nbsp;               └── (Hier werden die Log-Dateien erstellt)
-
-
-
-\*   \*\*`\[AC-Nummer]`\*\*: Die Haupt-Archivierungsnummer des Projekts.
-
-\*   \*\*`\[Datenträger-ID]`\*\*: Die eindeutige ID des zu verarbeitenden Datenträgers.
-
-
-
-\## Ausführung
-
-
-
-Das Skript ist für den Start über eine Wrapper-Datei (z.B. eine `start.bat`) konzipiert, welche die `AC-Nummer` und `Datenträger-ID` als Argumente übergibt.
-
-
-
-\*\*Beispielhafter Aufruf in einer `start.bat`:\*\*
-
-@echo off
-
-set AC\_NUMBER=AC\_0001
-
-set DISK\_ID=CD\_01
-
-python combined\_cleanup\_skript.py %AC\_NUMBER% %DISK\_ID%
-
-pause
-
-
-
-\### Ablauf der Ausführung
-
-
-
-1\.  \*\*Validierung:\*\* Das Skript prüft die übergebenen Argumente und die Ordnerstruktur.
-
-2\.  \*\*Menüanzeige:\*\* Dem Benutzer wird ein Menü mit den verfügbaren Aufräum-Aktionen (ODF löschen, WAV löschen, Beenden) angezeigt.
-
-3\.  \*\*Aktion ausführen:\*\* Nach der Auswahl des Benutzers wird die entsprechende Funktion gestartet.
-
-4\.  \*\*Suche \& Bestätigung:\*\* Das Skript sucht nach den relevanten Dateien, listet sie auf und fordert eine explizite Bestätigung (`j/n`) vom Benutzer.
-
-5\.  \*\*Löschvorgang:\*\* Nach der Bestätigung werden die Dateien gelöscht.
-
-6\.  \*\*Protokollierung:\*\* Die durchgeführten Aktionen werden in eine spezifische Log-Datei für die jeweilige Aufgabe geschrieben.
-
-7\.  \*\*Rückkehr zum Menü:\*\* Nach Abschluss der Aktion kehrt das Skript zum Hauptmenü zurück.
-
-8\.  \*\*Abschluss:\*\* Nachdem der Benutzer das Skript über das Menü beendet hat, wird gefragt, ob der Zielordner im Datei-Explorer geöffnet werden soll.
-
+**Hinweis**: Dieses Tool ist speziell für die Anforderungen digitaler Archivierungsprojekte entwickelt worden. Stellen Sie sicher, dass Sie vor der Verwendung eine Sicherungskopie Ihrer Daten haben.
+```

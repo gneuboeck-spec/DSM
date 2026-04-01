@@ -45,3 +45,13 @@ Das Skript erwartet folgende Struktur:
 
 - **Permission Error:** Stellen Sie sicher, dass der Zielordner nicht im Windows Explorer geöffnet ist und keine Datei daraus in einem anderen Programm (Editor, Browser etc.) verwendet wird.
 - **Fehlender Zielordner:** Das Skript bricht ab, wenn der Ordner `5_..._LZA` nicht bereits existiert.
+
+## Lizenz
+
+**Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>**
+
+Dieses Skript ist unter der **MIT-Lizenz** lizenziert. Das bedeutet, es darf frei verwendet, kopiert und modifiziert werden, solange der obige Copyright-Hinweis erhalten bleibt.
+
+---
+**SPDX-FileCopyrightText:** 2025 Gregor Neuboeck  
+**SPDX-License-Identifier:** MIT

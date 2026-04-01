@@ -79,3 +79,13 @@ pause
 3.  Für jede gefundene Datei wird die Konvertierung gestartet und ein **Live-Fortschrittsbalken** in der Konsole angezeigt.
 4.  Alle Aktionen, Erfolge und Fehler werden in der Log-Datei `3_[Datenträger-ID]_audio_conversion.log` protokolliert. Die alte Log-Datei wird bei jedem neuen Start gelöscht.
 5.  Nach Abschluss aller Konvertierungen fragt das Skript, ob der Zielordner (`for-transfer`) im Datei-Explorer geöffnet werden soll.
+
+## Lizenz
+
+**Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>**
+
+Dieses Skript ist unter der **MIT-Lizenz** lizenziert. Das bedeutet, es darf frei verwendet, kopiert und modifiziert werden, solange der obige Copyright-Hinweis erhalten bleibt.
+
+---
+**SPDX-FileCopyrightText:** 2025 Gregor Neuboeck  
+**SPDX-License-Identifier:** MIT

@@ -43,3 +43,13 @@ Vor der Ausführung müssen die folgenden Variablen am Anfang des Skripts **unbe
 ```python
 libreoffice_path = "/Applications/LibreOffice.app/Contents/MacOS/soffice"
 input_folder = "/Users/IhrName/Desktop/Mein_Archiv/Unterordner"
+
+## Lizenz
+
+**Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>**
+
+Dieses Skript ist unter der **MIT-Lizenz** lizenziert. Das bedeutet, es darf frei verwendet, kopiert und modifiziert werden, solange der obige Copyright-Hinweis erhalten bleibt.
+
+---
+**SPDX-FileCopyrightText:** 2025 Gregor Neuboeck  
+**SPDX-License-Identifier:** MIT
