@@ -2,7 +2,9 @@
 
 Dieses Skript automatisiert die Analyse von Dateisammlungen mithilfe des digitalen Archivierungs-Tools [Brunnhilde](https://github.com/timothyryanwalsh/brunnhilde). Es integriert Siegfried zur Dateiformat-Identifikation und optional ClamAV für Virenscans, um umfassende Berichte zu erstellen.
 
-Das Skript ist für die wiederholte Anwendung in einer standardisierten Ordnerstruktur konzipiert und wird über Kommandozeilenargumente gesteuert, typischerweise durch eine Start-Datei (`start.bat`).
+Das Skript ist für die wiederholte Anwendung in einer vordefinierten Ordnerstruktur konzipiert und wird über Kommandozeilenargumente gesteuert, typischerweise durch eine Start-Datei (`start.bat`).
+
+---
 
 ## Hauptfunktionen
 
@@ -21,71 +23,84 @@ Um dieses Skript auszuführen, müssen die folgenden Programme auf Ihrem **Windo
 
 1.  **Python:**
     *   Version: 3.6 oder neuer.
-    *   **Bibliotheken:** `brunnhilde` muss über `pip` installiert sein (`pip install brunnhilde`).
+    *   **Bibliotheken:** `brunnhilde` muss über `pip` installiert sein:
+        ```bash
+        pip install brunnhilde
+        ```
 
 2.  **Siegfried:**
-    *   **Zweck:** Wird von Brunnhilde zur Identifizierung von Dateiformaten benötigt.
-    *   **Installation:** Laden Sie Siegfried herunter und entpacken Sie es in ein Verzeichnis, z.B. `C:\Program Files\Siegfried`. Der Pfad zu diesem Verzeichnis muss im Skript konfiguriert werden.
+    *   **Zweck:** Identifizierung von Dateiformaten via PRONOM.
+    *   **Installation:** Laden Sie Siegfried herunter und entpacken Sie es (z. B. nach `C:\Program Files\Siegfried`). Der Pfad muss im Skript konfiguriert werden.
 
 3.  **ClamAV (Optional):**
-    *   **Zweck:** Wird von Brunnhilde für Virenscans verwendet.
-    *   **Installation:** Wenn Sie Virenscans durchführen möchten, installieren Sie ClamAV und konfigurieren Sie den Pfad im Skript.
+    *   **Zweck:** Virenscans. Wenn gewünscht, ClamAV installieren und den Pfad im Skript hinterlegen.
 
 ---
 
 ## Konfiguration im Skript
 
-Vor der ersten Ausführung müssen die Pfade zu den externen Werkzeugen am Anfang des Skripts angepasst werden.
+Vor der ersten Ausführung müssen die Pfade zu den externen Werkzeugen am Anfang des Skripts angepasst werden:
 
-
+```python
 SIEGFRIED_DIR = r"C:\Program Files\Siegfried"
-CLAMAV_DIR = ""  # Leer lassen, wenn nicht verwendet, z.B.: r"C:\Program Files\ClamAV"
+CLAMAV_DIR = ""  # Leer lassen, wenn nicht verwendet, z. B.: r"C:\Program Files\ClamAV"
+```
 
-*   **`SIEGFRIED_DIR`**: Tragen Sie hier den vollständigen Pfad zum Installationsverzeichnis von Siegfried ein. Das Skript erwartet, in diesem Ordner eine `sf.exe` zu finden.
-*   **`CLAMAV_DIR`**: Tragen Sie hier den Pfad zum Installationsverzeichnis von ClamAV ein, falls es verwendet werden soll. Andernfalls lassen Sie den String leer (`""`).
+*   **`SIEGFRIED_DIR`**: Pfad zum Verzeichnis, das die `sf.exe` enthält.
+*   **`CLAMAV_DIR`**: Pfad zum Verzeichnis von ClamAV (optional).
 
 ### Erwartete Ordnerstruktur
 
-Das Skript ist für eine spezifische Ordnerstruktur ausgelegt, die sich im `Documents`-Ordner des Benutzers befinden muss:
-Documents
-└── Datentraeger_sichern
-    └── [AC-Nummer]
-        └── [Datenträger-ID]
-            └── 2_[Datenträger-ID]_extracted-files
-                ├── Files  <-- DIESER ORDNER WIRD ANALYSIERT
-                └── (Hier werden die Analyseberichte erstellt)
+Das Skript benötigt die folgende Verzeichnisstruktur im `Documents`-Ordner des Benutzers:
 
-*   **[AC-Nummer]**: Die Haupt-Archivierungsnummer des Projekts.
-*   **[Datenträger-ID]**: Die eindeutige ID des zu verarbeitenden Datenträgers.
+```text
+Documents/
+└── Datentraeger_sichern/
+    └── [AC-Nummer]/
+        └── [Datenträger-ID]/
+            └── 2_[Datenträger-ID]_extracted-files/
+                ├── Files/                      <-- DIESER ORDNER WIRD ANALYSIERT
+                └── (Hier werden die Analyseberichte erstellt)
+```
+
+*   **`[AC-Nummer]`**: Die Haupt-Archivierungsnummer des Projekts.
+*   **`[Datenträger-ID]`**: Die eindeutige ID des zu verarbeitenden Datenträgers.
+
+---
 
 ## Ausführung
 
-Das Skript sollte über eine Wrapper-Datei (z.B. eine `start.bat` unter Windows) gestartet werden, die die `AC-Nummer` und die `Datenträger-ID` als Argumente übergibt.
+Nutzen Sie eine Start-Datei (`start.bat`), um die Argumente korrekt zu übergeben.
 
 **Beispielhafter Aufruf in einer `start.bat`:**
+
+```batch
 @echo off
 set AC_NUMBER=AC_0001
 set DISK_ID=CD_01
 python analyse_skript.py %AC_NUMBER% %DISK_ID%
 pause
+```
 
 ### Ablauf der Ausführung
 
-1.  **Validierung:** Das Skript überprüft die übergebenen Argumente, die Ordnerstruktur und die Pfade zu den konfigurierten Tools (Siegfried, ClamAV).
-2.  **Brunnhilde-Ausführung:** Das Skript startet Brunnhilde und zielt auf das `Files`-Verzeichnis. Die Ausgabe wird in einen `Brunnhilde_[Datenträger-ID]`-Ordner geschrieben.
-3.  **Tree-Workaround:** Da Brunnhilde unter Windows manchmal keine `tree.txt` erstellt, führt das Skript den `tree`-Befehl manuell aus, um diese wichtige Datei zu erzeugen.
-4.  **Parsing:** Die von Brunnhilde erstellten CSV-Berichte und Log-Dateien werden eingelesen.
-5.  **JSON-Erstellung:** Die extrahierten Informationen (Format-Zusammenfassung, MIME-Typen, Warnungen, Virenfunde etc.) werden in einer einzigen JSON-Datei zusammengefasst.
-6.  **Finalisierung:** Die erstellte JSON-Datei und die `tree.txt` werden in das Zielverzeichnis verschoben und erhalten ihre finalen, standardisierten Namen.
-7.  **Abschluss:** Das Skript fragt, ob der Zielordner im Datei-Explorer geöffnet werden soll.
+1.  **Validierung:** Das Skript überprüft Argumente, Ordnerstruktur und die Pfade zu Siegfried/ClamAV.
+2.  **Brunnhilde-Ausführung:** Brunnhilde analysiert das `Files`-Verzeichnis. Die Ausgabe erfolgt in einen `Brunnhilde_[Datenträger-ID]`-Ordner.
+3.  **Tree-Workaround:** Das Skript erzeugt manuell eine `tree.txt`, falls Brunnhilde dies unter Windows überspringt.
+4.  **Parsing:** Die CSV-Berichte von Brunnhilde werden eingelesen.
+5.  **JSON-Erstellung:** Zusammenfassung der Ergebnisse (Formate, MIME-Typen, Warnungen, Virenfunde) in einer JSON-Datei.
+6.  **Finalisierung:** Die JSON-Datei und die `tree.txt` werden mit standardisierten Namen in das Zielverzeichnis verschoben.
+7.  **Abschluss:** Das Skript bietet an, den Zielordner im Datei-Explorer zu öffnen.
 
 ### Generierte Berichte
 
-Nach erfolgreicher Ausführung befinden sich im Ordner `2_[Datenträger-ID]_extracted-files` folgende primäre Berichte:
+Nach Abschluss befinden sich im Ordner `2_[Datenträger-ID]_extracted-files` folgende Berichte:
 
-*   **`Brunnhilde_[Datenträger-ID]`**: Der vollständige Brunnhilde-Berichtsordner mit allen Details.
-*   **`2_[Datenträger-ID]_Brunnhilde_output.json`**: Die strukturierte JSON-Zusammenfassung der Analyse.
-*   **`2_[Datenträger-ID]_extracted-Files-Tree.txt`**: Eine Textdatei mit der vollständigen Verzeichnisstruktur der analysierten Dateien.
+*   **`Brunnhilde_[Datenträger-ID]`**: Der vollständige Detail-Berichtsordner.
+*   **`2_[Datenträger-ID]_Brunnhilde_output.json`**: Die strukturierte JSON-Zusammenfassung.
+*   **`2_[Datenträger-ID]_extracted-Files-Tree.txt`**: Die vollständige Verzeichnisstruktur als Textdatei.
+
+---
 
 ## Lizenz
 
