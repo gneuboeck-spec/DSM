@@ -93,12 +93,8 @@ Damit dieses Skript funktioniert, müssen \*\*alle\*\* folgenden Programme insta
 ## Konfiguration im Skript
 
 
-
 Alle wichtigen Einstellungen sind zentral am Anfang des Skripts gebündelt. Insbesondere die Pfade zu Programmen, die sich nicht im System-`PATH` befinden, müssen hier angepasst werden:
 
-
-
-```python
 
 # Beispiele für Pfad-Konfigurationen
 
@@ -106,15 +102,9 @@ INKSCAPE\_PATH = r"C:\\Program Files\\Inkscape\\bin\\inkscape.exe"
 
 LIBREOFFICE\_PATH = "C:/Program Files/LibreOffice/program/soffice.exe"
 
-
-
 Zusätzlich sind hier die Listen der unterstützten Dateiendungen für jede Kategorie definiert.
 
-
-
 ### Erwartete Ordnerstruktur
-
-
 
 Das Skript benötigt die folgende Verzeichnisstruktur im `Documents`-Ordner des Benutzers:
 
@@ -139,13 +129,9 @@ Documents
 \*   \*\*`\[Datenträger-ID]`\*\*: Die eindeutige ID des zu verarbeitenden Datenträgers.
 
 
-
 ## Ausführung
 
-
-
 Das Skript ist für den Start über eine Wrapper-Datei (z.B. eine `start.bat`) konzipiert, welche die `AC-Nummer` und `Datenträger-ID` als Argumente übergibt.
-
 
 
 \*\*Beispielhafter Aufruf in einer `start.bat`:\*\*
@@ -161,9 +147,7 @@ python master\_conversion\_skript.py %AC\_NUMBER% %DISK\_ID%
 pause
 
 
-
 ### Ablauf der Ausführung
-
 
 
 1\.  \*\*Validierung:\*\* Das Skript prüft die übergebenen Argumente, die Ordnerstruktur und die Verfügbarkeit \*\*aller\*\* benötigten externen Tools.
