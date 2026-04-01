@@ -2,6 +2,8 @@
 
 Ein Python-Skript zur automatisierten Bereinigung von Zwischendateien im Rahmen von digitalen Archivierungsprojekten. Das Tool identifiziert und löscht sicher konvertierte ODF-Dateien sowie temporäre WAV-Dateien.
 
+---
+
 ## Inhaltsverzeichnis
 
 - [Funktionsumfang](#funktionsumfang)
@@ -15,150 +17,142 @@ Ein Python-Skript zur automatisierten Bereinigung von Zwischendateien im Rahmen 
 - [Fehlerbehandlung](#fehlerbehandlung)
 - [Lizenz](#lizenz)
 
+---
+
 ## Funktionsumfang
 
-- Automatische Pfadvalidierung basierend auf AC-Nummer und Datenträger-ID
-- Intelligente Erkennung von ODF-Zwischendateien (Dateien mit `.odt`-Endung, die aus Originaldokumenten konvertiert wurden)
-- Sicheres Löschen von konvertierten WAV-Dateien unter Beibehaltung der Original-Audiodateien
-- Testlauf-Modus für ODF-Löschungen (konfigurierbar)
-- Detaillierte Protokollierung aller Löschvorgänge
-- Interaktives Menü für benutzerfreundliche Bedienung
-- Optionaler Ordner-Öffner nach Abschluss der Aktionen
+- **Automatische Pfadvalidierung:** Basierend auf AC-Nummer und Datenträger-ID.
+- **Intelligente ODF-Erkennung:** Identifiziert `.odt`-Dateien, die lediglich als Zwischenschritt aus Originaldokumenten konvertiert wurden.
+- **Sicherer WAV-Cleanup:** Löscht konvertierte WAV-Dateien nur dann, wenn die Original-Audiodateien noch vorhanden sind.
+- **Testlauf-Modus:** Optionaler Simulation-Modus für ODF-Löschungen zur Risikominimierung.
+- **Detaillierte Protokollierung:** Erstellt separate Log-Dateien für alle durchgeführten Aktionen.
+- **Interaktives Menü:** Benutzerfreundliche Auswahl der Bereinigungsaktionen über die Konsole.
+
+---
 
 ## Voraussetzungen
 
-- Python 3.6 oder höher
-- Betriebssystem: Windows, macOS oder Linux
-- Keine externen Python-Bibliotheken erforderlich (nur Standardbibliothek)
+- **Python:** Version 3.6 oder höher.
+- **Betriebssystem:** Windows, macOS oder Linux.
+- **Bibliotheken:** Keine externen Abhängigkeiten erforderlich (nur Standardbibliothek).
+
+---
 
 ## Installation
 
-1. Skript herunterladen:
-   
+1. **Skript herunterladen:**
+   ```bash
    git clone [repository-url]
-   oder
+   # oder direkt via curl
    curl -O [skript-url]
+   ```
 
-
-2. Ausführungsberechtigungen setzen (Linux/macOS):
-   
+2. **Ausführungsberechtigungen setzen (Linux/macOS):**
+   ```bash
    chmod +x data_cleanup.py
+   ```
 
+---
 
 ## Verwendung
 
 ### Aufruf des Skripts
 
-Das Skript benötigt zwei Parameter:
-- **AC-Nummer** (Archivierungsprojekt-Kennung)
-- **Datenträger-ID** (eindeutige Kennung des Datenträgers)
+Das Skript benötigt zwei Parameter beim Start:
+1. **AC-Nummer** (Archivierungsprojekt-Kennung)
+2. **Datenträger-ID** (Eindeutige Kennung des Datenträgers)
 
-
+```bash
 python data_cleanup.py <AC_NUMMER> <DATENTRÄGER_ID>
+```
 
-
-Beispiel:
-
+**Beispiel:**
+```bash
 python data_cleanup.py AC-2024-001 DISK-12345
+```
 
+### Erwartete Verzeichnisstruktur
 
-Das Skript erwartet folgende Verzeichnisstruktur:
+Das Skript erwartet folgende Struktur in Ihrem Dokumenten-Ordner:
 
+```text
 ~/Documents/data/<AC_NUMMER>/<DATENTRÄGER_ID>/
 └── 3_<DATENTRÄGER_ID>_for-transfer/
     └── files/
         └── [zu bereinigende Dateien]
-
+```
 
 ### Menüoptionen
 
-Nach erfolgreicher Pfadvalidierung erscheint ein interaktives Menü:
+Nach der Pfadvalidierung erscheint ein interaktives Menü:
 
+```text
+Wählen Sie eine Aufräum-Aktion:
 
-  Wählen Sie eine Aufräum-Aktion:
+1 - Zwischendateien (ODF) löschen
+2 - Konvertierte WAV-Dateien löschen
+Q - Beenden
+```
 
-  1 - Zwischendateien (ODF) löschen
-  2 - Konvertierte WAV-Dateien löschen
-  Q - Beenden
-
-
-**Option 1: ODF-Zwischendateien löschen**
-- Identifiziert `.odt`-Dateien, die aus Originaldokumenten konvertiert wurden
-- Prüft, ob die Originaldatei noch existiert
-- Löscht nur dann die ODF-Datei
-
-**Option 2: Konvertierte WAV-Dateien löschen**
-- Identifiziert WAV-Dateien, die aus anderen Audioformaten konvertiert wurden
-- Unterstützte Originalformate: `.aiff`, `.flac`, `.ogg`, `.wav`, `.m4a`, `.wma`, `.aac`, `.mp3`
-- Löscht die WAV-Datei, wenn das Original noch vorhanden ist
+---
 
 ## Funktionsweise im Detail
 
 ### ODF-Zwischendateien löschen
-
-Das Skript durchsucht rekursiv den `files`-Ordner nach `.odt`-Dateien. Für jede gefundene Datei wird geprüft, ob:
-
-1. Der Dateiname (ohne `.odt`) auf eine der folgenden Endungen endet: `.doc`, `.docx`, `.rtf`, `.wpd`, `.wps`, `.dot`, `.dotx`, `.wbk`
-2. Die ursprüngliche Quelldatei im selben Verzeichnis existiert
-
-Beispiel:
-- Gefunden: `dokument.doc.odt`
-- Original: `dokument.doc`
-- Wenn Original existiert → ODF-Datei wird zur Löschung vorgemerkt
+Das Skript durchsucht rekursiv den `files`-Ordner. Eine `.odt`-Datei wird nur gelöscht, wenn:
+1. Der Dateiname (ohne `.odt`) auf eine bekannte Dokumenten-Endung endet (z. B. `.doc`, `.docx`, `.rtf`).
+2. Die ursprüngliche Quelldatei im selben Verzeichnis existiert.
 
 ### Konvertierte WAV-Dateien löschen
+Das Skript identifiziert WAV-Dateien, die durch Konvertierung entstanden sind:
+1. Analysiert den Dateinamen auf Muster wie `original.flac.wav`.
+2. Prüft, ob das Original (z. B. `.flac`, `.mp3`, `.m4a`) noch vorhanden ist.
+3. Löscht die WAV-Datei nur bei positivem Befund.
 
-Das Skript identifiziert WAV-Dateien, die durch Konvertierung aus anderen Audioformaten entstanden sind:
-
-1. Sucht nach allen `.wav`-Dateien
-2. Analysiert den Dateinamen auf Muster wie `original.flac.wav`
-3. Prüft, ob die Original-Audiodatei noch vorhanden ist
-4. Löscht die WAV-Datei bei vorhandenem Original
+---
 
 ## Konfiguration
 
-Am Anfang des Skripts können folgende Parameter angepasst werden:
+Im Kopfbereich des Skripts können Parameter angepasst werden:
 
-DELETE_ODF_DRY_RUN = False  # True = nur Testlauf (keine tatsächlichen Löschungen)
+```python
+DELETE_ODF_DRY_RUN = False  # True = nur Simulation
 
+# Unterstützte Original-Endungen für Dokumente
 original_extensions = {
     ".doc", ".docx", ".rtf", ".wpd", ".wps", ".dot", ".dotx", ".wbk"
 }
 
+# Unterstützte Originalformate für Audio-Cleanup
 SOURCE_AUDIO_EXTENSIONS_FOR_WAV_CLEANUP = {
     ".aiff", ".flac", ".ogg", ".wav", ".m4a", ".wma", ".aac", ".mp3"
 }
+```
 
+---
 
 ## Logging
 
 Das Skript erstellt für jede Aktion eine separate Log-Datei im `for-transfer`-Ordner:
+- **ODF-Löschung:** `3_<ID>_for-transfer_delete-converted-odfs.log`
+- **WAV-Löschung:** `3_<ID>_for-transfer_delete-converted-wavs.log`
 
-- **ODF-Löschung**: `3_<ID>_for-transfer_delete-converted-odfs.log`
-- **WAV-Löschung**: `3_<ID>_for-transfer_delete-converted-wavs.log`
-
-Jede Log-Datei enthält:
-- Zeitstempel der Ausführung
-- Liste der erfolgreich gelöschten Dateien
-- Fehler beim Löschen (falls aufgetreten)
-- Im Testlauf: Liste der Dateien, die gelöscht worden wären
+---
 
 ## Sicherheitshinweise
 
-1. **Bestätigung erforderlich**: Vor jedem Löschvorgang müssen Sie die Aktion mit `j` bestätigen
-2. **Testlauf-Modus**: Für ODF-Löschungen kann der Testlauf aktiviert werden (`DELETE_ODF_DRY_RUN = True`)
-3. **Keine automatischen Löschungen**: Alle Aktionen erfordern manuelle Bestätigung
-4. **Prüfung auf Originaldateien**: Es werden nur Dateien gelöscht, deren Originale noch existieren
-5. **Ausführliche Protokollierung**: Alle Aktionen werden detailliert protokolliert
+1. **Bestätigung:** Vor jedem Löschvorgang ist eine explizite Bestätigung mit `j` erforderlich.
+2. **Originalprüfung:** Es werden niemals Dateien gelöscht, deren Originale nicht mehr auffindbar sind.
+3. **Testlauf:** Nutzen Sie `DELETE_ODF_DRY_RUN = True` für eine erste Analyse ohne Risiko.
+
+---
 
 ## Fehlerbehandlung
 
-Das Skript behandelt verschiedene Fehlersituationen:
+- **Pfadfehler:** Das Skript bricht mit einer klaren Fehlermeldung ab, wenn die AC- oder ID-Struktur nicht gefunden wird.
+- **Berechtigungen:** Fehlgeschlagene Löschversuche werden im Log vermerkt, ohne den Gesamtablauf zu stoppen.
 
-- **Fehlende Pfade**: Detaillierte Fehlermeldung und Abbruch
-- **Fehlende Parameter**: Hinweis auf korrekte Verwendung
-- **Löschfehler**: Einzelfehler werden protokolliert, der Vorgang wird fortgesetzt
-- **Schreibfehler bei Logs**: Fehlermeldung wird ausgegeben, Skript läuft weiter
+---
 
 ## Lizenz
 
@@ -170,7 +164,4 @@ Dieses Skript ist unter der **MIT-Lizenz** lizenziert. Das bedeutet, es darf fre
 **SPDX-FileCopyrightText:** 2025 Gregor Neuboeck  
 **SPDX-License-Identifier:** MIT
 
----
-
-**Hinweis**: Dieses Tool ist speziell für die Anforderungen digitaler Archivierungsprojekte entwickelt worden. Stellen Sie sicher, dass Sie vor der Verwendung eine Sicherungskopie Ihrer Daten haben.
-```
+**Hinweis:** Dieses Tool wurde speziell für die Anforderungen digitaler Archivierungsprojekte entwickelt. Stellen Sie sicher, dass Sie vor der Verwendung eine Sicherungskopie Ihrer Daten erstellt haben.
