@@ -39,12 +39,12 @@ Vor der Ausführung müssen die folgenden Variablen am Anfang des Skripts angepa
 *   `log_file_path`: Der absolute Pfad zur Mapping-Datei, die als "Landkarte" für die Rückverteilung dient.
 
 **Beispiel für macOS:**
-```python
+
 sam_dir = "/Users/IhrName/Desktop/Sicherung/SAM"
 log_file_path = "/Users/IhrName/Desktop/Sicherung/sam_file_mapping.txt"```
 
 **Beispiel für Windows:**
-```python
+
 sam_dir = "C:\\Users\\IhrName\\Desktop\\Sicherung\\SAM"
 log_file_path = "C:\\Users\\IhrName\\Desktop\\Sicherung\\sam_file_mapping.txt"
 
