@@ -148,5 +148,6 @@ Dieses Projekt ist unter der MIT-Lizenz lizenziert.
 
 ---
 
+
 **Hinweis**: Dieses Skript löscht Dateien unwiderruflich. Verwenden Sie es mit Vorsicht und nur, wenn Sie sicher sind, dass die `.ps`-Dateien nicht mehr benötigt werden.
 ```
