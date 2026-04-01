@@ -41,6 +41,7 @@ python copy_for_vl_export.py AC-2024-001 DISK-12345
 Das Skript erwartet folgende Verzeichnisstruktur:
 
 ~/Documents/data/<AC_NUMMER>/<DATENTRÄGER_ID>/
+```text
 ├── 0_<ID>_picture-carrier/
 │   └── *.tif
 ├── 2_<ID>_extracted-files/
