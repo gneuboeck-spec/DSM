@@ -255,7 +255,7 @@ def parse_greaseweazle_log(log_path):
     else:
         ctx.tool_agent = ("SW_Greaseweazle_Unknown", "Greaseweazle Tools", "software")
 
-    if m := re.search(r"SHA-512-Hashes:\s*\n(.*?)(?:\n\n|\Z)", content, re.DOTALL):
+    if m := re.search(r"SHA-256-Hashes:\s*\n(.*?)(?:\n\n|\Z)", content, re.DOTALL):
         for l in m.group(1).split('\n'):
             if ':' in l:
                 p = l.split(':', 1)
@@ -373,9 +373,9 @@ class PremisGenerator:
             self.creator_agent_id = f"creator_{clean_name}"
             print(f"\033[93m -> WARNUNG: Kein GND-Eintrag gewählt. Lokal: {self.creator_agent_id}\033[0m")
 
-    def _get_sha512(self, path):
+    def _get_sha256(self, path):
         if not path.exists(): return None
-        h = hashlib.sha512()
+        h = hashlib.sha256()
         with open(path, 'rb') as f:
             while c := f.read(8192): h.update(c)
         return h.hexdigest()
@@ -572,7 +572,7 @@ class PremisGenerator:
                     ext = etree.SubElement(char, PREMIS + 'objectCharacteristicsExtension')
                     ft = etree.SubElement(ext, FT + 'filetrove_metadata', nsmap={'ft': NSMAP['ft']})
                     for k, v in filetrove_dict.items():
-                        if k not in ['sha512', 'size', 'pronom_id', 'document_creator_tool', 'asset_created_date']:
+                        if k not in ['sha256', 'size', 'pronom_id', 'document_creator_tool', 'asset_created_date']:
                             elem = etree.SubElement(ft, FT + k)
                             elem.text = str(v)
 
@@ -678,12 +678,12 @@ class PremisGenerator:
         )
 
         for f in self.path_step0.glob('*.tif'):
-            sha = self._get_sha512(f)
+            sha = self._get_sha256(f)
             self.create_xml_object(
                 obj_type="file",
                 identifier_val=f.name,
                 size=f.stat().st_size,
-                fixity_list=[("SHA-512", sha)],
+                fixity_list=[("SHA-256", sha)],
                 format_info=("Tagged Image File Format", "PRONOM", "fmt/353"),
                 relationships=[("structural", "is part of", cid, None)]
             )
@@ -725,10 +725,10 @@ class PremisGenerator:
         
         for f in image_files:
             # Hashes: Erst aus Log, sonst berechnen
-            sha512 = self._get_sha512(f)
+            sha256 = self._get_sha256(f)
             
             # Zusatzhashes aus FTK Log (MD5/SHA1)
-            fixity = [("SHA-512", sha512)]
+            fixity = [("SHA-256", sha256)]
             if 'MD5' in self.ctx.image_hashes:
                 fixity.append(("MD5", self.ctx.image_hashes['MD5']))
             if 'SHA1' in self.ctx.image_hashes:
@@ -764,12 +764,12 @@ class PremisGenerator:
             )
             
             for r in raws:
-                sha = self.ctx.image_hashes.get(r.name) or self._get_sha512(r)
+                sha = self.ctx.image_hashes.get(r.name) or self._get_sha256(r)
                 self.create_xml_object(
                     obj_type="file",
                     identifier_val=r.name,
                     size=r.stat().st_size,
-                    fixity_list=[("SHA-512", sha)],
+                    fixity_list=[("SHA-256", sha)],
                     format_info=("Greaseweazle Raw Flux Stream", None, None),
                     relationships=[("structural", "is part of", fs_id, None)]
                 )
@@ -828,7 +828,7 @@ class PremisGenerator:
             if meta:
                 self.archived_file_ids.append(final_id)
                 
-                sha = meta.get('sha512')
+                sha = meta.get('sha256')
                 sz = meta.get('size')
                 pron = meta.get('pronom_id')
                 
@@ -840,7 +840,7 @@ class PremisGenerator:
                     obj_type="file",
                     identifier_val=final_id,
                     size=sz,
-                    fixity_list=[("SHA-512", sha)],
+                    fixity_list=[("SHA-256", sha)],
                     format_info=("File Format", "PRONOM", pron),
                     creating_app=c_app,
                     filetrove_dict=meta,
@@ -851,13 +851,13 @@ class PremisGenerator:
                 real_p = real_files_dir / fname
                 if not real_p.exists(): real_p = real_files_dir / full_path
                 
-                sha = self._get_sha512(real_p)
+                sha = self._get_sha256(real_p)
                 
                 self.create_xml_object(
                     obj_type="file",
                     identifier_val=full_path,
                     size=row.get('filesize'),
-                    fixity_list=[("SHA-512", sha)] if sha else None,
+                    fixity_list=[("SHA-256", sha)] if sha else None,
                     format_info=("File Format", "PRONOM", row.get('id')),
                     sig_props=[("preservation_status", "Forensic Artifact (not selected)")],
                     relationships=[("derivation", "is derived from", self.source_image_id, evt_ext_id)]
@@ -899,7 +899,7 @@ class PremisGenerator:
                     obj_type="file",
                     identifier_val=path,
                     size=meta.get('size'),
-                    fixity_list=[("SHA-512", meta.get('sha512'))],
+                    fixity_list=[("SHA-256", meta.get('sha256'))],
                     format_info=("PDF Derivative", "PRONOM", meta.get('pronom_id')),
                     creating_app=c_app,
                     filetrove_dict=meta,
@@ -922,13 +922,13 @@ class PremisGenerator:
         sha = None; pronom = "x-fmt/263"; agent_str = "Unknown"
         if log.exists():
             with open(log, 'r', encoding='utf-8', errors='ignore') as f: c = f.read()
-            if m := re.search(r"fixity-sha512: ([a-f0-9]{128})", c, re.I): sha = m.group(1)
+            if m := re.search(r"fixity-sha256: ([a-f0-9]{128})", c, re.I): sha = m.group(1)
             if m := re.search(r"pronomId: (.*)", c): pronom = m.group(1).strip()
             if m := re.search(r"executingAgent: (.*)", c): agent_str = m.group(1).strip()
         
         if not sha: 
             print("  -> Berechne Live-Hash für Archiv-Image...")
-            sha = self._get_sha512(final_img)
+            sha = self._get_sha256(final_img)
             
         aid = "SW_Packager"
         self.create_xml_agent(aid, agent_str, "software")
@@ -947,7 +947,7 @@ class PremisGenerator:
             obj_type="file",
             identifier_val=final_img.name,
             size=final_img.stat().st_size,
-            fixity_list=[("SHA-512", sha)],
+            fixity_list=[("SHA-256", sha)],
             format_info=("Archival Disk Image", "PRONOM", pronom),
             relationships=rels
         )

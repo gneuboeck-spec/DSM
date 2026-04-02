@@ -204,15 +204,15 @@ def format_date_to_iso(date_str):
     return date_str  # Wenn alles fehlschlägt, den Originalstring zurückgeben
 
 
-def hash_sha512(filepath):
-    h = hashlib.sha512()
+def hash_sha256(filepath):
+    h = hashlib.sha256()
     try:
         with open(filepath, "rb") as f:
             while chunk := f.read(8192):
                 h.update(chunk)
         return h.hexdigest()
     except Exception as e:
-        print(f"Fehler beim SHA512-Hashing von {filepath}: {e}")
+        print(f"Fehler beim SHA256-Hashing von {filepath}: {e}")
         return "error_hashing"
 
 
@@ -1345,7 +1345,7 @@ def process_file(file_path, relative_path, structured_warnings, structured_unide
 
     file_info = get_file_info(file_path)
     all_raw_metadata.update(file_info)
-    all_raw_metadata["sha512"] = hash_sha512(file_path)
+    all_raw_metadata["sha256"] = hash_sha256(file_path)
 
     siegfried_data = run_siegfried(file_path)
     all_raw_metadata.update(siegfried_data)

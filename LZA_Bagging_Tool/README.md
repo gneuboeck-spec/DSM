@@ -1,56 +1,70 @@
-# LZA Bagging Tool
+# LZA-Paket-Generator (BagIt & TAR Master)
 
-Dieses Python-Skript automatisiert die Zusammenführung von Datenrettungs-Ergebnissen und erstellt daraus einen standardisierten **BagIt-Container** für die Langzeitarchivierung (LZA).
+Dieses Skript bildet den krönenden Abschluss des Archivierungsworkflows. Es führt alle Teilergebnisse eines Projekts zusammen, erstellt einen validen **BagIt-Container** (inkl. SHA-256 Prüfsummen für jede Datei) und verpackt das Ergebnis in ein unkomprimiertes **TAR-Archiv**.
 
-## Funktionen
+Das resultierende Paket ist ein vollständig dokumentiertes **Archival Information Package (AIP)**, das bereit für die Langzeitarchivierung ist.
 
-1. **Konsolidierung:** Sammelt Dateien aus den Arbeitsordnern 0, 1, 2 und 3 im Zielordner 5.
-2. **Robustes Verschieben:** Prüft auf Existenz der Quelldateien und bereinigt etwaige Altlasten im Zielverzeichnis.
-3. **BagIt-Erstellung:** Wandelt den Zielordner (Ordner 5) in einen BagIt-Container um.
-    - Berechnet Checksummen (Standard: **SHA-256**).
-    - Fügt Metadaten wie `Contact-Name` und `External-Identifier` hinzu.
-4. **Validierung:** Überprüft den neu erstellten Bag sofort auf Integrität.
+---
 
-## Voraussetzungen
+## Funktionsumfang
 
-Das Skript benötigt das Modul `bagit`. Installation via pip:
+*   **Daten-Aggregation:** Sammelt automatisch alle relevanten Daten aus den Prozessstufen 0 (Image), 1 (LZA-Image), 2 (Analyse) und 3 (Konvertierung & Logs).
+*   **Fehlertoleranz:** Das Skript bricht nicht ab, wenn einzelne Log-Dateien fehlen, sondern protokolliert dies und fährt mit den vorhandenen Daten fort.
+*   **BagIt-Standard:** Erstellt eine offizielle BagIt-Struktur inklusive Metadaten (`Contact-Name`, `ZPH-ID`, etc.) und berechnet Fixity-Werte (SHA-256) für alle Dateien.
+*   **TAR-Container:** Verpackt den gesamten Bag unkomprimiert in ein TAR-Archiv. Dies erleichtert den Transfer und schützt die Bag-Struktur.
+*   **Sicherheits-Check:** Beinhaltet eine Abfrage zum Schließen von Windows-Explorer-Fenstern, um Zugriffsfehler während der Bag-Erstellung zu vermeiden.
+*   **Automatisches Cleanup:** Löscht den temporären Arbeitsordner (`5_..._LZA`) nach der erfolgreichen Erstellung des TAR-Archivs, um Speicherplatz zu sparen.
 
-    pip install bagit
+---
 
-## Verwendung
+## Technische Details
 
-Das Skript wird über die Kommandozeile aufgerufen und benötigt die **AC-Nummer** und die **Disk-ID** als Argumente:
+*   **Container-Format:** Unkomprimiertes TAR (Tape Archive).
+*   **Fixity:** SHA-256 (innerhalb des BagIt-Manifests).
+*   **Namenskonvention:** `AC-Nummer_ZPH-ID_Zeitstempel.tar`
+*   **Zeitstempel-Format:** `YYYYMMDD_HHMMSS`
 
-    python skriptname.py <AC-Nummer> <Disk-ID>
+---
 
-**Beispiel:**
-    python skriptname.py AC15993802 ZPH1705-120_04-12-03-01
+## Erwartete Ordnerstruktur
 
-## Konfiguration im Skript
+Das Skript erwartet die Standard-Projektstruktur im `Documents/data`-Verzeichnis:
 
-- **base_root:** Definiert den Basispfad zu den Daten (Standard: `C:\Users\digit\Documents\data`).
-- **metadata:** Hier können die Informationen für die `bag-info.txt` angepasst werden.
-- **time.sleep(3):** Eine eingebaute Pause von 3 Sekunden verhindert "Permission Errors" unter Windows, falls Dateizugriffe noch nicht vollständig vom System freigegeben wurden.
+```text
+Documents/data/[AC-Nummer]/[ZPH-ID]/
+├── 0_..._picture-carrier/
+├── 1_..._image-LZA/
+├── 2_..._extracted-files/
+├── 3_..._for-transfer/
+└── 5_..._LZA/                  <-- Ziel- & Staging-Ordner
+```
 
-## Ordnerstruktur
+---
 
-Das Skript erwartet folgende Struktur:
-- `0_..._picture-carrier` (wird komplett verschoben)
-- `1_..._image-LZA` (wird komplett verschoben)
-- `2_..._extracted-files` (spezifische Berichte werden verschoben)
-- `3_..._for-transfer` (Logs werden verschoben)
-- `5_..._LZA` (**Zielordner**, muss existieren)
+## Ausführung
 
-## Fehlerbehebung
+Starten Sie das Skript über das Hauptmenü oder direkt via Batch-Datei:
 
-- **Permission Error:** Stellen Sie sicher, dass der Zielordner nicht im Windows Explorer geöffnet ist und keine Datei daraus in einem anderen Programm (Editor, Browser etc.) verwendet wird.
-- **Fehlender Zielordner:** Das Skript bricht ab, wenn der Ordner `5_..._LZA` nicht bereits existiert.
+```batch
+python lza_bagging_skript.py AC12345678 ZPH1705-120
+```
+
+### Ablauf
+
+1.  **Sicherheitsabfrage:** Bestätigen Sie, dass alle Explorer-Fenster geschlossen sind.
+2.  **Collection:** Alle verfügbaren Dateien aus den Vorstufen werden in den Ordner `5` verschoben.
+3.  **Bagging:** Der Ordner `5` wird "gebaggt" (Erstellung von Manifesten und Metadaten-Tags).
+4.  **Validation:** Der Bag wird sofort auf Integrität geprüft.
+5.  **Archivierung:** Der valide Bag wird in die `.tar`-Datei geschrieben.
+6.  **Cleanup:** Der nun redundante Ordner `5` wird entfernt.
+
+---
 
 ## Lizenz
 
 **Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>**
 
-Dieses Skript ist unter der **MIT-Lizenz** lizenziert. Das bedeutet, es darf frei verwendet, kopiert und modifiziert werden, solange der obige Copyright-Hinweis erhalten bleibt.
+Dieses Skript ist unter der **MIT-Lizenz** lizenziert.
 
 ---
 **SPDX-FileCopyrightText:** 2025 Gregor Neuboeck  
