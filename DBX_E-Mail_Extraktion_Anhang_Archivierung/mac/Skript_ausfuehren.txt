@@ -1,3 +1,0 @@
-Terminal öffnen
-Ins Verzeichnis der Skriptdatei wechseln
-python3 /Users/gregorneuboeck/Desktop/dbx_in_eml_und_anhaenge_extrahieren_konvertieren_macOS.py

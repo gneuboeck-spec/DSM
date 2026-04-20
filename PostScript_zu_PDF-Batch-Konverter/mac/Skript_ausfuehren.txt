@@ -1,2 +1,0 @@
-Terminal
-python3 /Users/gregorneuboeck/Desktop/ps_to_pdf_macOS.py

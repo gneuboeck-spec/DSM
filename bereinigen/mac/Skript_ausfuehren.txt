@@ -1,3 +1,0 @@
-Terminal öffnen
-Ins Verzeichnis der Skriptdatei wechseln
-python3 /Users/gregorneuboeck/Desktop/bereinigen_macOS.py

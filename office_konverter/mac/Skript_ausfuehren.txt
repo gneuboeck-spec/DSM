@@ -1,2 +1,0 @@
-Terminal öffnen
-python3 /Users/gregorneuboeck/Desktop/convert_textbasierte_to_pdfa_macOS.py

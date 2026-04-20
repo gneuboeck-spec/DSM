@@ -1,5 +1,0 @@
-In das Skriptverzeichnis wechseln
-cd C:\Users\digit\Desktop\Skripte
-
-Skript ausführen in
-C:\Users\digit\Desktop\Skripte>python wav_Audio_loeschen_win.py

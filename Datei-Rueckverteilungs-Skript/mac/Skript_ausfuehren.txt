@@ -1,2 +1,0 @@
-Terminal öfnen
-python3 /Users/gregorneuboeck/Desktop/ps_zurueck_macOS.py

@@ -1,5 +1,0 @@
-Terminal öffnen
-source /Users/gregorneuboeck/Desktop/filetrove-venv/bin/activate #virtuelle Umgebung aktivieren
-deactivate #virtuelle Umgebung deaktivieren
-Skript ausführen
-python3 /Users/gregorneuboeck/Desktop/filetrove_scan_und_brunhilde_macOS.py

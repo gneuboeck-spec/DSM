@@ -1,2 +1,0 @@
-Terminal
-python3 /Users/gregorneuboeck/Desktop/neu_pdf_falsche_namenskonvention_loeschen_macOS.py

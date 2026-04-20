@@ -1,3 +1,0 @@
-Terminal öffnen
-Ins Verzeichnis der Skriptdatei wechseln
-python3 /Users/gregorneuboeck/Desktop/convert_Audio_in_mp3_wav_mac.py

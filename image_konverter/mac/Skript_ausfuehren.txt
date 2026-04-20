@@ -1,3 +1,0 @@
-Terminal öffnen
-Ins Verzeichnis der Skriptdatei wechseln
-python3 /Users/gregorneuboeck/Desktop/convert_Bildformate_in_tif_oder_pdf_mac.py

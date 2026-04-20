@@ -1,5 +1,0 @@
-In das Skriptverzeichnis wechseln
-cd C:\Users\digit\Desktop\Skripte
-
-Skript ausführen in
-C:\Users\digit\Desktop\Skripte>python dbx_in_eml_und_anhaenge_extrahieren_konvertieren_win.py

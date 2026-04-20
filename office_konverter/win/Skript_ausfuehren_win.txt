@@ -1,5 +1,0 @@
-In das Skriptverzeichnis wechseln
-cd C:\Users\digit\Desktop\Skripte
-
-Skript ausführen in
-C:\Users\digit\Desktop\Skripte>python convert_textbasierte_to_pdfa_win.py

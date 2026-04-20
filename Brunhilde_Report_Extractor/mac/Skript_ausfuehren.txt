@@ -1,8 +1,0 @@
-Terminal
-
-source /Users/gregorneuboeck/Desktop/filetrove-venv/bin/activate #virtuelle Umgebung aktivieren
-Virendefinitionsdateien updaten: sudo freshclam
-es kann eine Passwortabfrage kommen. Der benutzer braucht Adminrechte
-
-Skript ausführen
-python3 /Users/gregorneuboeck/Desktop/brunnhilde_macOS.py

@@ -1,2 +1,0 @@
-Terminal öffnen
-python3 /Users/gregorneuboeck/Desktop/convert_video_in_mp4_macOS.py
