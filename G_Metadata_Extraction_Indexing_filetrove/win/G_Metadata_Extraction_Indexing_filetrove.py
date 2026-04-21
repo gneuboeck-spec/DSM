@@ -51,7 +51,7 @@ def load_reference_hashes(ac_number, disk_id):
     stage1_csv = base_path / f"1_{disk_id}_image-LZA" / "logfiles" / f"1_{disk_id}_image-log.csv"
     stage2_json = base_path / f"2_{disk_id}_extracted-files" / f"2_{disk_id}_extracted-files_brunnhilde-summary.json"
 
-    # 1. Stufe 1 laden (Images/Logs)
+    # 1. Stufe 1 laden (Imaging-Logs / meist Imagedateien)
     if stage1_csv.exists():
         try:
             with open(stage1_csv, 'r', encoding='utf-8') as f:
@@ -60,22 +60,28 @@ def load_reference_hashes(ac_number, disk_id):
                     name = row.get('filename') or row.get('file')
                     sha = row.get('sha256')
                     if name and sha:
+                        # Bei Images nutzen wir weiterhin den Dateinamen als Schlüssel
                         refs[Path(name).name.lower()] = sha.lower()
         except Exception as e:
             print(f"Warnung: Fehler beim Lesen der Stufe 1 CSV: {e}")
 
-    # 2. Stufe 2 laden (Extrahierte Dateien)
+    # 2. Stufe 2 laden (Extrahierte Dateien aus Brunnhilde)
     if stage2_json.exists():
         try:
             with open(stage2_json, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 for item in data.get('file_fixity_sha256', []):
-                    name = Path(item.get('file')).name
+                    # WICHTIG: Wir laden den Pfad aus der JSON (z.B. "ordner/datei.txt")
+                    # .as_posix() sorgt für Schrägstriche (/) statt Backslashes (\)
+                    rel_path = Path(item.get('file')).as_posix().lower()
                     sha = item.get('sha256')
-                    if name and sha:
-                        refs[name.lower()] = sha.lower()
+                    
+                    if rel_path and sha:
+                        # Wir speichern den ganzen Pfad als Schlüssel
+                        refs[rel_path] = sha.lower()
         except Exception as e:
             print(f"Warnung: Fehler beim Lesen der Stufe 2 JSON: {e}")
+            
     return refs
 
 # --- 2. Funktion zur dynamischen Erstellung und Validierung der Projekt-Pfade ---
@@ -1186,9 +1192,11 @@ def process_file(file_path, relative_path):
     all_raw_metadata["sha256"] = current_sha
 
     # 2. Integritäts-Check gegen Referenz-Hashes
-    file_name_lower = file_path.name.lower()
-    if file_name_lower in REFERENCE_HASHES:
-        ref_sha = REFERENCE_HASHES[file_name_lower]
+    # relative_path.as_posix() sorgt für einheitliche Schrägstriche (/), auch unter Windows.
+    rel_path_str = relative_path.as_posix().lower()
+
+    if rel_path_str in REFERENCE_HASHES:
+        ref_sha = REFERENCE_HASHES[rel_path_str]
         if current_sha.lower() == ref_sha.lower():
             print(f"  \033[92m[MATCH] Integritaet verifiziert.\033[0m")
             all_raw_metadata["integrity_status"] = "verified"
@@ -1452,34 +1460,39 @@ def main():
                 ET.SubElement(root, "file", {"path": relative_path.as_posix(), "name": relative_path.name, "error": str(e)})
 
     if processed_count > 0:
+        # 1. XML-Index speichern
         write_xml_to_file(root, OUTPUT_XML)
 
-        integrity_log_path = Path(OUTPUT_XML).parent / f"{Path(OUTPUT_XML).stem}_integrity.log"
+        # 2. Integritäts-Log erstellen (mit korrektem Namen nach deinem Schema)
+        integrity_log_name = f"3_{disk_archive_id_input}_for-transfer_integrity.log"
+        integrity_log_path = Path(OUTPUT_XML).parent / integrity_log_name
         
         try:
             with open(integrity_log_path, 'w', encoding='utf-8') as f:
-                f.write(f"INTEGRITY CHECK REPORT - {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"INTEGRITY CHECK REPORT\n")
+                f.write(f"Projekt:  {ac_number_input}\n")
+                f.write(f"ID:       {disk_archive_id_input}\n")
+                f.write(f"Datum:    {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
                 f.write("="*80 + "\n\n")
                 
                 if not INTEGRITY_ERRORS:
-                    f.write("ERGEBNIS: Alle vorhandenen Referenz-Hashes wurden erfolgreich verifiziert.\n")
-                    f.write(f"Keine Manipulationen oder Kopierfehler erkannt.\n\n")
+                    f.write("✅ ERGEBNIS: Alle vorhandenen Referenz-Hashes wurden erfolgreich verifiziert.\n")
+                    f.write("Es wurden keine Abweichungen festgestellt.\n\n")
                 else:
-                    f.write(f"ALARM: {len(INTEGRITY_ERRORS)} DATEIEN WURDEN SEIT DER VORSTUFE VERAENDERT!\n")
+                    f.write(f"❌ ALARM: {len(INTEGRITY_ERRORS)} ABWEICHUNGEN GEFUNDEN!\n")
                     f.write("="*80 + "\n")
                     for err in INTEGRITY_ERRORS:
                         f.write(f"DATEI:    {err['file']}\n")
                         f.write(f"Soll-Hash: {err['expected']}\n")
                         f.write(f"Ist-Hash:  {err['found']}\n")
                         f.write("-"*80 + "\n")
-                    f.write("\n")
 
-                f.write(f"STATISTIK:\n")
+                f.write(f"\nSTATISTIK:\n")
                 f.write(f"- Verifizierte Dateien: {len(INTEGRITY_SUCCESS)}\n")
-                f.write(f"- Neue Dateien (ohne Referenz): {len(INTEGRITY_NEW)}\n")
+                f.write(f"- Neue Dateien (Derivate): {len(INTEGRITY_NEW)}\n")
                 f.write(f"- Fehlerhafte Dateien: {len(INTEGRITY_ERRORS)}\n\n")
 
-                f.write("DETAILS DER VERIFIZIERTEN DATEIEN:\n")
+                f.write("LISTE DER VERIFIZIERTEN DATEIEN:\n")
                 for item in sorted(INTEGRITY_SUCCESS):
                     f.write(f"[OK] {item}\n")
 
@@ -1487,41 +1500,36 @@ def main():
         except Exception as e:
             print(f"\033[91mFehler beim Schreiben des Integritaets-Logs: {e}\033[0m")
         
-    
+        # 3. Dateien nach Stufe 4 (VL) kopieren
         try:
+            # Den Index (.index) kopieren
             shutil.copy2(OUTPUT_XML, validated_paths["vl_output_xml"])
-            print(f"\033[92mIndex-Datei zusätzlich erfolgreich nach Stufe 4 kopiert:\033[0m")
-            print(f" -> {validated_paths['vl_output_xml']}")
-        except Exception as e:
-            print(f"\033[91mFehler beim Kopieren der Index-Datei nach Stufe 4: {e}\033[0m")
             
-        print(f"\n{processed_count} Dateien verarbeitet.")
+            # Das Log (.log) ebenfalls nach Stufe 4 kopieren
+            vl_log_dest = Path(validated_paths["vl_output_xml"]).parent / integrity_log_name
+            shutil.copy2(integrity_log_path, vl_log_dest)
+            
+            print(f"\033[92mIndex-Datei und Log erfolgreich nach Stufe 4 kopiert.\033[0m")
+        except Exception as e:
+            print(f"\033[91mFehler beim Kopieren nach Stufe 4: {e}\033[0m")
+            
+        print(f"\n{processed_count} Dateien erfolgreich verarbeitet.")
     else:
         print("\nKeine Dateien zum Verarbeiten gefunden oder alle übersprungen.")
+
+    # 4. Zielordner optional öffnen (Sicher innerhalb von main)
+    destination_folder = Path(OUTPUT_XML).parent
+    print("")
+    open_folder = input("Zielordner oeffnen? (j/n): ").lower()
+    if open_folder == 'j':
+        if sys.platform == "win32":
+            os.startfile(destination_folder)
+        elif sys.platform == "darwin":
+            subprocess.run(["open", destination_folder])
+        else:
+            subprocess.run(["xdg-open", destination_folder])
+        print("\033[92mZielordner geoeffnet\033[0m")
 
 
 if __name__ == "__main__":
     main()
-
-    # --- ANFANG: HINZUGEFÜGTER CODE-BLOCK (MIT KORREKTER FUNKTION) ---
-    if validated_paths:
-        destination_folder = validated_paths["output_xml"].parent
-        
-        print("")
-        open_folder = input("Zielordner oeffnen? (j/n): ").lower()
-        if open_folder == 'j':
-            if sys.platform == "win32":
-                os.startfile(destination_folder)
-            elif sys.platform == "darwin":
-                subprocess.run(["open", destination_folder])
-            else:
-                subprocess.run(["xdg-open", destination_folder])
-            # Angepasst an den Stil des bestehenden Skripts
-            print("\033[92mZielordner geoeffnet\033[0m")
-        # --- ENDE: HINZUGEFÜGTER CODE-BLOCK ---
-
-    else:
-        print("\nSkript wird aufgrund von Konfigurationsfehlern beendet.")
-
-    print("\nSkript beendet.")
-    # --- ENDE: HINZUGEFÜGTER CODE-BLOCK ---

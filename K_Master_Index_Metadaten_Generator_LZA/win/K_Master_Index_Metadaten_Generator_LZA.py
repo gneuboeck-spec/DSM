@@ -6,6 +6,7 @@
 #!/usr/bin/env python3
 import os
 import sys
+import csv
 import hashlib
 import yara
 import json
@@ -34,6 +35,123 @@ EXIFTOOL_PATH = "C:\\Program Files\\ExifTool\\exiftool.exe"
 FFPROBE_PATH = "C:\\Program Files\\ffmpeg\\ffprobe.exe"
 HACHOIR_METADATA_PATH = "C:\\Users\\digit\\.venv\\Scripts\\hachoir-metadata.exe"
 SIEGFRIED_PATH = "C:\\Program Files\\Siegfried\\sf.exe"
+
+# --- NEU: Globaler Speicher für Referenz-Hashes ---
+REFERENCE_HASHES = {}
+INTEGRITY_SUCCESS = []  # Für alle bestätigten Dateien
+INTEGRITY_ERRORS = []   # Für alle Abweichungen
+INTEGRITY_NEW = []      # Für neue Dateien (Derivate)
+
+def hash_sha512(filepath):
+    h = hashlib.sha512()
+    try:
+        with open(filepath, "rb") as f:
+            for chunk in iter(lambda: f.read(8192), b""): h.update(chunk)
+        return h.hexdigest()
+    except: return None
+
+def hash_md5(filepath):
+    h = hashlib.md5()
+    try:
+        with open(filepath, "rb") as f:
+            for chunk in iter(lambda: f.read(8192), b""): h.update(chunk)
+        return h.hexdigest()
+    except: return None
+
+def hash_sha256(filepath):
+    h = hashlib.sha256()
+    try:
+        with open(filepath, "rb") as f:
+            while chunk := f.read(8192): h.update(chunk)
+        return h.hexdigest()
+    except: return "error_hashing"
+
+def load_all_lza_reference_hashes(ac_number, disk_id):
+    refs = {}
+    lza_dir = Path.home() / "Documents/data" / ac_number / disk_id / f"5_{disk_id}_LZA"
+    lza_log_dir = lza_dir / "logfiles"
+    
+    # 1. Imaging Log (TXT) -> SHA-512 (Greaseweazle/KryoFlux Tracks)
+    # Format: "dateiname: [128-stelliger-hex-hash]"
+    img_txt = lza_log_dir / f"01_{disk_id}_image-log.txt"
+    if img_txt.exists():
+        try:
+            with open(img_txt, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+                # Findet alle Zeilen mit .raw und einem 128-stelligen SHA-512 Hash
+                matches = re.findall(r"([\w\d\._-]+\.raw):\s*([a-fA-F0-9]{128})", content)
+                for name, sha in matches:
+                    refs.setdefault(name.lower(), {})['sha512'] = sha.lower()
+        except: pass
+
+    # 2. Imaging Log (CSV) -> SHA-512 (Spalten: Dateiname, SHA-512-Hash)
+    img_csv = lza_log_dir / f"1_{disk_id}_image-log.csv"
+    if img_csv.exists():
+        try:
+            with open(img_csv, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    name = row.get('Dateiname', '').lower()
+                    sha512 = row.get('SHA-512-Hash', '').lower()
+                    if name and sha512:
+                        refs.setdefault(Path(name).name, {})['sha512'] = sha512
+        except: pass
+
+    # 3. Brunnhilde Summary (JSON) -> SHA-256 (Feld: file_fixity_sha256 -> file, sha256)
+    brun_json = lza_log_dir / f"2_{disk_id}_extracted-files_brunnhilde-summary.json"
+    if brun_json.exists():
+        try:
+            with open(brun_json, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                for item in data.get('file_fixity_sha256', []):
+                    name = Path(item.get('file', '')).name.lower()
+                    sha256 = item.get('sha256', '').lower()
+                    if name and sha256:
+                        refs.setdefault(name, {})['sha256'] = sha256
+        except: pass
+
+    # 4. Siegfried Report (CSV) -> MD5 (Pfade enthalten)
+    sieg_csv = lza_log_dir / f"2_{disk_id}_extracted-files_brunnhilde" / "files_collection_report" / "siegfried.csv"
+    if sieg_csv.exists():
+        try:
+            with open(sieg_csv, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    name = (row.get('filename') or row.get('file', '')).lower()
+                    md5_val = row.get('md5', '').lower()
+                    if name and md5_val:
+                        refs.setdefault(Path(name).name, {})['md5'] = md5_val
+        except: pass
+
+    # 5. Technischer Index (.index) -> SHA-256 (Attribut: name, Tag: sha256)
+    idx_xml = lza_log_dir / f"3_{disk_id}_for-transfer.index"
+    if idx_xml.exists():
+        try:
+            tree = ET.parse(idx_xml)
+            for f_tag in tree.findall('.//file'):
+                name_val = f_tag.get('name', '').lower()
+                sha256 = f_tag.findtext('sha256', '').lower()
+                if name_val and sha256:
+                    refs.setdefault(name_val, {})['sha256'] = sha256
+        except: pass
+
+    # 6. PREMIS (XML) -> SHA-256 (Tag: objectIdentifierValue [Pfad], Tag: messageDigest)
+    premis_xml = lza_log_dir / f"5_{disk_id}_LZA_premis.xml"
+    if premis_xml.exists():
+        try:
+            tree = ET.parse(premis_xml)
+            ns = {'p': 'http://www.loc.gov/premis/v3'}
+            for obj in tree.findall('.//p:object', ns):
+                id_elem = obj.find('.//p:objectIdentifierValue', ns)
+                digest_elem = obj.find('.//p:messageDigest', ns)
+                if id_elem is not None and digest_elem is not None:
+                    # Wir extrahieren den reinen Dateinamen aus dem Pfad im IdentifierValue
+                    name = Path(id_elem.text).name.lower()
+                    sha256 = digest_elem.text.lower()
+                    refs.setdefault(name, {})['sha256'] = sha256
+        except: pass
+
+    return refs
 
 # --- 2. Funktion zur dynamischen Erstellung und Validierung der Projekt-Pfade ---
 def setup_and_validate_paths(ac_number, disk_archive_id):
@@ -86,8 +204,17 @@ except IndexError:
 if validated_paths:
     BASE_DIR = validated_paths["base_dir"]
     OUTPUT_XML = validated_paths["output_xml"]
+
+    # --- INTEGRITÄTS-VORBEREITUNG ---
+    # Wir deklarieren REFERENCE_HASHES global, damit die Funktion process_file darauf zugreifen kann.
     
-    print("\nSkript wird mit folgenden Pfaden ausgeführt:")
+    print("\nLade Referenz-Hashes (SHA-256 & SHA-512) aus ALLEN LZA-Logfiles...")
+    
+    # Nutzt die neue Lade-Funktion, die CSV, JSON, Index und PREMIS scannt
+    REFERENCE_HASHES = load_all_lza_reference_hashes(ac_number_input, disk_archive_id_input)
+    print(f"-> {len(REFERENCE_HASHES)} Referenz-Einträge aus der Dokumentation geladen.\n")
+    
+    print("Skript wird mit folgenden Pfaden ausgeführt:")
     print(f"- Eingabe-Ordner: {BASE_DIR}")
     print(f"- Ausgabe-XML: {OUTPUT_XML}\n")
 else:
@@ -959,7 +1086,7 @@ def unify_metadata_keys(metadata: dict) -> dict:
 # HIER ENDET DER CODE, DEN SIE KOPIEREN MÜSSEN
 # =======================================================
 
-    # ANWENDUNG DER MAPPING-REGELN
+    # ANWDPREMIS UNDUNG DER MAPPING-REGELN
     for group_keys, preferred_key in key_mapping.items():
         standardized_group_keys = tuple(sanitize_tag(k) for k in group_keys)
         if preferred_key in unified_metadata or all(k in processed_standardized_keys for k in standardized_group_keys):
@@ -1103,6 +1230,7 @@ def add_metadata_to_xml(file_elem, metadata):
 
 
 def process_file(file_path, relative_path):
+    global INTEGRITY_SUCCESS, INTEGRITY_ERRORS, INTEGRITY_NEW, REFERENCE_HASHES
     print(f"\n==================================================")
     print(f"Verarbeite Datei: {relative_path}")
     print(f"==================================================")
@@ -1113,48 +1241,67 @@ def process_file(file_path, relative_path):
     })
 
     all_raw_metadata = {}
-
     file_info = get_file_info(file_path)
     all_raw_metadata.update(file_info)
-    all_raw_metadata["sha256"] = hash_sha256(file_path)
+
+    # 1. SHA-256 berechnen (Standard für Index)
+    current_sha256 = hash_sha256(file_path)
+    all_raw_metadata["sha256"] = current_sha256
+
+    # 2. Multi-Algo Integritäts-Check (Abgleich über reinen Dateinamen)
+    rel_path_str = file_path.name.lower() 
+
+    if rel_path_str in REFERENCE_HASHES:
+        ref_data = REFERENCE_HASHES[rel_path_str]
+        errors = []
+        matches = []
+
+        # A) Check SHA-256 (Index/JSON/PREMIS)
+        if 'sha256' in ref_data:
+            if current_sha256 == ref_data['sha256']:
+                matches.append("SHA-256")
+            else:
+                errors.append(f"SHA-256 (Soll: {ref_data['sha256'][:8]}... Ist: {current_sha256[:8]}...)")
+
+        # B) Check SHA-512 (Imaging TXT/CSV)
+        if 'sha512' in ref_data:
+            current_sha512 = hash_sha512(file_path)
+            if current_sha512 == ref_data['sha512']:
+                matches.append("SHA-512")
+            else:
+                errors.append(f"SHA-512 (Abweichung Imaging)")
+
+        # C) Check MD5 (Siegfried CSV)
+        if 'md5' in ref_data:
+            current_md5 = hash_md5(file_path)
+            if current_md5 == ref_data['md5']:
+                matches.append("MD5")
+            else:
+                errors.append(f"MD5 (Abweichung Siegfried)")
+
+        if not errors and matches:
+            print(f"  \033[92m[MATCH] Integritaet verifiziert gegen: {', '.join(matches)}\033[0m")
+            all_raw_metadata["integrity_status"] = "verified"
+            INTEGRITY_SUCCESS.append(str(relative_path))
+        elif errors:
+            err_msg = " | ".join(errors)
+            print(f"  \033[91m[ALARM] HASH-ABWEICHUNG bei {file_path.name}!\033[0m")
+            print(f"          Details: {err_msg}")
+            all_raw_metadata["integrity_status"] = "CORRUPTED_OR_MODIFIED"
+            INTEGRITY_ERRORS.append({"file": str(relative_path), "ref_data": ref_data, "found_sha256": current_sha256, "details": err_msg})
+    else:
+        all_raw_metadata["integrity_status"] = "new_file"
+        INTEGRITY_NEW.append(str(relative_path))
 
     siegfried_data = run_siegfried(file_path)
     all_raw_metadata.update(siegfried_data)
 
-    # --- ANFANG: Verbesserte Greaseweazle / KryoFlux Erkennung (Header-Scan & Force fmt/2015) ---
-    is_greaseweazle = False
-    if file_path.suffix.lower() == ".raw":
-        try:
-            # Wir scannen die ersten 512 Bytes nach der KryoFlux-Signatur
-            with open(file_path, "rb") as f:
-                header_data = f.read(512)
-                if b"KryoFlux" in header_data:
-                    print(f"  [i] KryoFlux-Signatur im Header gefunden.")
-                else:
-                    print(f"  [i] .raw Datei ohne explizite Signatur erkannt. Forciere KryoFlux-Metadaten.")
-            
-            # Wir setzen die Werte in jedem Fall für .raw Dateien in diesem Workflow
-            is_greaseweazle = True
-            all_raw_metadata["mime_type"] = "application/octet-stream"
-            all_raw_metadata["pronom_id"] = "fmt/2015"  # Offizielle KryoFlux Stream ID
-            all_raw_metadata["note"] = "KryoFlux Stream File (Greaseweazle dump)"
-            
-        except Exception as e:
-            print(f"  [!] Fehler beim Lesen des Headers für {file_path.name}: {e}")
-    # --- ENDE: Greaseweazle Flux-Rohdaten Korrektur ---
-
     mime_type_from_siegfried = all_raw_metadata.get("mime_type", "").lower()
-    # Bild-Extraktion NUR wenn nicht Greaseweazle/Flux
-    if mime_type_from_siegfried.startswith("image/") and not is_greaseweazle:
+    if mime_type_from_siegfried.startswith("image/"):
         image_info = extract_image_info(file_path)
         all_raw_metadata.update(image_info)
 
     exiftool_data = extract_metadata_exiftool(file_path)
-    # ExifTool-Filter für Greaseweazle/Flux (verhindert Bild-Metadaten-Raten)
-    if is_greaseweazle:
-        tags_to_strip = ["ImageWidth", "ImageHeight", "BitsPerSample", "ColorSpace"]
-        for tag in tags_to_strip:
-            exiftool_data.pop(tag, None)
     all_raw_metadata.update(exiftool_data)
 
     ffprobe_data = extract_metadata_ffprobe(file_path)
@@ -1185,6 +1332,7 @@ def process_file(file_path, relative_path):
             file_data = f.read()
     
         matches = rules.match(data=file_data)
+
         detailed_match_info = []
         all_match_rules = [{"rule": m.rule, "meta": m.meta} for m in matches]
         lower_rule_names = {m_info['rule'].lower() for m_info in all_match_rules}
@@ -1195,6 +1343,7 @@ def process_file(file_path, relative_path):
             if rule_name_lower == "csv":
                 if "sam" in lower_rule_names or "eml" in lower_rule_names or "tiff" in lower_rule_names:
                     keep_rule = False
+
             if keep_rule:
                 detailed_match_info.append(m_info)
 
@@ -1204,22 +1353,19 @@ def process_file(file_path, relative_path):
 
     final_unified_metadata = unify_metadata_keys(all_raw_metadata)
 
-    # Re-Assert Greaseweazle Infos nach Unification (Sicherheit für Master-Index)
-    if is_greaseweazle:
-        final_unified_metadata["mime_type"] = "application/octet-stream"
-        final_unified_metadata["pronom_id"] = "fmt/2015"
-        final_unified_metadata["document_format_descriptive_name"] = "KryoFlux Stream File (Greaseweazle dump)"
-
-    # --- DEINE BESTEHENDE KONSISTENZ-LOGIK FÜR VIDEO/AUDIO (ERHALTEN) ---
+    # --- KONSISTENZ-LOGIK FÜR VIDEO-DIMENSIONEN (VERSION 3 - ROBUST) ---
     final_mime_type_for_cleanup = final_unified_metadata.get("mime_type", "").lower()
     known_video_suffixes = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v", ".3gp", ".mxf", ".r3d", ".m4v"}
-    is_video_file = (final_mime_type_for_cleanup.startswith('video/') or file_path.suffix.lower() in known_video_suffixes)
+
+    is_video_file = (final_mime_type_for_cleanup.startswith('video/') or
+                     file_path.suffix.lower() in known_video_suffixes)
 
     if is_video_file:
         if 'image_width' in final_unified_metadata:
             if 'video_frame_width' not in final_unified_metadata:
                 final_unified_metadata['video_frame_width'] = final_unified_metadata['image_width']
             del final_unified_metadata['image_width']
+
         if 'image_height' in final_unified_metadata:
             if 'video_frame_height' not in final_unified_metadata:
                 final_unified_metadata['video_frame_height'] = final_unified_metadata['image_height']
@@ -1230,6 +1376,7 @@ def process_file(file_path, relative_path):
         file_type_group = get_file_type_group(file_path)
         is_media_file = (final_mime_type.startswith('audio/') or final_mime_type.startswith('video/') or final_mime_type == 'image/gif' or file_type_group in ['audio', 'video'])
         if not is_media_file:
+            print(f"Info: Entferne 'duration' ({final_unified_metadata['duration']}) für unpassenden MIME-Typ: {final_mime_type}")
             del final_unified_metadata['duration']
 
     if 'audio_channel_count' in final_unified_metadata:
@@ -1237,6 +1384,7 @@ def process_file(file_path, relative_path):
         file_type_group = get_file_type_group(file_path)
         is_media_file = (final_mime_type.startswith('audio/') or final_mime_type.startswith('video/') or file_type_group in ['audio', 'video'])
         if not is_media_file:
+            print(f"Info: Entferne 'audio_channel_count' ({final_unified_metadata['audio_channel_count']}) für unpassenden MIME-Typ: {final_mime_type}")
             del final_unified_metadata['audio_channel_count']
 
     print(f"\n--- Vereinheitlichte Metadaten für {relative_path} (final) ---")
@@ -1246,7 +1394,6 @@ def process_file(file_path, relative_path):
 
     add_metadata_to_xml(file_elem, final_unified_metadata)
 
-    # --- DEINE BESTEHENDE VALIDIERUNGS-LOGIK (ERHALTEN) ---
     valid_elem = ET.SubElement(file_elem, "validity")
     suffix = file_path.suffix.lower()
     mime_type = final_unified_metadata.get("mime_type", "").lower()
@@ -1256,32 +1403,49 @@ def process_file(file_path, relative_path):
         all_yara_rule_names = {m.rule for m in matches}
         for m in matches:
             rule_name_lower = m.rule.lower()
-            if rule_name_lower == "csv" and any(x in all_yara_rule_names for x in ["SAM", "EML", "TIFF"]): continue
-            yara_match_rules_simple_names.append(m.rule)
+            keep_rule = True
+            if rule_name_lower == "csv":
+                if "sam" in all_yara_rule_names or "eml" in all_yara_rule_names or "tiff" in all_yara_rule_names:
+                    keep_rule = False
+            if keep_rule:
+                yara_match_rules_simple_names.append(m.rule)
 
     is_valid = False
     try:
-        if is_greaseweazle: # Sonderfall Greaseweazle: Immer valide
-            is_valid = True
-        elif suffix == ".pdf":
+        if suffix == ".pdf":
             try:
-                PdfReader(file_path); is_valid = True
-            except: is_valid = False
+                PdfReader(file_path)
+                is_valid = True
+            except Exception as e:
+                print(f"PDF-Validierung fehlgeschlagen für {relative_path}: {e}")
+                is_valid = False
         elif suffix in [".docx", ".xlsx", ".pptx", ".odt", ".ods", ".odp"]:
             with open(file_path, "rb") as f:
-                if f.read(4) in [b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08"]:
+                magic = f.read(4)
+                if magic in [b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08"]:
                     try:
-                        with zipfile.ZipFile(file_path, 'r') as z:
-                            if z.testzip() is None: is_valid = True
-                    except: pass
+                        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+                            if zip_ref.testzip() is None:
+                                is_valid = True
+                            else:
+                                print(f"ZIP-Validierung fehlgeschlagen für {relative_path}: fehlerhafte Datei im ZIP.")
+                    except zipfile.BadZipFile:
+                        print(f"ZIP-Validierung fehlgeschlagen für {relative_path}: Keine gültige ZIP-Datei.")
+                else:
+                    print(f"ZIP-Validierung fehlgeschlagen für {relative_path}: Kein ZIP-Magic-Header.")
         elif mime_type.startswith("image/"):
             try:
-                Image.open(file_path).verify(); is_valid = True
-            except: is_valid = False
+                Image.open(file_path).verify()
+                is_valid = True
+            except Exception as e:
+                print(f"Bild-Validierung fehlgeschlagen für {relative_path}: {e}")
+                is_valid = False
         elif mime_type.startswith("audio/") or mime_type.startswith("video/"):
-            if final_unified_metadata.get("duration"): is_valid = True
+            if final_unified_metadata.get("duration") or final_unified_metadata.get("ffprobe_format_duration"):
+                is_valid = True
         elif suffix == ".mxl":
-            if final_unified_metadata.get("document_title"): is_valid = True
+            if final_unified_metadata.get("document_title") or final_unified_metadata.get("document_creator_tool"):
+                is_valid = True
         elif any(rule in yara_match_rules_simple_names for rule in ["SAM", "EML", "CSV", "HTML", "XHTML", "TXT", "ZIP_ARCHIVE"]):
             is_valid = True
 
@@ -1291,7 +1455,7 @@ def process_file(file_path, relative_path):
         valid_elem.text = "Yes" if is_valid else "No"
     except Exception as e:
         valid_elem.text = "No"
-        print(f"Validierung fehlgeschlagen: {e}")
+        print(f"Validierung fehlgeschlagen für {relative_path}: {e}")
 
 
 def write_xml_to_file(element_tree_root, output_file_path):
@@ -1333,6 +1497,8 @@ def get_file_type_group(filepath):
 
 
 def main():
+    global REFERENCE_HASHES, INTEGRITY_SUCCESS, INTEGRITY_ERRORS, INTEGRITY_NEW
+    
     if not os.path.isdir(BASE_DIR):
         print(f"Fehler: Das angegebene Verzeichnis '{BASE_DIR}' existiert nicht.")
         sys.exit(1)
@@ -1358,34 +1524,68 @@ def main():
                 ET.SubElement(root, "file", {"path": relative_path.as_posix(), "name": relative_path.name, "error": str(e)})
 
     if processed_count > 0:
+        # 1. XML-Index speichern
         write_xml_to_file(root, OUTPUT_XML)
-        print(f"\n{processed_count} Dateien verarbeitet.")
+
+        # 2. Integritäts-Log erstellen (Speicherung im Unterordner 'logfiles' der Stufe 5)
+        integrity_log_name = f"5_{disk_archive_id_input}_LZA_integrity.log"
+        integrity_log_path = Path(OUTPUT_XML).parent / "logfiles" / integrity_log_name
+        
+        # Sicherstellen, dass der logfiles-Ordner existiert
+        integrity_log_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        try:
+            with open(integrity_log_path, 'w', encoding='utf-8') as f:
+                f.write(f"LZA INTEGRITY CHECK REPORT\n")
+                f.write(f"Projekt:  {ac_number_input}\n")
+                f.write(f"ID:       {disk_archive_id_input}\n")
+                f.write(f"Datum:    {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write("="*80 + "\n\n")
+                
+                if not INTEGRITY_ERRORS:
+                    f.write("✅ ERGEBNIS: Alle Referenz-Hashes (Imaging, Forensik, Index, PREMIS) erfolgreich verifiziert.\n")
+                    f.write("Es wurden keine Abweichungen festgestellt.\n\n")
+                else:
+                    f.write(f"❌ ALARM: {len(INTEGRITY_ERRORS)} ABWEICHUNGEN GEFUNDEN!\n")
+                    f.write("="*80 + "\n")
+                    for err in INTEGRITY_ERRORS:
+                        f.write(f"DATEI:    {err['file']}\n")
+                        if 'sha512' in err['ref_data']: f.write(f"Soll-512: {err['ref_data']['sha512']}\n")
+                        if 'sha256' in err['ref_data']: f.write(f"Soll-256: {err['ref_data']['sha256']}\n")
+                        if 'md5' in err['ref_data']:    f.write(f"Soll-MD5: {err['ref_data']['md5']}\n")
+                        f.write(f"Ist-256:  {err['found_sha256']}\n")
+                        f.write("-"*80 + "\n")
+
+                f.write(f"\nSTATISTIK:\n")
+                f.write(f"- Verifizierte Dateien: {len(INTEGRITY_SUCCESS)}\n")
+                f.write(f"- Neue Dateien (Derivate): {len(INTEGRITY_NEW)}\n")
+                f.write(f"- Fehlerhafte Dateien: {len(INTEGRITY_ERRORS)}\n\n")
+
+                f.write("LISTE DER VERIFIZIERTEN DATEIEN:\n")
+                for item in sorted(INTEGRITY_SUCCESS):
+                    f.write(f"[OK] {item}\n")
+
+            print(f"\033[94mIntegritaets-Protokoll erstellt: {integrity_log_path.name}\033[0m")
+        except Exception as e:
+            print(f"\033[91mFehler beim Schreiben des Integritaets-Logs: {e}\033[0m")
+            
+        print(f"\n{processed_count} Dateien erfolgreich verarbeitet.")
     else:
         print("\nKeine Dateien zum Verarbeiten gefunden oder alle übersprungen.")
+
+    # 4. Zielordner optional öffnen
+    destination_folder = Path(OUTPUT_XML).parent
+    print("")
+    open_folder = input("Zielordner oeffnen? (j/n): ").lower()
+    if open_folder == 'j':
+        if sys.platform == "win32":
+            os.startfile(destination_folder)
+        elif sys.platform == "darwin":
+            subprocess.run(["open", destination_folder])
+        else:
+            subprocess.run(["xdg-open", destination_folder])
+        print("\033[92mZielordner geoeffnet\033[0m")
 
 
 if __name__ == "__main__":
     main()
-
-    # --- ANFANG: HINZUGEFÜGTER CODE-BLOCK (MIT KORREKTER FUNKTION) ---
-    if validated_paths:
-        destination_folder = validated_paths["output_xml"].parent
-        
-        print("")
-        open_folder = input("Zielordner oeffnen? (j/n): ").lower()
-        if open_folder == 'j':
-            if sys.platform == "win32":
-                os.startfile(destination_folder)
-            elif sys.platform == "darwin":
-                subprocess.run(["open", destination_folder])
-            else:
-                subprocess.run(["xdg-open", destination_folder])
-            # Angepasst an den Stil des bestehenden Skripts
-            print("\033[92mZielordner geoeffnet\033[0m")
-        # --- ENDE: HINZUGEFÜGTER CODE-BLOCK ---
-
-    else:
-        print("\nSkript wird aufgrund von Konfigurationsfehlern beendet.")
-
-    print("\nSkript beendet.")
-    # --- ENDE: HINZUGEFÜGTER CODE-BLOCK ---

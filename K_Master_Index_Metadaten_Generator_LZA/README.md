@@ -1,82 +1,87 @@
-# Master-Index & Metadaten-Generator (LZA-Stufe)
+# Master-Index & Multi-Source Integrity Validator (LZA-Stufe)
 
-Dieses Skript ist das finale Indexierungswerkzeug für das Langzeitarchivierungspaket (LZA). Es führt eine tiefgehende Metadaten-Extraktion über den gesamten Inhalt der Stufe 5 durch und erstellt eine zentrale XML-Indexdatei (.index). Diese Datei dient als maschinenlesbares Inventar und technische Dokumentation des gesamten Archivpakets.
+Dieses Skript ist das finale Kontroll- und Indexierungswerkzeug im digitalen Archivierungsworkflow. Es führt eine tiefgehende Metadaten-Extraktion über den gesamten Inhalt der Stufe 5 (LZA) durch und erstellt ein lückenloses digitales Inventar (.index). Das herausragende Merkmal ist der integrierte Multi-Source-Fixity-Check, der die Integrität jeder Datei gegen bis zu sechs verschiedene Dokumentationsquellen aus allen vorherigen Prozessstufen mathematisch beweist.
 
-Im Gegensatz zur VL-Version ist dieses Skript speziell auf die finale Struktur in Stufe 5 optimiert und enthält Sonderlogiken für forensische Dateiformate.
+Das Skript stellt sicher, dass kein Bit der Originaldaten während des Workflows (Extraktion, Reparatur, Bereinigung) verändert wurde.
 
 ---
 
 ## Hauptfunktionen
 
-*   Zentrales Archiv-Inventar: Erstellt die finale .index-Datei direkt im LZA-Verzeichnis (Stufe 5), die alle Dateien, Prüfsummen und technischen Metadaten bündelt.
-*   Multi-Tool-Metadaten-Extraktion: Kombiniert die Analyseergebnisse von Siegfried, ExifTool, FFprobe, Hachoir und YARA.
-*   Erweiterte Forensik-Logik (Greaseweazle/KryoFlux):
-    *   Automatischer Header-Scan für .raw-Dateien.
-    *   Erzwingt die korrekte PRONOM-ID (fmt/2015) und MIME-Typen für KryoFlux-Stream-Dateien.
-    *   Unterdrückt fehlerhafte Bild-Metadaten-Interpretationen bei binären Rohdaten.
-*   SHA-256 Fixity: Berechnet den finalen digitalen Fingerabdruck für jedes Objekt im Archivpaket.
-*   Metadaten-Harmonisierung & Bereinigung:
-    *   Überführt hunderte unterschiedliche Tool-Tags in ein kontrolliertes, einheitliches Schema.
-    *   Entfernt über 100 redundante oder nicht archivwürdige Tags (Blockliste).
-    *   Validierung der XML-Konformität (Entfernung ungültiger Steuerzeichen).
-*   Integrierte Integritätsprüfung: Validiert die Funktionalität von PDFs, Bildern, Audio/Video-Streams und Office-Dokumenten (<validity>-Tag).
+*   **Multi-Source Integritätsprüfung:**
+    *   Abgleich gegen 6 Quellen: Imaging-Logs (CSV & TXT), Brunnhilde-Berichte (JSON & Siegfried-CSV), technischer Vor-Index (.index) und PREMIS-Erhaltungsmetadaten (.xml).
+    *   **Triple-Algorithm Support:** Erkennt und validiert MD5, SHA-256 und SHA-512 gleichzeitig.
+    *   **Namespace-agnostische PREMIS-Analyse:** Findet .raw-Track-Hashes in PREMIS-Dateien unabhängig von XML-Namespaces.
+*   **Status-Kategorisierung im Master-Index:**
+    *   verified: Die Datei ist absolut identisch mit den Werten aus der Erfassung (Imaging/Extraktion).
+    *   CORRUPTED_OR_MODIFIED: Es wurde eine Abweichung festgestellt (Alarm-Meldung).
+    *   new_file: Die Datei ist ein rechtmäßiges Derivat (z. B. PDF/A), für das keine Vorstufen-Hashes existieren können.
+*   **Revisionssicheres Integritäts-Protokoll:**
+    *   Erzeugt ein detailliertes Log (5_[ID]_LZA_integrity.log) im logfiles-Ordner.
+    *   Dokumentiert im Fehlerfall exakt den Soll-Wert der Quelle und den Ist-Wert des aktuellen Scans.
+*   **Tiefenanalyse (Metadata-Trove):**
+    *   Bündelt technische Metadaten von Siegfried, ExifTool, FFprobe, Hachoir und YARA.
+    *   Harmonisiert hunderte Tool-spezifische Tags in ein standardisiertes XML-Schema.
+*   **Integrierte Validierung:** Prüft die technische Funktionalität (Lesbarkeit) von Dokumenten und Medienströmen.
 
 ---
 
 ## Technische Voraussetzungen
 
-Die folgenden Programme müssen installiert und die Pfade im Skript-Header konfiguriert sein:
-
-1.  Python: Version 3.10 oder neuer empfohlen (Module: mutagen, PyPDF2, Pillow, yara-python, chardet).
-2.  ExifTool: exiftool.exe.
-3.  Siegfried: sf.exe (PRONOM-Identifikation).
-4.  FFmpeg/FFprobe: ffprobe.exe für die Medienanalyse.
-5.  Hachoir: hachoir-metadata.exe.
-6.  YARA: rules.yar (Signaturdatei).
+Zusätzlich zu Python 3.10+ müssen folgende Tools im System-Pfad erreichbar sein:
+1. ExifTool (exiftool.exe)
+2. Siegfried (sf.exe)
+3. FFmpeg/FFprobe (ffprobe.exe)
+4. Hachoir (hachoir-metadata.exe)
+5. YARA (mit gültiger rules.yar)
 
 ---
 
-## Konfiguration im Skript
+## Verarbeitete Referenzquellen (logfiles/)
 
-Passen Sie die Systempfade zu den Tools im Abschnitt KONFIGURATION an:
+Das Skript scannt automatisch folgende Dateien für den Hash-Vergleich:
+1.  **1_[ID]_image-log.csv:** SHA-512 (Images)
+2.  **01_[ID]_image-log.txt:** SHA-512 (Greaseweazle .raw Tracks)
+3.  **2_[ID]_extracted-files_brunnhilde/.../siegfried.csv:** MD5 (Forensik)
+4.  **2_[ID]_extracted-files_brunnhilde-summary.json:** SHA-256 (Extraktion)
+5.  **3_[ID]_for-transfer.index:** SHA-256 (Vor-Index)
+6.  **5_[ID]_LZA_premis.xml:** SHA-256 (Archiv-Metadaten)
 
-    YARA_RULES_FILE = r"C:\Pfad\zu\rules.yar"
-    EXIFTOOL_PATH = r"C:\Program Files\ExifTool\exiftool.exe"
-    SIEGFRIED_PATH = r"C:\Program Files\Siegfried\sf.exe"
+---
 
-### Erwartete Ordnerstruktur
+## Erwartete Ordnerstruktur
 
-Das Skript scannt den gesamten Inhalt des LZA-Ordners (Stufe 5) inklusive aller Unterordner (z.B. logfiles, 3_files):
+Das Skript arbeitet direkt in der finalen Archivstufe:
 
-    Documents/data/
-    └── [AC-Nummer]/
-        └── [Datenträger-ID]/
-            └── 5_[ID]_LZA/                 <-- EINGABE-ORDNER (Base Dir)
-                ├── logfiles/
-                ├── 3_files/
-                └── 5_[ID]_LZA.index        <-- ZIELDATEI (Master-Index)
+    Documents/data/[AC-Nummer]/[Datenträger-ID]/
+    └── 5_[ID]_LZA/                    <-- ARBEITSVERZEICHNIS
+        ├── 3_files/                    <-- Nutzdaten
+        ├── [Images].img / .001         <-- Datenträger-Abbilder
+        └── logfiles/                   <-- Quellen für Hashes & Ziel für Logs
 
 ---
 
 ## Ausführung
 
-Das Skript wird über die Kommandozeile mit der AC-Nummer und der Datenträger-ID gestartet.
+Das Skript wird über die Kommandozeile mit AC-Nummer und Datenträger-ID gestartet.
 
 Beispielhafter Aufruf in einer start.bat:
     @echo off
     set AC_NUMBER=AC_0001
     set DISK_ID=CD_01
-    python master_index_generator.py %AC_NUMBER% %DISK_ID%
+    python master_index_lza.py %AC_NUMBER% %DISK_ID%
     pause
 
 ### Ablauf der Ausführung
 
-1. Validierung: Das Skript prüft die Projektpfade und die Verfügbarkeit der fünf Analyse-Werkzeuge.
-2. Vollständiger Scan: Rekursive Erfassung aller Dateien innerhalb der LZA-Stufe 5.
-3. Metadaten-Processing: Jede Datei durchläuft die Kette der Extraktoren. Besonders .raw-Dateien werden hierbei als KryoFlux-Archive fixiert.
-4. Konsistenz-Checks: Harmonisierung der Tags und Prüfung der Dateivalidität.
-5. XML-Generierung: Erstellung der .index-Datei mit sauber eingerückter Struktur.
-6. Abschluss: Das Skript zeigt die Anzahl der verarbeiteten Dateien an und bietet an, den LZA-Ordner im Explorer zu öffnen.
+1.  **Initialisierung:** Das Skript lädt alle verfügbaren Prüfsummen aus den 6 Referenzdateien in den Arbeitsspeicher.
+2.  **Dateiscan:** Jede Datei in Stufe 5 wird erfasst.
+3.  **Fixity-Validierung:** SHA-256, SHA-512 und MD5 werden (je nach Verfügbarkeit in den Quellen) live berechnet und verglichen.
+4.  **Metadaten-Extraktion:** Technische Daten werden extrahiert und im XML-Format strukturiert.
+5.  **Finalisierung:** 
+    *   Der Master-Index (.index) wird in Stufe 5 gespeichert.
+    *   Das Integritäts-Protokoll (.log) wird mit einer Erfolgsbestätigung oder einer detaillierten Alarmliste erstellt.
+6.  **Abschluss:** Das Skript bietet das automatische Öffnen des LZA-Ordners an.
 
 ---
 
