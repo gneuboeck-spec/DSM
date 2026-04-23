@@ -16,8 +16,20 @@ Das Skript wird über Kommandozeilenargumente gesteuert, die typischerweise von 
     *   XML-Prüfung: Identifiziert "Flat XML" Dokumente.
     *   Tabellen-Erkennung: Erkennt CSV-Strukturen und SYLK-Dateien (.slk) anhand von Delimitern und Signaturen.
     *   Text-Validierung: Klassifiziert unbekannte Dateien als .txt, wenn sie überwiegend aus druckbaren Zeichen bestehen.
-*   Intelligente Umbenennung: Verhindert das Überschreiben existierender Dateien durch automatische Nummerierung (z.B. datei_1.jpg).
 *   Protokollierung: Erstellt ein detailliertes Log im Zielordner zur Nachvollziehbarkeit aller Änderungen.
+
+---
+
+## TREE-Struktur & Dateipfade
+
+Das Skript bildet die Brücke zwischen der Extraktion und der aktiven Bearbeitung:
+
+Documents/data/[AC-Nummer]/[Datenträger-ID]/
+├── 2_[ID]_extracted-files/
+│   └── files/                              <-- QUELLE (Eingabe)
+└── 3_[ID]_for-transfer/                    <-- ZIEL (Arbeitsbereich)
+    ├── files/                              <-- Hier werden Endungen repariert
+    └── 3_[ID]_for-transfer_repair-file-extension.log <-- ZIEL (Ablaufprotokoll)
 
 ---
 
@@ -39,28 +51,11 @@ Sollte Siegfried kein Ergebnis liefern, werden die Datei-Header auf ZIP- oder XM
 
 ---
 
-## Erwartete Ordnerstruktur
-
-Das Skript arbeitet innerhalb des Documents-Verzeichnisses unter data:
-
-Documents/
-└── data/
-    └── [AC-Nummer]/
-        └── [Datenträger-ID]/
-            ├── 2_[ID]_extracted-files/
-            │   └── files/                      <-- QUELLE (wird kopiert falls nötig)
-            └── 3_[ID]_for-transfer/
-                ├── files/                      <-- ARBEITSVERZEICHNIS
-                └── 3_[ID]_for-transfer_repair-file-extension.log
-
----
-
 ## Ausführung
 
 Das Skript erwartet die AC-Nummer und die Datenträger-ID als Argumente.
 
 Beispielhafter Aufruf in einer start.bat:
-
     @echo off
     set AC_NUMBER=AC_0001
     set DISK_ID=CD_01
@@ -72,7 +67,7 @@ Beispielhafter Aufruf in einer start.bat:
 1. Vorbereitung: Falls der Ordner in Stufe 3 fehlt, wird der Inhalt von Stufe 2 komplett dorthin kopiert.
 2. Validierung: Prüfung der Pfade zu Siegfried und FFprobe.
 3. Suche: Rekursive Suche nach Dateien ohne Suffix im Ordner Stage 3/files.
-4. Analyse & Rename: Durchführung der Identifizierung und Umbenennung.
+4. Analyse & Rename: Durchführung der Identifizierung und Umbenennung. Bereits existierende Zieldateien führen zur automatischen Nummerierung (z.B. datei_1.jpg).
 5. Logging: Jede Aktion wird mit Zeitstempel und Identifikationsquelle (z.B. "via PRONOM") protokolliert.
 6. Abschluss: Zusammenfassung der erfolgreichen und nicht zugeordneten Dateien.
 
@@ -80,9 +75,10 @@ Beispielhafter Aufruf in einer start.bat:
 
 ## Lizenz
 
-**Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>**
+Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
 
-Dieses Skript ist unter der **MIT-Lizenz** lizenziert. Das bedeutet, es darf frei verwendet, kopiert und modifiziert werden, solange der obige Copyright-Hinweis erhalten bleibt.
+Dieses Skript ist unter der MIT-Lizenz lizenziert.
 
-**SPDX-FileCopyrightText:** 2025 Gregor Neuboeck  
-**SPDX-License-Identifier:** MIT
+---
+SPDX-FileCopyrightText: 2025 Gregor Neuboeck
+SPDX-License-Identifier: MIT

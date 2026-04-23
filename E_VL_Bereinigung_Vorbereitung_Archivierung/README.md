@@ -1,6 +1,6 @@
-# Skript zur VL-Bereinigung (Vorbereitung für die Archivierung)
+# Skript E: VL-Bereinigung & Datentransfer (Stage 3 zu 4)
 
-Dieses Skript dient der automatischen Bereinigung von Dateibeständen vor der endgültigen Übergabe in die Langzeitarchivierung (LZA). Es filtert unerwünschte Systemdateien, temporäre Dateien sowie Hilfsdateien aus vorherigen Konvertierungsschritten heraus, um einen sauberen Archivbestand zu gewährleisten.
+Dieses Skript dient der automatischen Bereinigung von Dateibeständen vor der endgültigen Übergabe in die Langzeitarchivierung (LZA). Es filtert unerwünschte Systemdateien, temporäre Dateien sowie Hilfsdateien aus vorherigen Konvertierungsschritten heraus, um einen sauberen Archivbestand in der VL-Stufe (Stufe 4) zu gewährleisten.
 
 Das Skript ist Teil eines mehrstufigen Workflows und wird über eine Start-Datei (start.bat) mit der AC-Nummer und Datenträger-ID gesteuert.
 
@@ -16,7 +16,22 @@ Das Skript ist Teil eines mehrstufigen Workflows und wird über eine Start-Datei
 *   Detailliertes LZA-Logging:
     *   Vorschau-Log: Erstellt vor dem Löschen eine Liste aller identifizierten Elemente.
     *   Final-Log: Dokumentiert alle tatsächlich gelöschten Dateien und Ordner.
-    *   Die Logs werden direkt im Verzeichnis der Stufe 5 (LZA) abgelegt.
+    *   Die Logs werden direkt im Verzeichnis der Stufe 5 (LZA) abgelegt, um den Audit-Trail zu wahren.
+
+---
+
+## TREE-Struktur & Dateipfade (Phase 3)
+
+Das Skript synchronisiert Stufe 3 mit Stufe 4 und dokumentiert die Bereinigung in Stufe 5:
+
+Documents/data/[AC-Nummer]/[Datenträger-ID]/
+├── 3_[ID]_for-transfer/
+│   └── files/                              <-- QUELLE (Inhalt wird nach 4 kopiert)
+├── 4_[ID]_VL/                              <-- ARBEITSBEREICH
+│   └── files/                              <-- ZIEL (Hier erfolgt die Löschung)
+└── 5_[ID]_LZA/logfiles/                    <-- LOG-ZIEL (Protokolle)
+    ├── 4_[ID]_VL_delete-preview-all.log    <-- Vorschau der Löschkandidaten
+    └── 4_[ID]_VL_delete-all.log            <-- Bestätigung der erfolgten Löschung
 
 ---
 
@@ -24,27 +39,6 @@ Das Skript ist Teil eines mehrstufigen Workflows und wird über eine Start-Datei
 
 *   Python: Version 3.10 oder neuer empfohlen.
 *   Standard-Bibliotheken: Benötigt keine externen Pakete (shutil, pathlib und os werden genutzt).
-
----
-
-## Konfiguration im Skript
-
-Die Listen der zu löschenden Dateiendungen (DELETE_EXTENSIONS) und Schlüsselwörter (DELETE_KEYWORDS) sind direkt im Skript-Header definiert und können bei Bedarf erweitert werden.
-
-### Erwartete Ordnerstruktur
-
-Das Skript arbeitet mit den Stufen 3, 4 und 5 im Documents/data-Verzeichnis:
-
-    Documents/
-    └── data/
-        └── [AC-Nummer]/
-            └── [Datenträger-ID]/
-                ├── 3_[ID]_for-transfer/
-                │   └── files/                      <-- QUELLE (wird kopiert)
-                ├── 4_[ID]_VL/
-                │   └── files/                      <-- ARBEITSVERZEICHNIS (Löschvorgang)
-                └── 5_[ID]_LZA/
-                    └── logfiles/                   <-- LOG-ZIEL (Vorschau & Final)
 
 ---
 
@@ -67,15 +61,15 @@ Beispielhafter Aufruf in einer start.bat:
 4. Benutzerabfrage: Das Skript fordert eine Bestätigung an, bevor die Dateien in der VL-Stufe tatsächlich gelöscht werden (sofern DRY_RUN auf False steht).
 5. Löschvorgang: Dateien und anschließend leere Ordner werden gelöscht.
 6. Abschluss-Bericht: Ein finaler Bericht über die gelöschten Elemente wird in Stufe 5 erstellt.
-7. Abschluss: Option zum Öffnen des VL-Zielordners im Explorer.
 
 ---
 
 ## Lizenz
 
-**Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>**
+Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
 
-Dieses Skript ist unter der **MIT-Lizenz** lizenziert. Das bedeutet, es darf frei verwendet, kopiert und modifiziert werden, solange der obige Copyright-Hinweis erhalten bleibt.
+Dieses Skript ist unter der MIT-Lizenz lizenziert. Das bedeutet, es darf frei verwendet, kopiert und modifiziert werden, solange der obige Copyright-Hinweis erhalten bleibt.
 
+---
 **SPDX-FileCopyrightText:** 2025 Gregor Neuboeck  
 **SPDX-License-Identifier:** MIT

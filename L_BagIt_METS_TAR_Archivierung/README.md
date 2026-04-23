@@ -1,45 +1,51 @@
-# Finalisierungs-Skript (BagIt, METS & TAR-Archivierung)
+# Skript L: Final Archiving (BagIt, METS & TAR)
 
-Dieses Skript bildet den abschließenden Schritt im digitalen Archivierungsworkflow. Es verpackt alle konsolidierten Daten der LZA-Stufe (Stufe 5) in einen standardisierten BagIt-Container, generiert eine METS-Steuerungsdatei und erstellt ein finales, transportfähiges TAR-Archiv. Zudem bereinigt es die Arbeitsumgebung von redundanten Staging-Ordnern.
+Dieses Skript bildet den krönenden Abschluss des Datenverarbeitungs-Workflows. Es transformiert den vorbereiteten Staging-Ordner (Stufe 5) in ein normgerechtes Archival Information Package (AIP). Dabei wird ein BagIt-Container erstellt, eine METS-Steuerungsdatei generiert und alles in ein finales TAR-Archiv versiegelt. 
 
-Das Skript stellt sicher, dass das Archivpaket sowohl für Menschen als auch für Maschinen (Archivsysteme) eindeutig interpretierbar und integer bleibt.
+Nach erfolgreicher Archivierung bereinigt das Skript die gesamte Arbeitsumgebung und hinterlässt lediglich das fertige Archiv-Paket sowie den perfekt kuratierten VL-Ordner für den Import in das Ziel-Repository.
 
 ---
 
 ## Hauptfunktionen
 
-*   **BagIt-Containerisierung:** Verwandelt den LZA-Ordner in einen BagIt-Bag. Alle Nutzdaten und Logs wandern in das Unterverzeichnis `data/`, während Prüfsummen-Manifeste auf der obersten Ebene erstellt werden.
-*   **Master-Index als Tag-File:** Positioniert den zuvor erstellten Master-Index (`.index`) auf der Root-Ebene des Bags, um einen schnellen Zugriff auf das Inventar ohne Durchsuchen der Datenstruktur zu ermöglichen.
-*   **Automatische METS-Generierung:** Erstellt eine `mets.xml` im Bag-Root. Diese Datei verknüpft den Master-Index (DMD) und die PREMIS-Datei (AMD) logisch miteinander und definiert die Struktur des AIP (Archival Information Package).
-*   **TAR-Verpackung:** Erstellt ein flaches, unkomprimiertes TAR-Archiv des gesamten Bags. Der Dateiname enthält die AC-Nummer, die Datenträger-ID und einen Zeitstempel.
-*   **Smarte Bereinigung (Cleanup):**
-    *   Löscht den temporären Arbeitsordner der Stufe 5 nach erfolgreicher TAR-Erstellung.
-    *   Entfernt die redundanten Staging-Stufen 0, 1, 2 und 3.
-    *   **Erhalt der VL-Stufe:** Die Stufe 4 (VL) bleibt als Arbeitskopie und Referenz für die weitere Bearbeitung auf dem System erhalten.
+*   **BagIt-Containerisierung:** Verwandelt die LZA-Stufe in einen BagIt-Bag. Alle Nutzdaten und Logs werden sicher in das Unterverzeichnis `data/` migriert, während Prüfsummen-Manifeste die Integrität garantieren.
+*   **Tag-File Placement:** Positioniert den finalen Master-Index (.index) auf der Root-Ebene des Bags, um einen sofortigen Zugriff auf das Inventar zu ermöglichen.
+*   **METS-Generierung:** Erstellt eine `mets.xml`, welche die beschreibenden Metadaten (Index) und die erhaltungsspezifischen Metadaten (PREMIS) logisch miteinander verknüpft.
+*   **TAR-Archivierung:** Verpackt den gesamten Container in ein flaches, unkomprimiertes TAR-Archiv. Der Name folgt dem Schema: `[AC]_[ID]_[TIMESTAMP].tar`.
+*   **Workflow-Finalisierung (Cleanup):**
+    *   Löscht die temporären Arbeitsstufen 0, 1, 2, 3 und den Bag-Staging-Ordner (Stufe 5).
+    *   **Repository-Erhalt:** Die Stufe 4 (VL) bleibt als gebrauchsfertiges Resultat für den direkten Import in das Bestandsführungssystem erhalten.
+
+---
+
+## TREE-Struktur & Das "Duale Output"-Ergebnis
+
+Nach Abschluss dieses Skripts ist die Verzeichnisstruktur bereinigt. Es bleiben exakt zwei essentielle Ergebnisse für die Institution übrig:
+
+Documents/data/[AC-Nummer]/[Datenträger-ID]/
+
+├── 4_[ID]_VL/                          <-- ERGEBNIS 1: DAS AKTIVE REPOSITORY
+│   ├── files/                          <-- Bereinigte Nutzdaten & Derivate (PDF/A, TIFF)
+│   ├── 2_[ID]_extracted-files.content  <-- Inhaltsbericht (Technisch/Physisch)
+│   ├── 2_[ID]_extracted-files_tree.txt <-- Struktur-Übersicht
+│   ├── 3_[ID]_for-transfer.index       <-- Technisches Inventar (Index)
+│   └── 3_[ID]_for-transfer_integrity.log <-- Fixity-Nachweis (Beweiskette)
+
+└── [AC]_[ID]_[ZEITSTEMPEL].tar         <-- ERGEBNIS 2: DER TRESOR (AIP)
+    └── (Interner BagIt-Aufbau)
+        ├── data/                       <-- Nutzdaten, forensische Images & alle Prozesslogs
+        ├── 5_[ID]_LZA.index            <-- Master-Index (Tag-File)
+        ├── mets.xml                    <-- METS-Manifest (Steuerdatei)
+        ├── bagit.txt                   <-- BagIt-Deklaration
+        └── manifest-sha256.txt         <-- Kryptografische Versiegelung
 
 ---
 
 ## Technische Voraussetzungen
 
-*   **Python:** Version 3.10 oder neuer empfohlen.
-*   **Bibliotheken:**
-    *   `bagit`: Für die Erstellung des BagIt-Containers.
-    *   `colorama`: Für die farbliche Statusanzeige.
-    ```bash
+*   Python: Version 3.10 oder neuer empfohlen.
+*   Bibliotheken: Benötigt `bagit` für die Containerisierung und `colorama` für die Statusanzeige.
     pip install bagit colorama
-    ```
-
----
-
-## Erwartete Ordnerstruktur
-
-Das Skript erwartet die fertig strukturierte LZA-Stufe (erstellt durch den Staging-Workflow) im Pfad:
-
-    Documents/data/[AC-Nummer]/[Datenträger-ID]/
-    ├── 0_... / 1_... / 2_... / 3_... (werden nach Erfolg gelöscht)
-    ├── 4_[ID]_VL/ (bleibt erhalten)
-    ├── 5_[ID]_LZA/ (Eingabe für Bagging)
-    └── [AC]_[ID]_[TIMESTAMP].tar (ZIELDATEI)
 
 ---
 
@@ -48,20 +54,16 @@ Das Skript erwartet die fertig strukturierte LZA-Stufe (erstellt durch den Stagi
 Das Skript erwartet die AC-Nummer und die Datenträger-ID als Argumente.
 
 Beispielhafter Aufruf in einer start.bat:
-    @echo off
-    set AC_NUMBER=AC_0001
-    set DISK_ID=CD_01
-    python final_archiver.py %AC_NUMBER% %DISK_ID%
-    pause
+    python Skript_L_Final_Archiving.py AC_12345 ID_001
 
-### Ablauf der Ausführung
+### Ablauf der Finalisierung
 
-1. **Bagging:** Das Skript ruft `bagit.make_bag` auf. Dabei werden Metadaten (Contact-Name, ZPH-ID) in die `bag-info.txt` geschrieben.
-2. **Tag-File Placement:** Der Master-Index wird aus dem Datenverzeichnis auf die Root-Ebene verschoben.
-3. **METS-Erstellung:** Die `mets.xml` wird generiert und referenziert die Pfade innerhalb des Bags (z.B. `data/logfiles/premis.xml`).
-4. **Manifest-Update:** Die BagIt-Manifeste werden aktualisiert, um die neu hinzugefügten Tag-Files (Index & METS) abzusichern.
-5. **Archivierung:** Der gesamte Bag wird in eine TAR-Datei geschrieben.
-6. **Cleanup:** Sobald das TAR-Archiv sicher auf der Festplatte liegt, werden die temporären Ordner der Stufen 0, 1, 2, 3 und 5 gelöscht.
+1. **Bag-Erstellung:** Der LZA-Ordner wird in einen Bag verwandelt.
+2. **Struktur-Fix:** Der Master-Index wird an die Wurzel verschoben; die `mets.xml` wird generiert.
+3. **Manifest-Update:** Alle Prüfsummen des Bags werden aktualisiert, um die neu hinzugefügten Steuerdateien einzuschließen.
+4. **Verpacken:** Das gesamte Verzeichnis wird in eine TAR-Datei geschrieben.
+5. **Große Bereinigung:** Sobald das TAR-Archiv sicher geschrieben wurde, entfernt das Skript alle dezentralen Arbeitsstufen (0, 1, 2, 3) sowie den temporären Bag-Ordner.
+6. **Abschluss:** Übrig bleiben das Archiv-AIP (Tresor) und der VL-Ordner (aktives Repository).
 
 ---
 
@@ -71,5 +73,6 @@ Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
 
 Dieses Skript ist unter der MIT-Lizenz lizenziert.
 
+---
 SPDX-FileCopyrightText: 2025 Gregor Neuboeck
 SPDX-License-Identifier: MIT

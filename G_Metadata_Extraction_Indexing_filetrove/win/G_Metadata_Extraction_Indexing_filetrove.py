@@ -28,6 +28,30 @@ import shutil  # Für das Entfernen temporärer Verzeichnisse
 # 🔧 KONFIGURATION
 # ==============================================================================
 
+def hash_sha512(filepath):
+    h = hashlib.sha512()
+    try:
+        with open(filepath, "rb") as f:
+            for chunk in iter(lambda: f.read(8192), b""): h.update(chunk)
+        return h.hexdigest()
+    except: return None
+
+def hash_md5(filepath):
+    h = hashlib.md5()
+    try:
+        with open(filepath, "rb") as f:
+            for chunk in iter(lambda: f.read(8192), b""): h.update(chunk)
+        return h.hexdigest()
+    except: return None
+
+def hash_sha256(filepath):
+    h = hashlib.sha256()
+    try:
+        with open(filepath, "rb") as f:
+            while chunk := f.read(8192): h.update(chunk)
+        return h.hexdigest()
+    except: return "error_hashing"
+
 # --- 1. System-Pfade und Listen (manuell anpassen, falls nötig) ---
 # Diese Pfade sind systemweit und bleiben als manuelle Konfiguration erhalten.
 YARA_RULES_FILE = "C:\\Users\\digit\\Desktop\\Skripte\\rules.yar"
@@ -43,46 +67,53 @@ INTEGRITY_ERRORS = []   # Für alle Abweichungen
 INTEGRITY_NEW = []      # Für neue Dateien (Derivate)
 
 def load_reference_hashes(ac_number, disk_id):
-    """Lädt Hashes aus Stufe 1 (CSV) und Stufe 2 (JSON) als Vergleichswerte."""
+    """Lädt Hashes aus CSV (SHA-512), JSON (SHA-256) und Siegfried (MD5)."""
     refs = {}
     base_path = Path.home() / "Documents/data" / ac_number / disk_id
     
     # Pfade definieren
     stage1_csv = base_path / f"1_{disk_id}_image-LZA" / "logfiles" / f"1_{disk_id}_image-log.csv"
     stage2_json = base_path / f"2_{disk_id}_extracted-files" / f"2_{disk_id}_extracted-files_brunnhilde-summary.json"
+    siegfried_csv = base_path / f"2_{disk_id}_extracted-files" / f"2_{disk_id}_extracted-files_brunnhilde" / "files_collection_report" / "siegfried.csv"
 
-    # 1. Stufe 1 laden (Imaging-Logs / meist Imagedateien)
+    # 1. Stufe 1 laden (Imaging CSV) -> SHA-512
     if stage1_csv.exists():
         try:
             with open(stage1_csv, 'r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
                 for row in reader:
-                    name = row.get('filename') or row.get('file')
-                    sha = row.get('sha256')
-                    if name and sha:
-                        # Bei Images nutzen wir weiterhin den Dateinamen als Schlüssel
-                        refs[Path(name).name.lower()] = sha.lower()
-        except Exception as e:
-            print(f"Warnung: Fehler beim Lesen der Stufe 1 CSV: {e}")
+                    name = row.get('Dateiname', '').lower()
+                    sha512 = row.get('SHA-512-Hash', '').lower()
+                    if name and sha512:
+                        refs.setdefault(Path(name).name, {})['sha512'] = sha512
+        except: pass
 
-    # 2. Stufe 2 laden (Extrahierte Dateien aus Brunnhilde)
+    # 2. Stufe 2 laden (Brunnhilde JSON) -> SHA-256
     if stage2_json.exists():
         try:
             with open(stage2_json, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 for item in data.get('file_fixity_sha256', []):
-                    # WICHTIG: Wir laden den Pfad aus der JSON (z.B. "ordner/datei.txt")
-                    # .as_posix() sorgt für Schrägstriche (/) statt Backslashes (\)
-                    rel_path = Path(item.get('file')).as_posix().lower()
-                    sha = item.get('sha256')
-                    
-                    if rel_path and sha:
-                        # Wir speichern den ganzen Pfad als Schlüssel
-                        refs[rel_path] = sha.lower()
-        except Exception as e:
-            print(f"Warnung: Fehler beim Lesen der Stufe 2 JSON: {e}")
+                    name = Path(item.get('file')).name.lower()
+                    sha256 = item.get('sha256', '').lower()
+                    if name and sha256:
+                        refs.setdefault(name, {})['sha256'] = sha256
+        except: pass
+
+    # 3. Siegfried laden (CSV) -> MD5
+    if siegfried_csv.exists():
+        try:
+            with open(siegfried_csv, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    name = (row.get('filename') or row.get('file', '')).lower()
+                    md5_val = row.get('md5', '').lower()
+                    if name and md5_val:
+                        refs.setdefault(Path(name).name, {})['md5'] = md5_val
+        except: pass
             
     return refs
+
 
 # --- 2. Funktion zur dynamischen Erstellung und Validierung der Projekt-Pfade ---
 def setup_and_validate_paths(ac_number, disk_archive_id):
@@ -1187,33 +1218,64 @@ def process_file(file_path, relative_path):
 
     file_info = get_file_info(file_path)
     all_raw_metadata.update(file_info)
-    # 1. SHA256 berechnen
-    current_sha = hash_sha256(file_path)
-    all_raw_metadata["sha256"] = current_sha
 
-    # 2. Integritäts-Check gegen Referenz-Hashes
-    # relative_path.as_posix() sorgt für einheitliche Schrägstriche (/), auch unter Windows.
-    rel_path_str = relative_path.as_posix().lower()
+    # --- START DER PRÜFSUMMEN-KONTROLLE (256, 512, MD5) ---
+    # 1. SHA256 berechnen
+    current_sha256 = hash_sha256(file_path)
+    all_raw_metadata["sha256"] = current_sha256
+
+    # 2. Multi-Algo Integritäts-Check
+    rel_path_str = file_path.name.lower() 
 
     if rel_path_str in REFERENCE_HASHES:
-        ref_sha = REFERENCE_HASHES[rel_path_str]
-        if current_sha.lower() == ref_sha.lower():
-            print(f"  \033[92m[MATCH] Integritaet verifiziert.\033[0m")
+        ref_data = REFERENCE_HASHES[rel_path_str]
+        errors = []
+        matches = []
+
+        # A) Check SHA-512 (Imaging)
+        if 'sha512' in ref_data:
+            current_512 = hash_sha512(file_path)
+            if current_512 == ref_data['sha512']:
+                matches.append("SHA-512")
+            else:
+                errors.append(f"SHA-512 (Soll: {ref_data['sha512'][:10]}... Ist: {current_512[:10]}...)")
+
+        # B) Check SHA-256 (Extraktion/Index)
+        if 'sha256' in ref_data:
+            if current_sha256 == ref_data['sha256']:
+                matches.append("SHA-256")
+            else:
+                errors.append(f"SHA-256 (Soll: {ref_data['sha256'][:10]}... Ist: {current_sha256[:10]}...)")
+        
+        # C) Check MD5 (Siegfried)
+        if 'md5' in ref_data:
+            current_md5 = hash_md5(file_path)
+            if current_md5 == ref_data['md5']:
+                matches.append("MD5")
+            else:
+                errors.append(f"MD5 (Soll: {ref_data['md5'][:10]}... Ist: {current_md5[:10]}...)")
+
+        if matches and not errors:
+            print(f"  \033[92m[MATCH] Integritaet verifiziert gegen: {', '.join(matches)}\033[0m")
             all_raw_metadata["integrity_status"] = "verified"
             INTEGRITY_SUCCESS.append(str(relative_path))
-        else:
-            print(f"  \033[91m[ALARM] HASH-ABWEICHUNG!\033[0m")
+        elif errors:
+            error_msg = " | ".join(errors)
+            print(f"  \033[91m[ALARM] HASH-ABWEICHUNG bei {file_path.name}!\033[0m")
+            print(f"          Details: {error_msg}")
             all_raw_metadata["integrity_status"] = "CORRUPTED_OR_MODIFIED"
             INTEGRITY_ERRORS.append({
                 "file": str(relative_path),
-                "expected": ref_sha,
-                "found": current_sha
+                "ref_data": ref_data,
+                "found_sha256": current_sha256,
+                "details": error_msg
             })
     else:
-        # Falls die Datei in den Vorstufen nicht existierte (z.B. ein PDF-Derivat)
         all_raw_metadata["integrity_status"] = "new_file"
         INTEGRITY_NEW.append(str(relative_path))
+    # --- ENDE DER PRÜFSUMMEN-KONTROLLE ---
 
+    # --- AB HIER ORIGINAL-LOGIK (VOLLSTÄNDIG) ---
     siegfried_data = run_siegfried(file_path)
     all_raw_metadata.update(siegfried_data)
 
@@ -1250,15 +1312,13 @@ def process_file(file_path, relative_path):
 
     try:
         # Schritt 1: Datei mit Python im Binärmodus öffnen.
-        # Dies ist robust gegen Sonderzeichen im Pfad und geschieht innerhalb des try-Blocks.
         with open(file_path, "rb") as f:
             file_data = f.read()
     
-        # Schritt 2: Den Inhalt (data=) an YARA übergeben, nicht mehr den Pfad.
+        # Schritt 2: Den Inhalt an YARA übergeben.
         matches = rules.match(data=file_data)
 
-        # Schritt 3: Die gefundenen Matches wie zuvor verarbeiten.
-        # Diese Logik ist jetzt ebenfalls sicher innerhalb des try-Blocks.
+        # Schritt 3: Die gefundenen Matches verarbeiten.
         detailed_match_info = []
         all_match_rules = [{"rule": m.rule, "meta": m.meta} for m in matches]
         lower_rule_names = {m_info['rule'].lower() for m_info in all_match_rules}
@@ -1279,7 +1339,7 @@ def process_file(file_path, relative_path):
 
     final_unified_metadata = unify_metadata_keys(all_raw_metadata)
 
-    # --- KONSISTENZ-LOGIK FÜR VIDEO-DIMENSIONEN (VERSION 3 - ROBUST) ---
+    # --- KONSISTENZ-LOGIK FÜR VIDEO-DIMENSIONEN ---
     final_mime_type_for_cleanup = final_unified_metadata.get("mime_type", "").lower()
     known_video_suffixes = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v", ".3gp", ".mxf", ".r3d", ".m4v"}
 
@@ -1287,13 +1347,11 @@ def process_file(file_path, relative_path):
                      file_path.suffix.lower() in known_video_suffixes)
 
     if is_video_file:
-        # Behandelt die Breite
         if 'image_width' in final_unified_metadata:
             if 'video_frame_width' not in final_unified_metadata:
                 final_unified_metadata['video_frame_width'] = final_unified_metadata['image_width']
             del final_unified_metadata['image_width']
 
-        # Behandelt die Höhe
         if 'image_height' in final_unified_metadata:
             if 'video_frame_height' not in final_unified_metadata:
                 final_unified_metadata['video_frame_height'] = final_unified_metadata['image_height']
@@ -1302,28 +1360,18 @@ def process_file(file_path, relative_path):
     if 'duration' in final_unified_metadata:
         final_mime_type = final_unified_metadata.get("mime_type", "").lower()
         file_type_group = get_file_type_group(file_path)
-
-        is_media_file = (final_mime_type.startswith('audio/') or
-                        final_mime_type.startswith('video/') or
-                        final_mime_type == 'image/gif' or
-                        file_type_group in ['audio', 'video'])
-
+        is_media_file = (final_mime_type.startswith('audio/') or final_mime_type.startswith('video/') or final_mime_type == 'image/gif' or file_type_group in ['audio', 'video'])
         if not is_media_file:
-            print(f"Info: Entferne 'duration' ({final_unified_metadata['duration']}) für unpassenden MIME-Typ: {final_mime_type} und Dateityp: {file_type_group}")
+            print(f"Info: Entferne 'duration' ({final_unified_metadata['duration']}) für unpassenden MIME-Typ: {final_mime_type}")
             del final_unified_metadata['duration']
 
     if 'audio_channel_count' in final_unified_metadata:
         final_mime_type = final_unified_metadata.get("mime_type", "").lower()
         file_type_group = get_file_type_group(file_path)
-
-        is_media_file = (final_mime_type.startswith('audio/') or
-                        final_mime_type.startswith('video/') or
-                        file_type_group in ['audio', 'video'])
-
+        is_media_file = (final_mime_type.startswith('audio/') or final_mime_type.startswith('video/') or file_type_group in ['audio', 'video'])
         if not is_media_file:
-            print(f"Info: Entferne 'audio_channel_count' ({final_unified_metadata['audio_channel_count']}) für unpassenden MIME-Typ: {final_mime_type} und Dateityp: {file_type_group}")
+            print(f"Info: Entferne 'audio_channel_count' ({final_unified_metadata['audio_channel_count']}) für unpassenden MIME-Typ: {final_mime_type}")
             del final_unified_metadata['audio_channel_count']
-
 
     print(f"\n--- Vereinheitlichte Metadaten für {relative_path} (final) ---")
     for k, v in sorted(final_unified_metadata.items()):
@@ -1336,6 +1384,7 @@ def process_file(file_path, relative_path):
     suffix = file_path.suffix.lower()
     mime_type = final_unified_metadata.get("mime_type", "").lower()
 
+    # YARA-Regeln für Validität sammeln
     yara_match_rules_simple_names = []
     if 'matches' in locals() and matches:
         all_yara_rule_names = {m.rule for m in matches}
@@ -1435,6 +1484,8 @@ def get_file_type_group(filepath):
 
 
 def main():
+    global REFERENCE_HASHES, INTEGRITY_SUCCESS, INTEGRITY_ERRORS, INTEGRITY_NEW
+    
     if not os.path.isdir(BASE_DIR):
         print(f"Fehler: Das angegebene Verzeichnis '{BASE_DIR}' existiert nicht.")
         sys.exit(1)
@@ -1463,7 +1514,7 @@ def main():
         # 1. XML-Index speichern
         write_xml_to_file(root, OUTPUT_XML)
 
-        # 2. Integritäts-Log erstellen (mit korrektem Namen nach deinem Schema)
+        # 2. Integritäts-Log erstellen (mit Multi-Algo Support im Fehlerfall)
         integrity_log_name = f"3_{disk_archive_id_input}_for-transfer_integrity.log"
         integrity_log_path = Path(OUTPUT_XML).parent / integrity_log_name
         
@@ -1483,8 +1534,13 @@ def main():
                     f.write("="*80 + "\n")
                     for err in INTEGRITY_ERRORS:
                         f.write(f"DATEI:    {err['file']}\n")
-                        f.write(f"Soll-Hash: {err['expected']}\n")
-                        f.write(f"Ist-Hash:  {err['found']}\n")
+                        # Zeige alle Soll-Werte an, die in der Referenzquelle vorhanden waren
+                        if 'sha512' in err['ref_data']: f.write(f"Soll-512: {err['ref_data']['sha512']}\n")
+                        if 'sha256' in err['ref_data']: f.write(f"Soll-256: {err['ref_data']['sha256']}\n")
+                        if 'md5' in err['ref_data']:    f.write(f"Soll-MD5: {err['ref_data']['md5']}\n")
+                        # Zeige den im aktuellen Scan berechneten SHA-256
+                        f.write(f"Ist-256:  {err['found_sha256']}\n")
+                        f.write(f"FEHLER:   {err['details']}\n")
                         f.write("-"*80 + "\n")
 
                 f.write(f"\nSTATISTIK:\n")
@@ -1517,7 +1573,7 @@ def main():
     else:
         print("\nKeine Dateien zum Verarbeiten gefunden oder alle übersprungen.")
 
-    # 4. Zielordner optional öffnen (Sicher innerhalb von main)
+    # 4. Zielordner optional öffnen
     destination_folder = Path(OUTPUT_XML).parent
     print("")
     open_folder = input("Zielordner oeffnen? (j/n): ").lower()
