@@ -7,7 +7,9 @@ PHASE 1: ERFASSUNG & ANALYSE (STUFE 0, 1, 2)
 ================================================================================
 Ziel: Physische Dokumentation, Bit-Identität sichern und forensische Analyse.
 
-TREE-STRUKTUR:
+### TREE-STRUKTUR (PHASE 1):
+
+```text
 Documents/data/[AC-Nummer]/[Datenträger-ID]/
 ├── 0_[ID]_picture-carrier/          
 │   ├── *.tif                                    <-- Hardware-Fotos
@@ -30,7 +32,9 @@ PHASE 2: REPARATUR & NORMALISIERUNG (STUFE 3)
 ================================================================================
 Ziel: Dateifehler beheben und Erhaltungs-Derivate (Digital Twins) erzeugen.
 
-TREE-STRUKTUR:
+### TREE-STRUKTUR (PHASE 2):
+
+```text
 Documents/data/[AC-Nummer]/[Datenträger-ID]/
 └── 3_[ID]_for-transfer/             
     ├── files/                                   <-- KOPIE aus Stufe 2
@@ -45,7 +49,9 @@ PHASE 3: KURATIERUNG & VL-REPRESENTATION (STUFE 4 / VL)
 ================================================================================
 Ziel: Bereinigung für das aktive Repository und Integritäts-Check.
 
-TREE-STRUKTUR:
+### TREE-STRUKTUR (PHASE 3):
+
+```text
 Documents/data/[AC-Nummer]/[Datenträger-ID]/
 ├── 4_[ID]_VL/                      
 │   ├── files/                                   <-- KOPIE aus Stufe 3
@@ -62,6 +68,9 @@ PHASE 4: ARCHIV-VERSIEGELUNG (STUFE 5 / LZA)
 ================================================================================
 Ziel: Konsolidierung aller Beweise und Erstellung des finalen AIP.
 
+### TREE-STRUKTUR (PHASE 4):
+
+```text
 TREE-STRUKTUR (VOR DER TAR-VERSIEGELUNG):
 5_[ID]_LZA/
 ├── 01_[ID].img                                  <-- UMZUG aus Stufe 1
