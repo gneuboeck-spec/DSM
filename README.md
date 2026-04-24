@@ -28,10 +28,11 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
         ├── 2_[ID]_..._tree.txt                  <-- Struktur-Bericht
         └── files_collection_report/             <-- Forensische Detail-Logs
 ```
-
+```text
 ================================================================================
 PHASE 2: REPARATUR & NORMALISIERUNG (STUFE 3)
 ================================================================================
+```
 Ziel: Dateifehler beheben und Erhaltungs-Derivate (Digital Twins) erzeugen.
 
 ### TREE-STRUKTUR (PHASE 2):
@@ -46,10 +47,11 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
     ├── 3_[ID]_for-transfer_repair-file-extension.log <-- Reparatur-Protokoll
     └── 3_[ID]_for-transfer_all-conversions.log  <-- Konvertierungs-Protokoll
 ```
-
+```text
 ================================================================================
 PHASE 3: KURATIERUNG & VL-REPRESENTATION (STUFE 4 / VL)
 ================================================================================
+```
 Ziel: Bereinigung für das aktive Repository und Integritäts-Check.
 
 ### TREE-STRUKTUR (PHASE 3):
@@ -66,10 +68,11 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
 │   └── 3_[ID]_for-transfer_integrity.log        <-- Fixity-Beweis gegen Phase 1
 └── (Logs wandern parallel nach Stufe 5/logfiles)
 ```
-
+```text
 ================================================================================
 PHASE 4: ARCHIV-VERSIEGELUNG (STUFE 5 / LZA)
 ================================================================================
+```
 Ziel: Konsolidierung aller Beweise und Erstellung des finalen AIP.
 
 ### TREE-STRUKTUR (PHASE 4):
@@ -88,11 +91,11 @@ TREE-STRUKTUR (VOR DER TAR-VERSIEGELUNG):
     ├── 5_[ID]_LZA_premis.xml                    <-- Erhaltungs-Metadaten
     └── 5_[ID]_LZA_integrity.log                 <-- Finaler Fixity-Beweis
 ```
-
+```text
 ================================================================================
 DAS ENDERGEBNIS (Dualer Output)
 ================================================================================
-
+```
 Nach dem letzten Skript (L) sind die Ordner 0, 1, 2, 3 und 5 gelöscht.
 
 1. REPOSITORY (Ordner 4_[ID]_VL):
