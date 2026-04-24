@@ -26,6 +26,7 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
         ├── 2_[ID]_..._summary.json              <-- Fixity-Referenz (SHA-256)
         ├── 2_[ID]_..._tree.txt                  <-- Struktur-Bericht
         └── files_collection_report/             <-- Forensische Detail-Logs
+```
 
 ================================================================================
 PHASE 2: REPARATUR & NORMALISIERUNG (STUFE 3)
@@ -43,6 +44,7 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
     │   └── dokument.doc.pdf                     <-- PDF/A Archiv-Derivat
     ├── 3_[ID]_for-transfer_repair-file-extension.log <-- Reparatur-Protokoll
     └── 3_[ID]_for-transfer_all-conversions.log  <-- Konvertierungs-Protokoll
+```
 
 ================================================================================
 PHASE 3: KURATIERUNG & VL-REPRESENTATION (STUFE 4 / VL)
@@ -62,6 +64,7 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
 │   ├── 3_[ID]_for-transfer.index                <-- Technischer Index (Stufe 4 Stand)
 │   └── 3_[ID]_for-transfer_integrity.log        <-- Fixity-Beweis gegen Phase 1
 └── (Logs wandern parallel nach Stufe 5/logfiles)
+```
 
 ================================================================================
 PHASE 4: ARCHIV-VERSIEGELUNG (STUFE 5 / LZA)
@@ -83,6 +86,7 @@ TREE-STRUKTUR (VOR DER TAR-VERSIEGELUNG):
     ├── 4_[ID]_VL_delete-all.log                 
     ├── 5_[ID]_LZA_premis.xml                    <-- Erhaltungs-Metadaten
     └── 5_[ID]_LZA_integrity.log                 <-- Finaler Fixity-Beweis
+```
 
 ================================================================================
 DAS ENDERGEBNIS (Dualer Output)
