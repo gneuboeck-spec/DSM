@@ -1,10 +1,11 @@
 # MASTER-WORKFLOW: Digitale Datenrettung & Langzeitarchivierung (LZA)
 
 Dieses Dokument beschreibt die lückenlose Beweiskette (Chain of Custody) und die Transformation der Daten von der physischen Quelle bis zum versiegelten Archivpaket. Der Workflow basiert auf den Skripten A bis L und folgt dem "Dualen Output"-Prinzip.
-
+```text
 ================================================================================
 PHASE 1: ERFASSUNG & ANALYSE (STUFE 0, 1, 2)
 ================================================================================
+```
 Ziel: Physische Dokumentation, Bit-Identität sichern und forensische Analyse.
 
 ### TREE-STRUKTUR (PHASE 1):
