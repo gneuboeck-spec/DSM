@@ -24,6 +24,7 @@ Das Skript ist Teil eines mehrstufigen Workflows und wird über eine Start-Datei
 
 Das Skript synchronisiert Stufe 3 mit Stufe 4 und dokumentiert die Bereinigung in Stufe 5:
 
+```text
 Documents/data/[AC-Nummer]/[Datenträger-ID]/
 ├── 3_[ID]_for-transfer/
 │   └── files/                              <-- QUELLE (Inhalt wird nach 4 kopiert)
@@ -32,7 +33,7 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
 └── 5_[ID]_LZA/logfiles/                    <-- LOG-ZIEL (Protokolle)
     ├── 4_[ID]_VL_delete-preview-all.log    <-- Vorschau der Löschkandidaten
     └── 4_[ID]_VL_delete-all.log            <-- Bestätigung der erfolgten Löschung
-
+```
 ---
 
 ## Technische Voraussetzungen

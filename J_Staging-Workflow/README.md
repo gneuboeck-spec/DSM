@@ -24,6 +24,7 @@ Das Skript automatisiert den Umzug und die standardkonforme Umbenennung von Date
 
 Das Skript transformiert die dezentralen Arbeitsordner in die finale Archivstruktur von Stufe 5:
 
+```text
 Documents/data/[AC-Nummer]/[Datenträger-ID]/
 
 ├── 4_[ID]_VL/                                     <-- [SCHRITT 1: KOPIEREN]
@@ -45,7 +46,7 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
         ├── 2_[ID]_extracted-files_brunnhilde/     <-- Umzug aus Stufe 2
         ├── 3_[ID]_for-transfer_all-conversions.log <-- Umzug aus Stufe 3
         └── 3_[ID]_for-transfer_repair-file-extension.log <-- Umzug aus Stufe 3
-
+```
 (Die Ordner 0, 1, 2 und 3 sind nach diesem Schritt leer.)
 
 ---

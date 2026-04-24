@@ -23,6 +23,7 @@ Nach erfolgreicher Archivierung führt das Skript eine umfassende Bereinigung du
 
 Nach Abschluss von Skript L sieht die Projektstruktur wie folgt aus (Ordner 0, 1, 2, 3 und 5 wurden gelöscht):
 
+```text
 Documents/data/[AC-Nummer]/[Datenträger-ID]/
 
 ├── 4_[ID]_VL/                                     <-- ERGEBNIS 1: AKTIVES REPOSITORY
@@ -55,7 +56,7 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
         ├── bagit.txt                              <-- BagIt-Deklaration
         ├── bag-info.txt                           <-- Metadaten zum Bag
         └── manifest-sha256.txt                    <-- Digitale Versiegelung
-
+```
 ---
 
 ## Technische Voraussetzungen

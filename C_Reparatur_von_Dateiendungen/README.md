@@ -22,13 +22,14 @@ Dieses Skript ist ein spezialisiertes Werkzeug zur Wiederherstellung von Dateien
 
 Das Skript bildet die Brücke zwischen der Extraktion und der aktiven Bearbeitung:
 
+```text
 [AC-Nummer]/[Datenträger-ID]/
 ├── 2_[ID]_extracted-files/
 │   └── files/                              <-- QUELLE (Daten aus der Extraktion)
 └── 3_[ID]_for-transfer/                    <-- ZIEL (Arbeitsbereich für Stufe 3)
     ├── files/                              <-- Hier werden Endungen repariert
     └── 3_[ID]_for-transfer_repair-file-extension.log <-- LOG-DATEI
-
+```
 ---
 
 ## Technische Voraussetzungen

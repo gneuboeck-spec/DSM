@@ -31,6 +31,7 @@ Das Skript verfügt über eine intelligente "Medien-Weiche" (Version 22.3), die 
 
 Das Skript aggregiert Daten aus allen bisherigen Projektstufen, um die lückenlose Provenienz zu beweisen:
 
+```text
 Documents/data/[AC-Nummer]/[Datenträger-ID]/
 ├── 0_[ID]_picture-carrier/          <-- QUELLE (Hardware-Fotos .tif)
 ├── 1_[ID]_image-LZA/                <-- QUELLE (Disk-Images .img / .001 / .bin / .dd)
@@ -40,7 +41,7 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
 └── 5_[ID]_LZA/                      <-- ARBEITSBEREICH & ZIEL (Archiv-Staging)
     └── logfiles/                    <-- ZIEL (Hier wird die Dokumentation erstellt)
         └── 5_[ID]_LZA_premis.xml    <-- Das finale PREMIS-Hauptdokument
-
+```
 ---
 
 ## Technische Voraussetzungen

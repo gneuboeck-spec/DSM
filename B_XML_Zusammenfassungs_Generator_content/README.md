@@ -26,6 +26,7 @@ Diese .content-Datei dient als zentrale Übersicht über den Inhalt und die tech
 
 Das Skript verknüpft Daten aus verschiedenen Verarbeitungsstufen. Die Existenz des Transfer-Ordners (Stufe 3) wird ebenfalls validiert:
 
+```text
 [AC-Nummer]/[Datenträger-ID]/
 ├── 0_[ID]_picture-carrier/
 │   └── 0_[ID]_carrier-description.xml          <-- QUELLE 1 (Manuelle Beschreibung)
@@ -35,7 +36,7 @@ Das Skript verknüpft Daten aus verschiedenen Verarbeitungsstufen. Die Existenz 
 │   │       └── report.html                     <-- QUELLE 2 (Brunnhilde-Analyse)
 │   └── 2_[ID]_extracted-files.content          <-- ZIEL (Zusammenfassungsbericht)
 └── 3_[ID]_for-transfer/                        <-- VALIDIERUNG (Muss existieren)
-
+```
 ---
 
 ## Technische Voraussetzungen

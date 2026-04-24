@@ -27,6 +27,7 @@ Dieses Skript ist das zentrale technische Prüfwerkzeug in Phase 3 (Kuratierung 
 
 Das Skript verknüpft die gesamte bisherige Beweiskette. Hier ist die Übersicht der Datenflüsse:
 
+```text
 Documents/data/[AC-Nummer]/[Datenträger-ID]/
 ├── 1_[ID]_image-LZA/logfiles/
 │   ├── 1_[ID]_image-log.csv            <-- QUELLE (SHA-512)
@@ -42,7 +43,7 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
 └── 5_[ID]_LZA/logfiles/                <-- ZIEL (Primäre Dokumentation)
     ├── 3_[ID]_for-transfer.index       <-- ZIEL (Primärer Master-Index)
     └── 3_[ID]_for-transfer_integrity.log <-- ZIEL (Primärer Fixity-Beweis)
-
+```
 ---
 
 ## Technische Voraussetzungen

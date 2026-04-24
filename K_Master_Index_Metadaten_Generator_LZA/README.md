@@ -25,6 +25,7 @@ Dieses Skript ist das finale Kontroll- und Indexierungswerkzeug in Phase 4 (LZA-
 
 Das Skript arbeitet im fertig konsolidierten LZA-Staging-Ordner. Es scannt alle Objekte und gleicht sie mit den Protokollen im logfiles-Ordner ab:
 
+```text
 Documents/data/[AC-Nummer]/[Datenträger-ID]/
 └── 5_[ID]_LZA/                            <-- ARBEITSBEREICH (Eingabe)
     ├── 01_[ID].img (oder .001 / .bin)     <-- OBJEKT (Gegen SHA-512 geprüft)
@@ -41,7 +42,7 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
         ├── 3_[ID]_for-transfer.index      <-- Quelle: SHA-256 (Tag: sha256)
         ├── 5_[ID]_LZA_premis.xml          <-- Quelle: SHA-256 (Tag: messageDigest)
         └── 5_[ID]_LZA_integrity.log       <-- ZIEL: Finaler Fixity-Beweis
-
+```
 ---
 
 ## Technische Voraussetzungen

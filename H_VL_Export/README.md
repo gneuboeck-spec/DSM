@@ -21,6 +21,7 @@ Das Skript ist für den Einsatz innerhalb einer standardisierten Ordnerstruktur 
 
 Das Skript fungiert als Sammler für den Stufe-4-Ordner. Es greift auf folgende Pfade zu:
 
+```text
 Documents/data/[AC-Nummer]/[Datenträger-ID]/
 ├── 0_[ID]_picture-carrier/
 │   └── *.tif                              <-- QUELLE (Hardware-Fotos)
@@ -31,7 +32,7 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
     ├── *.tif                              <-- Kopierte Hardware-Fotos
     ├── 2_[ID]_extracted-files.content     <-- Kopierter Inhaltsbericht
     └── 2_[ID]_extracted-files_tree.txt    <-- Kopierter Struktur-Tree
-
+```
 ---
 
 ## Technische Voraussetzungen

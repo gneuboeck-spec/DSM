@@ -20,6 +20,7 @@ Das Skript ist interaktiv gestaltet und erlaubt es dem Benutzer, gezielt verschi
 
 Das Skript scannt die kuratierten Daten in Stufe 4 und dokumentiert den Vorgang in Stufe 5:
 
+```text
 Documents/data/[AC-Nummer]/[Datenträger-ID]/
 ├── 4_[ID]_VL/
 │   └── files/                              <-- ARBEITSBEREICH (Eingabe & Löschung)
@@ -29,7 +30,7 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
 └── 5_[ID]_LZA/logfiles/                    <-- LOG-ZIEL (Protokolle)
     ├── 4_[ID]_VL_delete-converted-odfs.log <-- Protokoll der ODF-Bereinigung
     └── 4_[ID]_VL_delete-converted-wavs.log <-- Protokoll der WAV-Bereinigung
-
+```
 ---
 
 ## Technische Voraussetzungen

@@ -21,6 +21,7 @@ Das Skript ist als integraler Bestandteil eines automatisierten Archivierungswor
 
 Das Skript arbeitet rekursiv innerhalb der Transfer-Stufe (Stufe 3):
 
+```text
 Documents/data/[AC-Nummer]/[Datenträger-ID]/
 └── 3_[Datenträger-ID]_for-transfer/
     ├── files/                                   <-- ARBEITSBEREICH (Quelle & Ziel)
@@ -30,7 +31,7 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
     │   ├── Audio.mp3                            <-- Original
     │   └── Audio.mp3.wav                        <-- Derivat (Archivmaster)
     └── 3_[ID]_for-transfer_all-conversions.log  <-- ZIEL (Log mit exklusiver Fehlersummary am Ende)
-
+```
 ---
 
 ## Technische Voraussetzungen

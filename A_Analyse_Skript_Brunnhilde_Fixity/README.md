@@ -21,14 +21,15 @@ Eine Besonderheit ist die Live-Überwachung des Virenscanners: Sollten die Viren
 
 Das Skript erwartet die Datenstruktur unter ~/Documents/data/. Die Ergebnisse werden im Extraktions-Ordner (Stufe 2) abgelegt:
 
+```text
 [AC-Nummer]/[Datenträger-ID]/
 └── 2_[Datenträger-ID]_extracted-files/
     ├── files/                                  <-- QUELLE (Eingabe: Zu analysierende Dateien)
     │   └── ... (Ihre Nutzdaten)
     ├── 2_[ID]_extracted-files_brunnhilde/      <-- DETAIL-BERICHTE (Brunnhilde Output-Ordner)
     ├── 2_[ID]_extracted-files_brunnhilde-summary.json <-- ZIEL (Zentrale Hash- & Formatliste)
-    └── 2_[ID]_extracted-files_tree.txt         <-- ZIEL (Verzeichnisstruktur, verschoben aus Unterordner)
-
+    └── 2_[ID]_extracted-files_tree.txt         <-- ZIEL (Verzeichnisstruktur)
+```
 ---
 
 ## Technische Voraussetzungen
