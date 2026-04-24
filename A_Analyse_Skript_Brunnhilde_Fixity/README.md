@@ -13,21 +13,21 @@ Eine Besonderheit ist die Live-Überwachung des Virenscanners: Sollten die Viren
 * Live-Virenschutz-Check: Überwacht den Status von ClamAV während der Ausführung und gibt bei veralteten Signaturen eine Anleitung zur Aktualisierung (freshclam) aus.
 * Dynamische Pfad-Konfiguration: Alle Pfade werden zur Laufzeit basierend auf einer AC-Nummer und einer Datenträger-ID generiert.
 * Zusammenfassender Bericht: Erstellt eine strukturierte JSON-Datei, die alle wichtigen Ergebnisse (Hashes, Formate, Warnungen, Virenfunde) bündelt.
-* Windows-Optimierung: Enthält Workarounds für die manuelle Erstellung der tree.txt-Datei unter Windows.
+* Windows-Optimierung: Enthält Workarounds für die manuelle Erstellung der tree.txt-Datei unter Windows (CMD-basiert).
 
 ---
 
 ## TREE-Struktur & Dateipfade
 
-Das Skript arbeitet in der Extraktions-Phase (Stufe 2). Hier ist die Übersicht der betroffenen Pfade:
+Das Skript erwartet die Datenstruktur unter ~/Documents/data/. Die Ergebnisse werden im Extraktions-Ordner (Stufe 2) abgelegt:
 
-Documents/data/[AC-Nummer]/[Datenträger-ID]/
+[AC-Nummer]/[Datenträger-ID]/
 └── 2_[Datenträger-ID]_extracted-files/
     ├── files/                                  <-- QUELLE (Eingabe: Zu analysierende Dateien)
     │   └── ... (Ihre Nutzdaten)
-    ├── 2_[ID]_extracted-files_brunnhilde/      <-- ZIEL (Ordner mit Detailberichten)
+    ├── 2_[ID]_extracted-files_brunnhilde/      <-- DETAIL-BERICHTE (Brunnhilde Output-Ordner)
     ├── 2_[ID]_extracted-files_brunnhilde-summary.json <-- ZIEL (Zentrale Hash- & Formatliste)
-    └── 2_[ID]_extracted-files_tree.txt         <-- ZIEL (Verzeichnisstruktur als Text)
+    └── 2_[ID]_extracted-files_tree.txt         <-- ZIEL (Verzeichnisstruktur, verschoben aus Unterordner)
 
 ---
 
@@ -43,31 +43,32 @@ Stellen Sie sicher, dass folgende Programme installiert sind:
 
 ## Konfiguration im Skript
 
-Passen Sie die Pfade am Anfang der Python-Datei an:
+Passen Sie die Installationspfade der Tools am Anfang der Python-Datei an:
 
-    SIEGFRIED_DIR = r"C:\Program Files\Siegfried"
-    CLAMAV_DIR = r"C:\Program Files\ClamAV"
+SIEGFRIED_DIR = r"C:\Program Files\Siegfried"
+CLAMAV_DIR = r"C:\Program Files\ClamAV"
 
 ---
 
 ## Ausführung
 
-Nutzen Sie eine start.bat, um die Argumente (AC-Nummer und Datenträger-ID) zu übergeben:
+Das Skript benötigt zwingend zwei Argumente: die AC-Nummer und die Datenträger-ID. Diese können über eine start.bat übergeben werden:
 
-    @echo off
-    set AC_NUMBER=AC_12345
-    set DISK_ID=ID_001
-    python analyse_skript.py %AC_NUMBER% %DISK_ID%
-    pause
+@echo off
+set AC_NUMBER=AC_12345
+set DISK_ID=ID_001
+python analyse_skript.py %AC_NUMBER% %DISK_ID%
+pause
 
 ### Ablauf der Ausführung
 
-1. Validierung: Prüfung von Argumenten, Ordnern und sf.exe.
+1. Validierung: Prüfung von Argumenten, Ordnern sowie der Existenz von sf.exe und clamscan.exe.
 2. SHA-256 Hashing: Erstellt Prüfsummen für alle Dateien im Ordner files/.
-3. Brunnhilde-Ausführung: Analyse der Dateiformate und Live-Check des ClamAV-Status.
-4. Tree-Workaround: Erstellung der tree.txt (Verzeichnisstruktur).
-5. Parsing & JSON: Zusammenfassung aller Daten in einer JSON-Datei.
-6. Finalisierung: Verschieben der Berichte in den Hauptordner des Datenträgers.
+3. Brunnhilde-Ausführung: Analyse der Dateiformate und Echtzeit-Überwachung des ClamAV-Status (Warnung bei veralteten Signaturen).
+4. Tree-Workaround: Manuelle Erstellung der tree.txt innerhalb des Berichtsordners.
+5. Parsing & JSON: Zusammenfassung der CSV-Ergebnisse (Formate, Warnungen, Viren) in der zentralen JSON-Datei.
+6. Finalisierung: Verschieben der tree.txt in die übergeordnete Ebene (2_[ID]_extracted-files).
+7. Abschluss: Optionale Abfrage, ob der Zielordner im Windows Explorer geöffnet werden soll.
 
 ---
 

@@ -8,32 +8,33 @@ Diese .content-Datei dient als zentrale Übersicht über den Inhalt und die tech
 
 ## Hauptfunktionen
 
-1. Einlesen der Datenträger-Beschreibung:
+1. **Einlesen der Datenträger-Beschreibung:**
    * Quelle: Eine XML-Datei (0_[ID]_carrier-description.xml), die manuell erstellte Metadaten über den physischen Datenträger enthält (Typ, Beschriftung, Zustand).
    * Aktion: Das Skript integriert diese deskriptiven Daten in die finale Zusammenfassung.
 
-2. Einlesen des Analyse-Berichts:
+2. **Einlesen des Analyse-Berichts:**
    * Quelle: Ein HTML-Bericht (report.html), der zuvor vom Analyse-Tool Brunnhilde erstellt wurde.
    * Aktion: Das Skript parst diesen Bericht mit BeautifulSoup 4, um statistische Daten zu extrahieren (Dateianzahl, Gesamtgröße, Zeitspanne, Dateiformate nach PRONOM).
 
-3. Erstellung der XML-Zusammenfassung:
-   * Ziel: Eine neue XML-Datei mit der Endung .content.
-   * Aktion: Erstellt eine saubere, maschinenlesbare Übersicht im Zielverzeichnis.
+3. **Erstellung der XML-Zusammenfassung:**
+   * Ziel: Eine neue XML-Datei mit der Endung .content im Stufe-2-Verzeichnis.
+   * Aktion: Erstellt eine saubere, maschinenlesbare Übersicht. Ein Überschreiben existierender Dateien wird vom Skript verhindert.
 
 ---
 
 ## TREE-Struktur & Dateipfade
 
-Das Skript verknüpft Daten aus Stufe 0 und Stufe 2, um den Inhaltsbericht zu generieren:
+Das Skript verknüpft Daten aus verschiedenen Verarbeitungsstufen. Die Existenz des Transfer-Ordners (Stufe 3) wird ebenfalls validiert:
 
-Documents/data/[AC-Nummer]/[Datenträger-ID]/
+[AC-Nummer]/[Datenträger-ID]/
 ├── 0_[ID]_picture-carrier/
 │   └── 0_[ID]_carrier-description.xml          <-- QUELLE 1 (Manuelle Beschreibung)
-└── 2_[ID]_extracted-files/
-    ├── 2_[ID]_extracted-files_brunnhilde/
-    │   └── files_collection_report/
-    │       └── report.html                     <-- QUELLE 2 (Brunnhilde-Analyse)
-    └── 2_[ID]_extracted-files.content          <-- ZIEL (Zusammenfassungsbericht)
+├── 2_[ID]_extracted-files/
+│   ├── 2_[ID]_extracted-files_brunnhilde/
+│   │   └── files_collection_report/
+│   │       └── report.html                     <-- QUELLE 2 (Brunnhilde-Analyse)
+│   └── 2_[ID]_extracted-files.content          <-- ZIEL (Zusammenfassungsbericht)
+└── 3_[ID]_for-transfer/                        <-- VALIDIERUNG (Muss existieren)
 
 ---
 
@@ -47,31 +48,29 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
 
 ## Ausführung
 
-Das Skript wird idealerweise über eine start.bat gestartet, welche die AC-Nummer und Datenträger-ID übergibt.
+Das Skript kann flexibel gestartet werden:
 
-Beispielhafter Aufruf in einer start.bat:
-    @echo off
-    set AC_NUMBER=AC_0001
-    set DISK_ID=CD_01
-    python content_generator.py %AC_NUMBER% %DISK_ID%
-    pause
+1. **Automatisiert (via Kommandozeile):** Übergabe der AC-Nummer und Datenträger-ID als Argumente (z.B. durch eine start.bat oder das Hauptmenü).
+2. **Manuell:** Falls keine Argumente übergeben werden, fragt das Skript die benötigten Daten interaktiv ab.
+
+Beispielhafter Aufruf:
+    python content_generator.py AC_12345 ID_001
 
 ### Ablauf der Ausführung
 
-1. Validierung: Das Skript prüft die Argumente und verifiziert die Existenz der Quellpfade.
-2. XML-Parsing: Die manuelle Datenträgerbeschreibung wird eingelesen.
-3. HTML-Parsing: Der Brunnhilde-Bericht wird nach Statistiken und Formaten durchsucht.
-4. XML-Generierung: Die aggregierten Daten werden in die .content-Struktur geschrieben.
-5. Abschluss: Das Skript bietet an, den Zielordner im Explorer zu öffnen.
+1. **Validierung:** Prüfung der Argumente sowie Verifizierung aller Quellpfade und des Transfer-Ordners.
+2. **XML-Parsing:** Einlesen der physischen Carrier-Metadaten.
+3. **HTML-Parsing:** Extraktion der statistischen Daten und Format-Listen aus dem Brunnhilde-Bericht.
+4. **XML-Generierung:** Erstellung der .content-Datei mit strukturierter Einrückung.
+5. **Abschluss:** Optionale Abfrage, ob der Zielordner im Explorer geöffnet werden soll.
 
 ---
 
 ## Lizenz
 
-Copyright (c) 2025 Florian Lüftner <florian.lueftner@posteo.com>
+Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
 
-Dieses Skript ist unter der MIT-Lizenz lizenziert. Das bedeutet, es darf frei verwendet, kopiert und modifiziert werden, solange der obige Copyright-Hinweis erhalten bleibt.
+Dieses Skript ist unter der MIT-Lizenz lizenziert.
 
----
-SPDX-FileCopyrightText: 2025 Florian Lüftner
+SPDX-FileCopyrightText: 2025 Gregor Neuboeck
 SPDX-License-Identifier: MIT

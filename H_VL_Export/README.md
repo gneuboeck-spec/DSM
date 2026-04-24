@@ -61,10 +61,9 @@ Beispielhafter Aufruf:
 
 ## Lizenz
 
-Copyright (c) 2025 Florian Lüftner <florian.lueftner@posteo.com>
+Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
 
-Dieses Skript ist unter der MIT-Lizenz lizenziert. Das bedeutet, es darf frei verwendet, kopiert und modifiziert werden, solange der obige Copyright-Hinweis erhalten bleibt.
+Dieses Skript ist unter der MIT-Lizenz lizenziert.
 
----
-SPDX-FileCopyrightText: 2025 Florian Lüftner
+SPDX-FileCopyrightText: 2025 Gregor Neuboeck
 SPDX-License-Identifier: MIT
