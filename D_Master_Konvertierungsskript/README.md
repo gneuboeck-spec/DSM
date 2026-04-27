@@ -68,6 +68,76 @@ Beispielhafter Aufruf in einer start.bat:
 
 ---
 
+## Detaillierte Hinweise zum Skriptverhalten
+
+### Exakte Dateinamenskonvention für Derivate
+
+Das Skript verwendet folgende Benennungsschemata:
+
+| Dateityp | Original | Ziel-Derivat(e) |
+|----------|----------|------------------|
+| Audio (nicht MP3/WAV) | `datei.flac` | `datei.flac.mp3` und `datei.flac.wav` |
+| Audio (MP3) | `datei.mp3` | nur `datei.mp3.wav` |
+| Audio (WAV) | `datei.wav` | nur `datei.wav.mp3` |
+| Bild (alle) | `datei.jpg` | `datei.jpg.tiff` (Raster) oder `datei.jpg.pdf` (Vektor/Ghostscript) |
+| Text/Office | `datei.doc` | `datei.doc.odt` und `datei.doc.pdf` |
+| PDF | `datei.pdf` | nur `datei.pdf.pdf` (via LibreOffice PDF/A) |
+| Video | `datei.mov` | `datei.mov.mp4` |
+
+### Ausschlusslogik für abgeleitete Dateien
+
+Eine Datei wird **übersprungen**, wenn:
+- Der Dateiname (ohne Endung) mit einer Quell-Endung endet **und** die aktuelle Endung nicht `.pdf` ist
+  - Beispiel: `dokument.doc.odt` → übersprungen (weil `dokument.doc` auf `.doc` endet)
+  - Ausnahme: `dokument.doc.pdf` → wird verarbeitet (weil Endung `.pdf` ist)
+
+Ein weiterer Filter überspringt Dateien, deren Name mit `.` oder `~` beginnt (versteckte/temporäre Dateien).
+
+### Audio-Konvertierung mit Fortschrittsbalken
+
+Bei Audio-Dateien wird die Dauer mit `ffprobe` ermittelt. Während der Konvertierung zeigt ein dynamischer Fortschrittsbalken den Fortschritt an: [########] 20.0%
+
+
+### Verarbeitungsreihenfolge
+
+Das Skript verarbeitet Dateien in folgender Priorität (definiert durch die Reihenfolge der `if/elif`-Abfragen):
+1. Audio (`ext in SOURCE_AUDIO_EXTENSIONS`)
+2. Bild (`ext in VALID_IMAGE_EXTENSIONS`)
+3. Text/Office (`ext in VALID_TEXT_EXTENSIONS`)
+4. Video (`ext in SOURCE_VIDEO_EXTENSIONS`)
+
+### Erwartete Ordnerstruktur
+
+🚨 ACHTUNG: Folgende Dateien konnten NICHT korrekt konvertiert werden:
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ Datei: problem.mp3
+ Grund: Audio-Konvertierung (FFmpeg) unvollständig oder fehlgeschlagen.
+
+### Verarbeitungsreihenfolge
+
+Das Skript verarbeitet Dateien in folgender Priorität (definiert durch die Reihenfolge der `if/elif`-Abfragen):
+1. Audio (`ext in SOURCE_AUDIO_EXTENSIONS`)
+2. Bild (`ext in VALID_IMAGE_EXTENSIONS`)
+3. Text/Office (`ext in VALID_TEXT_EXTENSIONS`)
+4. Video (`ext in SOURCE_VIDEO_EXTENSIONS`)
+
+### Erwartete Ordnerstruktur
+
+~/Documents/data/[AC_number]/[disk_archive_ID]/
+└── 3_[disk_archive_ID]_for-transfer/
+    ├── files/                                    <-- QUELLE & ZIEL (rekursive Verarbeitung)
+    └── 3_[disk_archive_ID]_for-transfer_all-conversions.log   <-- LOG-DATEI
+
+### Plattformabhängiges Öffnen des Zielordners
+
+Nach Abschluss fragt das Skript: `Zielordner oeffnen? (j/n):`. Bei `j`:
+- **Windows** → `os.startfile(destination_folder)`
+- **macOS/Linux** → nicht implementiert
+
+### Abhängigkeiten (zusätzlich)
+
+Das Skript verwendet nur Module der Python-Standardbibliothek: `os`, `sys`, `subprocess`, `re`, `datetime`, `pathlib`, `shutil`, `time`, `glob`, `tempfile`. Keine externen Python-Pakete erforderlich.
+
 ## Lizenz
 
 Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>

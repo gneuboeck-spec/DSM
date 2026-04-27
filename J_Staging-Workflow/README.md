@@ -78,6 +78,116 @@ Beispielhafter Aufruf:
 
 ---
 
+## Detaillierte Hinweise zum Skriptverhalten
+
+### Erwartete Ordnerstruktur vor Ausführung
+
+~/Documents/data/[AC_number]/[disk_archive_ID]/
+├── 0_[disk_archive_ID]_picture-carrier/
+│   ├── *.tif                                    <-- Hardware-Fotos
+│   ├── 0_[ID]_carrier-description.xml           <-- Trägerbeschreibung
+│   └── logfiles/ (falls vorhanden)              <-- wird migriert
+├── 1_[disk_archive_ID]_image-LZA/
+│   ├── *.img / *.001 / *.bin / *.dd             <-- Disk-Images
+│   ├── *.log / *.csv                            <-- Imaging-Logs
+│   └── logfiles/ (falls vorhanden)              <-- wird migriert
+├── 2_[disk_archive_ID]_extracted-files/
+│   ├── 2_[ID]_extracted-files.content
+│   ├── 2_[ID]_extracted-files_tree.txt
+│   ├── 2_[ID]_extracted-files_brunnhilde-summary.json
+│   ├── 2_[ID]_extracted-files_brunnhilde/       <-- Ordner (wird komplett migriert)
+│   └── logfiles/ (falls vorhanden)              <-- wird migriert
+├── 3_[disk_archive_ID]_for-transfer/
+│   ├── files/                                   <-- Nutzdaten (wird zu 3_files)
+│   ├── *.log                                    <-- Konvertierungs-Logs
+│   ├── *.index                                  <-- Technischer Index
+│   └── logfiles/ (falls vorhanden)              <-- wird migriert
+├── 4_[disk_archive_ID]_VL/                      <-- Ziel für Kopien
+└── 5_[disk_archive_ID]_LZA/                     <-- Ziel für Migration
+
+
+### `safe_move_item()` Funktion
+
+| Parameter | Beschreibung |
+|-----------|--------------|
+| `src` | Quell-Path-Objekt |
+| `dest_dir` | Ziel-Verzeichnis (Path) |
+| `rename_to` | optionaler neuer Name (wenn `None`, bleibt Originalname) |
+
+**Verhalten:**
+1. Prüft ob Quelle existiert
+2. Erstellt Zielverzeichnis falls nötig (`mkdir(parents=True)`)
+3. Wenn Ziel bereits existiert:
+   - Bei Ordner: `shutil.rmtree(target)`
+   - Bei Datei: `os.remove(target)`
+4. Führt `shutil.move(src, target)` aus
+
+### Migrationsdetails im Einzelnen
+
+| Schritt | Aktion | Details |
+|---------|--------|---------|
+| 2A | Konsolidierung vorhandener `logfiles`-Unterordner | Durchsucht Stufen 0,1,2,3 nach Unterordnern `logfiles`, verschiebt deren gesamten Inhalt nach `5/logfiles`, löscht leeren Unterordner |
+| 2B | Bilder aus Stufe 0 | Alle Dateien (nicht nur `.tif`) aus `0_.../` werden nach `5/logfiles/` verschoben |
+| 2C | Nutzdaten | `3/files` (sofern vorhanden) wird nach `5/3_files` verschoben und umbenannt |
+| 2D | Image-LZA (Stufe 1) | **Kompletter Inhalt** von `1_.../` wird nach `5/` verschoben (nicht nur Images) |
+| 2E | Berichte aus Stufe 2 | Bestimmte Dateien/Ordner werden nach `5/logfiles/` verschoben (siehe Tabelle oben) |
+| 2F | Verbliebene Dateien aus Stufe 3 | Alle `.log` und `.index` Dateien werden nach `5/logfiles/` verschoben |
+
+### Sicherheitsabfrage
+
+Vor der Ausführung erscheint:
+
+[!] HINWEIS: Dieses Skript strukturiert Stufe 5 für den Master-Index.
+ Staging jetzt starten? (j/n):
+
+Nur bei Eingabe `j` wird fortgefahren.
+
+### Fehlerbehandlung
+
+| Fehlerfall | Verhalten |
+|------------|-----------|
+| Zielverzeichnis existiert nicht bei Kopie | `mkdir(parents=True)` wird ausgeführt |
+| Ziel existiert bereits bei Move | Wird gelöscht (Datei `os.remove`, Ordner `shutil.rmtree`) |
+| Fehler beim Verschieben | Fehlermeldung mit `Fore.RED`, Funktion gibt `False` zurück, Skript läuft weiter |
+| `src_files_dir` (Stufe 3/files) nicht gefunden | Schritt 2C wird übersprungen (kein Fehler, nur Warnung) |
+
+### Zustand nach Skriptende
+
+| Stufe | Zustand |
+|-------|---------|
+| `0_[ID]_picture-carrier` | leer (alle Dateien nach `5/logfiles` verschoben) |
+| `1_[ID]_image-LZA` | leer (alle Dateien nach `5/` verschoben) |
+| `2_[ID]_extracted-files` | ggf. noch nicht migrierte Restdateien (nur spezifische Dateien wurden verschoben) |
+| `3_[ID]_for-transfer` | leer (nach Migration von `files` und `.log`/`.index`) |
+| `4_[ID]_VL` | angereichert mit Kopien |
+| `5_[ID]_LZA` | vollständige Archivstruktur |
+
+### Farbkodierung (colorama)
+
+| Farbe | Verwendung |
+|-------|------------|
+| Grün (`Fore.GREEN`) | Erfolgsmeldungen (Move/Kopie erfolgreich) |
+| Rot (`Fore.RED`) | Fehlermeldungen |
+| Gelb (`Fore.YELLOW`) | Hinweise, Sicherheitsabfrage |
+| Cyan (`Fore.CYAN`) | Abschnittsüberschriften (SCHRITT 1, SCHRITT 2) |
+| Magenta (`Fore.MAGENTA`) | Kopfzeilen (Trennlinien, Titel) |
+| Weiß (`Fore.WHITE`) | normaler Text |
+
+### Abhängigkeiten
+
+**Erforderlich:** `colorama` (muss installiert sein, sonst Fallback mit Dummy-Klassen)
+
+**Standardbibliothek:** `os`, `sys`, `shutil`, `time`, `datetime`, `pathlib`
+
+### Wichtige Einschränkungen
+
+- Die `safe_move_item`-Funktion löscht **ohne Rückfrage** bestehende Ziele (Überschreiben)
+- Der technische Index (`3_...for-transfer.index`) wird von Skript J **nicht** kopiert, sondern nur geprüft
+- Schritt 2D verschiebt **alle** Dateien aus Stufe 1, nicht nur Images
+- `logfiles`-Unterordner in den Stufen 0-3 werden nach Migration ihrer Inhalte gelöscht (`rmdir()` nur wenn leer)
+
+---
+
 ## Lizenz
 
 Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>

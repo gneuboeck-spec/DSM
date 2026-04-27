@@ -72,6 +72,143 @@ Das Skript wird über die Kommandozeile oder das zentrale Menü gestartet:
 
 ---
 
+## Detaillierte Hinweise zum Skriptverhalten
+
+### Erwartete Referenzquellen für Integritätsprüfung
+
+Das Skript sucht automatisch nach folgenden Dateien (Groß-/Kleinschreibung egal):
+
+| Quelle | Pfad (relativ zu `~/Documents/data/[AC]/[ID]/`) | Enthält |
+|--------|------------------------------------------------|---------|
+| Imaging CSV | `1_[ID]_image-LZA/logfiles/1_[ID]_image-log.csv` | SHA-512 (Spalte `SHA-512-Hash`), Dateiname (Spalte `Dateiname`) |
+| Brunnhilde JSON | `2_[ID]_extracted-files/2_[ID]_extracted-files_brunnhilde-summary.json` | SHA-256 im Feld `file_fixity_sha256` |
+| Siegfried CSV | `2_[ID]_extracted-files/.../files_collection_report/siegfried.csv` | MD5 (Spalte `md5`), Dateiname (Spalten `filename` oder `file`) |
+
+Fehlende Quellen werden ignoriert, vorhandene werden geladen.
+
+### Integritätsstatus im XML-Index
+
+Jede Datei erhält ein `<integrity_status>`-Element mit einem der drei Werte:
+
+| Wert | Bedeutung |
+|------|-----------|
+| `verified` | Mindestens ein Referenz-Hash stimmt mit dem live berechneten Hash überein |
+| `CORRUPTED_OR_MODIFIED` | Kein Referenz-Hash stimmt überein; Abweichungen werden detailliert protokolliert |
+| `new_file` | Keine Referenz-Hashes für diese Datei gefunden (z. B. konvertierte Derivate) |
+
+### Integritäts-Log (`*_integrity.log`)
+
+Das Log wird im selben Ordner wie die `.index`-Datei erstellt und enthält:
+
+- Projektname und Datum
+- Bei Fehlern: detaillierte Soll/Ist-Gegenüberstellung für SHA-512, SHA-256 und MD5
+- Anzahl der verifizierten, neuen und fehlerhaften Dateien
+- Vollständige Liste aller verifizierten Dateien (sortiert)
+
+Das Log wird **sowohl nach Stufe 5 (LZA/logfiles) als auch nach Stufe 4 (VL)** kopiert.
+
+### Metadaten-Extraktoren (Reihenfolge & Bedingungen)
+
+| Extraktor | Ausgeführt für | Besonderheit |
+|-----------|---------------|--------------|
+| `get_file_info` | alle Dateien | liefert `size`, `filesystem_created_date`, `filesystem_modified_date`, `filesystem_accessed_date` |
+| `run_siegfried` | alle Dateien | liefert `pronom_id`, `note`, `format_version`, `mime_type` |
+| `extract_image_info` | wenn MIME-Typ mit `image/` beginnt | Pillow; SVGs werden übersprungen (vermeidet Fehler) |
+| `extract_metadata_exiftool` | alle Dateien | liefert umfangreiche Metadaten; Schlüssel wie `SourceFile`, `FileName` werden gefiltert |
+| `extract_metadata_ffprobe` | alle Dateien | liefert Format- und Stream-Informationen; Schlüssel `size` wird explizit ausgeschlossen |
+| `extract_mutagen_info` | alle Dateien | liefert Audio-Technik (sample_rate, channels, bits_per_sample, duration) und Tags |
+| `extract_pdf_info` | nur `.pdf` | liefert `pdf_num_pages` sowie Metadaten aus `/Keywords`, `/CreationDate`, `/ModDate`, `/Creator`, `/Producer` |
+| `extract_sam_specific` | nur `.sam` | liefert `sam_line_count`, `sam_sample_text` (Zeichenkodierung wird mit `chardet` erkannt) |
+| `extract_musicxml_info` | nur `.mxl` | entpackt ZIP, parst XML, liefert z. B. `score_partwiseidentificationencodingsoftware`, `score_partwisemovement_title`, `document_encoding_date` |
+
+### YARA-Regeln
+
+Das Skript kompiliert eine Regeldatei aus `YARA_RULES_FILE` (fest konfiguriert). Bei der Verarbeitung jeder Datei:
+
+1. Datei wird im Binärmodus gelesen
+2. `rules.match(data=file_data)` wird ausgeführt
+3. Gefundene Regeln werden nach Konfliktregeln gefiltert (z. B. `csv` wird ignoriert, wenn `sam` oder `eml` oder `tiff` ebenfalls matchen)
+4. Alle übrigen Regelnamen werden in der XML-Ausgabe im `<validity>`-Bereich (indirekt über `yara_match_rules_simple_names`) festgehalten
+
+### Validierungslogik für `<validity>`
+
+Das Element `<validity>` erhält den Wert `Yes` oder `No` basierend auf:
+
+| Dateityp | Prüfung |
+|----------|---------|
+| `.pdf` | `PdfReader(file_path)` ohne Exception |
+| `.docx`, `.xlsx`, `.pptx`, `.odt`, `.ods`, `.odp` | Magic-Header `PK` + `ZipFile.testzip() is None` |
+| MIME-Typ `image/*` | `Image.open().verify()` ohne Exception |
+| MIME-Typ `audio/*` oder `video/*` | `duration` oder `ffprobe_format_duration` vorhanden |
+| `.mxl` | `document_title` oder `document_creator_tool` vorhanden |
+| YARA-Match auf `SAM`, `EML`, `CSV`, `HTML`, `XHTML`, `TXT`, `ZIP_ARCHIVE` | `True` |
+| Fallback | Wenn keine der obigen Bedingungen zutrifft, aber mehr als 5 Metadaten-Schlüssel extrahiert wurden → `Yes` |
+
+### XML-Ausgabe (`.index`)
+
+- Root-Element: `<filetrove>`
+- Pro Datei ein `<file>`-Element mit Attributen `path`, `name`, `extension`
+- Metadaten werden als Unterelemente alphabetisch sortiert eingefügt
+- Werte werden mit `sanitize_for_xml()` von ungültigen XML-Steuerzeichen befreit
+- Eine umfangreiche Blockliste (`TAGS_TO_REMOVE` + `additional_blocklist`) filtert unerwünschte Tags
+- Spezialbehandlung: `<colorspacedata>` mit Wert `RGB` wird entfernt
+- Binäre ASF/WMA-Attribute (`[ASFByteArrayAttribute`) werden übersprungen
+
+### Vereinheitlichung von Metadaten-Schlüsseln (`unify_metadata_keys`)
+
+Das Skript führt eine umfangreiche Normalisierung durch:
+
+- Schlüssel werden mit `sanitize_tag()` bereinigt (Leerzeichen, Doppelpunkte, Bindestriche, Punkte, Schrägstriche werden durch `_` ersetzt; nur alphanumerisch + `_` bleibt)
+- Mehrere synonyme Schlüssel werden auf einen bevorzugten Schlüssel gemappt (z. B. `imagewidth`, `image_width`, `width`, `exifimagewidth` → `image_width`)
+- Für `document_creator_tool` wird `is_likely_software_tool()` angewendet: Werte, die wie Personen- oder Institutionsnamen aussehen, werden verworfen; technische Werte (mit Versionsnummern, Pfaden, typischen Software-Schlüsselwörtern) werden behalten
+- Datumsfelder werden mit `format_date_to_iso()` normalisiert (unterstützt ExifTool-Format `YYYY:MM:DD HH:MM:SS` und PDF-Format `D:YYYYMMDDHHMMSS...`)
+- Nicht gemappte Schlüssel bleiben erhalten (außer Blockliste)
+
+### Sonderbehandlung von Bild- vs. Video-Dimensionen
+
+Wenn die Datei als Video identifiziert wird (MIME-Typ beginnt mit `video/` oder Dateiendung in `known_video_suffixes`), werden `image_width` und `image_height` in `video_frame_width` bzw. `video_frame_height` umgewandelt und die ursprünglichen `image_*`-Schlüssel gelöscht.
+
+### Löschung von falsch zugeordneten `duration` und `audio_channel_count`
+
+Diese Felder werden aus der finalen Ausgabe entfernt, wenn der MIME-Typ nicht mit `audio/` oder `video/` beginnt und die Datei nicht zur Gruppe `audio` oder `video` gehört (ermittelt über `get_file_type_group()`).
+
+### Verarbeitungsausschlüsse
+
+Dateien werden übersprungen, wenn ihr Name mit `._` oder `~` beginnt.
+
+### Kopie nach Stufe 4 (VL)
+
+Nach erfolgreicher XML-Erstellung werden folgende Dateien nach `4_[ID]_VL/` kopiert:
+- `3_[ID]_for-transfer.index`
+- `3_[ID]_for-transfer_integrity.log`
+
+Die primären Versionen verbleiben in `5_[ID]_LZA/logfiles/`.
+
+### Plattformabhängiges Öffnen des Zielordners
+
+Nach Abschluss fragt das Skript: `Zielordner oeffnen? (j/n):`. Bei `j`:
+- **Windows** → `os.startfile(destination_folder)`
+- **macOS** → `subprocess.run(["open", destination_folder])`
+- **Linux/andere** → `subprocess.run(["xdg-open", destination_folder])`
+
+### Abhängigkeiten (zusätzlich)
+
+Folgende Python-Pakete müssen installiert sein:
+- `mutagen`
+- `PyPDF2`
+- `Pillow`
+- `yara-python`
+- `chardet`
+
+Externe Tools (müssen im System-PATH oder an festen Pfaden verfügbar sein):
+- ExifTool (`EXIFTOOL_PATH`)
+- Siegfried (`SIEGFRIED_PATH`)
+- FFprobe (`FFPROBE_PATH`)
+- Hachoir (`HACHOIR_METADATA_PATH`)
+- YARA-Regeldatei (`YARA_RULES_FILE`)
+
+---
+
 ## Lizenz
 
 Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>

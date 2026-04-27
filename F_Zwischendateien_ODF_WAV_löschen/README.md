@@ -69,6 +69,130 @@ Beispielhafter Aufruf in einer start.bat:
 
 ---
 
+## Detaillierte Hinweise zum Skriptverhalten
+
+### Erwartete Ordnerstruktur
+
+~/Documents/data/[AC_number]/[disk_archive_ID]/
+├── 4_[disk_archive_ID]_VL/
+│   └── files/                                    <-- ARBEITSBEREICH (Eingabe & Löschung)
+└── 5_[disk_archive_ID]_LZA/
+    └── logfiles/                                 <-- LOG-ZIEL (wird automatisch erstellt)
+        ├── 4_[ID]_VL_delete-converted-odfs.log   <-- Protokoll ODF-Bereinigung
+        └── 4_[ID]_VL_delete-converted-wavs.log   <-- Protokoll WAV-Bereinigung
+
+### Original-Endungen für ODF-Bereinigung
+
+Das Skript löscht `.odt`-Dateien, deren Stammname (ohne `.odt`) auf eine der folgenden Endungen endet (Groß-/Kleinschreibung egal):
+
+`.doc`, `.docx`, `.rtf`, `.wpd`, `.wps`, `.dot`, `.dotx`, `.wbk`
+
+**Erkennungslogik** für ODF:
+1. Rekursive Suche nach allen `.odt`-Dateien
+2. `file.stem` ergibt z. B. `dokument.doc` (bei Datei `dokument.doc.odt`)
+3. Prüfung, ob dieser Stammname mit einer der Original-Endungen endet
+4. Prüfung, ob die Quelldatei (`file.parent / file.stem`) tatsächlich existiert
+5. Nur wenn beides zutrifft, wird die `.odt`-Datei zur Löschung vorgemerkt
+
+### Quell-Audio-Endungen für WAV-Bereinigung
+
+Das Skript löscht `.wav`-Dateien, die aus folgenden Audioformaten konvertiert wurden (erkennbar am Dateinamenmuster `name.originalendung.wav`):
+
+`.aiff`, `.flac`, `.ogg`, `.wav`, `.m4a`, `.wma`, `.aac`, `.mp3`
+
+**Erkennungslogik** für WAV:
+1. Alle Dateien im Zielordner werden in einen Set `all_found_files` geladen
+2. Für jede `.wav`-Datei wird der Name an `.` gesplittet
+3. Wenn mindestens 3 Teile vorhanden sind (z. B. `song.flac.wav` → `['song', 'flac', 'wav']`)
+4. Wird die vorletzte Endung (`.flac`) als `original_ext` interpretiert
+5. Prüfung, ob diese Endung in `SOURCE_AUDIO_EXTENSIONS_FOR_WAV_CLEANUP` enthalten ist
+6. Prüfung, ob die Originaldatei (`".".join(parts[:-1])`, also `song.flac`) im Set `all_found_files` existiert
+7. Nur wenn beides zutrifft, wird die `.wav`-Datei zur Löschung vorgemerkt
+
+### Interaktives Menü
+
+Das Skript zeigt folgendes Menü an:
+
+========================================
+  Wählen Sie eine Aufräum-Aktion:
+========================================
+  1 - Zwischendateien (ODF) löschen
+  2 - Konvertierte WAV-Dateien löschen
+  Q - Beenden
+========================================
+Ihre Wahl:
+
+Nach jeder abgeschlossenen Aktion muss der Benutzer **Enter drücken**, um zum Menü zurückzukehren.
+
+### Simulationsmodus (nur für ODF)
+
+Die globale Variable `DELETE_ODF_DRY_RUN = False` steuert den Testlauf:
+- `True` → Simulation: Keine Löschung, nur Log mit potenziellen Löschkandidaten
+- `False` → Echter Löschvorgang mit Bestätigungsabfrage
+
+Die WAV-Bereinigung hat **keinen Dry-Run-Modus** (löscht immer nach Bestätigung).
+
+### Bestätigungsabfragen
+
+**ODF-Bereinigung** (bei `DELETE_ODF_DRY_RUN = False`):
+
+Die folgenden ODF-Zwischendateien wurden zur Löschung identifiziert:
+  - Pfad/zu/datei.odt
+
+Möchten Sie diese Dateien wirklich löschen? (j/n):
+
+**WAV-Bereinigung**:
+
+Die folgenden, durch Konvertierung erstellten WAV-Dateien werden gelöscht:
+  - datei.wav
+
+Möchten Sie diese Dateien wirklich löschen? (j/n):
+
+Bei `n` oder anderer Eingabe wird der Löschvorgang abgebrochen.
+
+### Log-Dateien
+
+Beide Logs werden im Ordner `5_[ID]_LZA/logfiles/` abgelegt.
+
+**ODF-Log** (`*_delete-converted-odfs.log`):
+- Enthält bei Dry-Run: `# Protokoll des TESTLAUFS (keine ODF-Dateien wurden gelöscht)`
+- Enthält bei echtem Lauf: `# Protokoll des Aufräumvorgangs (ODF)`
+- Aufteilung in: `--- ERFOLGREICH GELÖSCHT ---` und `--- FEHLER BEIM LÖSCHEN ---`
+
+**WAV-Log** (`*_delete-converted-wavs.log`):
+- Enthält: `# Protokoll des Aufräumvorgangs (WAV)`
+- Aufteilung in: `--- ERFOLGREICH GELÖSCHT ---` und `--- FEHLER BEIM LÖSCHEN ---`
+
+### Fehlerbehandlung
+
+| Fehlerfall | Verhalten |
+|------------|-----------|
+| VL-Zielordner (Stufe 4) existiert nicht | rote Fehlermeldung + `return None` → Skriptabbruch |
+| Log-Ordner in Stufe 5 kann nicht erstellt werden | wird automatisch mit `mkdir(parents=True, exist_ok=True)` erstellt |
+| Log-Datei kann nicht geschrieben werden | Fehlermeldung im Terminal, Skript fährt fort |
+| Einzelne Datei kann nicht gelöscht werden | Fehlermeldung im Terminal, Datei wird übersprungen, Zähler für Fehler erhöht |
+
+### Plattformabhängiges Öffnen des Zielordners
+
+Nach Verlassen des Menüs (Auswahl `Q`) fragt das Skript: `Zielordner oeffnen? (j/n):`. Bei `j`:
+- **Windows** → `os.startfile(str(destination_folder))`
+- **macOS** → `subprocess.run(["open", str(destination_folder)])`
+- **Linux/andere** → `subprocess.run(["xdg-open", str(destination_folder)])`
+
+### Wichtiger Hinweis zum Skript-Ende
+
+Nach dem Verlassen des Menüs und optionalem Öffnen des Zielordners erscheint:
+
+Drücken Sie Enter, um das Fenster zu schließen.
+
+Dies verhindert das sofortige Schließen des Konsolenfensters bei Ausführung per Doppelklick.
+
+### Abhängigkeiten
+
+Das Skript verwendet nur Module der Python-Standardbibliothek: `os`, `sys`, `subprocess`, `datetime`, `pathlib`. Keine externen Python-Pakete erforderlich.
+
+---
+
 ## Lizenz
 
 Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>

@@ -59,6 +59,113 @@ Das Skript kann auf zwei Arten gestartet werden:
 
 ---
 
+## Detaillierte Hinweise zum Skriptverhalten
+
+### Vollständiges PRONOM-Mapping
+
+Das Skript enthält folgende direkte Zuordnungen von PRONOM-IDs zu Dateiendungen:
+
+| PRONOM ID | Dateiendung |
+|-----------|-------------|
+| fmt/189, fmt/190, fmt/191, fmt/276 | `.pdf` |
+| fmt/40, x-fmt/65 | `.doc` |
+| fmt/612 | `.docx` |
+| fmt/214 | `.xls` |
+| fmt/595 | `.xlsx` |
+| fmt/291 | `.odt` |
+| fmt/290 | `.ods` |
+| fmt/292 | `.odp` |
+| fmt/353, fmt/354 | `.tif` |
+| fmt/14, fmt/15 | `.jpg` |
+| fmt/11 | `.png` |
+| fmt/846 | `.cwk` |
+| fmt/1439 | `.pages` |
+| fmt/397 | `.mus` |
+| fmt/279 | `.flac` |
+| fmt/569 | `.mkv` |
+| fmt/203 | `.ogg` |
+| fmt/384 | `.mxf` |
+| x-fmt/191 | `.sam` |
+| x-fmt/18 | `.csv` |
+| fmt/280 | `.tex` |
+| fmt/596 | `.m4a` |
+
+Zusätzlich gibt es eine manuelle Mapping-Tabelle für Formatnamen:
+- `AppleWorks Word Processing` → `.cwk`
+- `Ami Pro` → `.sam`
+
+### Sonderbehandlung MPEG-4 (fmt/199)
+
+Bei PRONOM-ID `fmt/199` prüft das Skript mit `ffprobe.exe`, ob ein Videostream vorhanden ist:
+- **mit Videostream** → `.mp4`
+- **ohne Videostream** → `.m4a`
+
+### Erkennungsreihenfolge
+
+Das Skript versucht in folgender Reihenfolge, eine Dateiendung zu bestimmen:
+
+1. **Siegfried-basierte Erkennung** (aus `sf.exe -json`):
+   - PRONOM-ID in der Mapping-Tabelle → Endung (Quelle: "PRONOM ID (Manuell)")
+   - Sonderfall `fmt/199` → `.mp4` oder `.m4a` (Quelle: "MPEG-4 (mit/nur Audio)")
+   - MIME-Typ (außer `text/plain`, `application/octet-stream`) → Endung via `mimetypes.guess_extension()` (Quelle: "MIME-Typ (Automatisch)")
+   - Formatname in `format_name_to_ext_map` → Endung (Quelle: "Formatname (Manuell)")
+
+2. **Fallback-Erkennung** (falls Siegfried nichts liefert):
+   - ZIP-Prüfung mit `zipfile.is_zipfile()` und `mimetype`-Datei → `.odt` oder `.ods` (Quelle: "Fallback (ZIP-Mimetype)")
+   - Flat XML-Prüfung auf `<office:document-content` oder `<office:document-spreadsheet` → `.odt` oder `.ods` (Quelle: "Fallback (Flat XML)")
+   - Tabellenerkennung via `determine_text_table_extension()` → `.slk` (SYLK-Signatur) oder `.csv` (Delimiter `;`, `,`, `\t`, `|` mit Konsistenzprüfung)
+   - Text-Erkennung via `is_likely_text_file()` (ASCII-Zeichen > 90%) → `.txt` (Quelle: "Fallback (Plain Text)")
+
+3. **Keine Zuordnung möglich** → Logeintrag mit Siegfried-Informationen (Formatname, PRONOM-ID)
+
+### Simulationsmodus
+
+Im Skript existiert die globale Variable `DRY_RUN = False`. Bei `DRY_RUN = True` werden keine tatsächlichen Umbenennungen durchgeführt; alle Aktionen werden nur simuliert und mit `[SIMULATION]` im Log gekennzeichnet.
+
+### Log-Datei
+
+Die Log-Datei wird unter `3_[ID]_for-transfer/3_[ID]_for-transfer_repair-file-extension.log` erstellt. Jeder Eintrag enthält einen Zeitstempel `[YYYY-MM-DD HH:MM:SS]`. Folgende Ereignisse werden protokolliert:
+- Skriptstart
+- Gefundene Dateien ohne Endung
+- Umbenennungen (mit Quellenangabe)
+- Fehler beim Umbenennen
+- Nicht zugeordnete Dateien (mit Siegfried-Ergebnis)
+- Abschlussstatistik
+
+### Namenskonflikte
+
+Wenn eine Datei umbenannt wird und der Zielname bereits existiert, hängt das Skript automatisch `_1`, `_2`, usw. an den Dateinamen an (vor der Endung).
+
+### Dateien, die ignoriert werden
+
+Das Skript untersucht **nur Dateien ohne Dateiendung** (`file.suffix == ""`). Folgende Dateien werden übersprungen:
+- Dateien mit einer vorhandenen Endung (z.B. `.txt`, `.jpg`)
+- Versteckte Dateien (Name beginnt mit `.`)
+- Verzeichnisse
+
+### Fehlerfälle und Abbruchbedingungen
+
+| Fehlerfall | Verhalten |
+|------------|-----------|
+| Siegfried nicht unter `C:\Program Files\Siegfried\sf.exe` | rote Fehlermeldung + `sys.exit(1)` |
+| `ffprobe.exe` nicht im PATH | rote Fehlermeldung + `sys.exit(1)` |
+| Quell-Ordner Stufe 2 existiert nicht | rote Fehlermeldung + `sys.exit(1)` |
+| Kopiervorgang von Stufe 2 nach Stufe 3 schlägt fehl | rote Fehlermeldung + `sys.exit(1)` |
+| Log-Ordner existiert nicht | rote Fehlermeldung + `sys.exit(1)` |
+| Analyse-Ordner in Stufe 3 existiert nicht | rote Fehlermeldung + `sys.exit(1)` |
+
+### Plattformabhängiges Öffnen des Zielordners
+
+Nach Abschluss fragt das Skript: `Analyse beendet. Zielordner öffnen? (j/n):`. Bei `j`:
+- **Windows** → `os.startfile(config["analysis_folder"])`
+- **macOS/Linux** → nicht implementiert (da `os.startfile` nur auf Windows funktioniert)
+
+### Abhängigkeiten (zusätzlich)
+
+Neben den in der README genannten Tools benötigt das Skript keine externen Python-Bibliotheken. Verwendet werden ausschließlich Module der Python-Standardbibliothek: `os`, `subprocess`, `json`, `sys`, `mimetypes`, `pathlib`, `shutil`, `datetime`, `zipfile`, `csv`.
+
+---
+
 ## Lizenz
 
 Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>

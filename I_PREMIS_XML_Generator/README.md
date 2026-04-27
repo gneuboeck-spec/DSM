@@ -70,6 +70,163 @@ Beispielhafter Aufruf:
 
 ---
 
+## Detaillierte Hinweise zum Skriptverhalten
+
+### Erwartete Ordnerstruktur
+
+~/Documents/data/[AC_number]/[disk_archive_ID]/
+├── 0_[disk_archive_ID]_picture-carrier/          <-- QUELLE (Hardware-Fotos .tif)
+├── 1_[disk_archive_ID]_image-LZA/                <-- QUELLE (Disk-Images)
+│   └── logfiles/                                 <-- QUELLE (Imaging-Logs)
+├── 2_[disk_archive_ID]_extracted-files/          <-- QUELLE (Brunnhilde-Berichte)
+│   └── 2_[ID]_extracted-files_brunnhilde/
+│       └── files_collection_report/
+│           └── siegfried.csv                     <-- QUELLE (Dateiliste)
+├── 3_[disk_archive_ID]_for-transfer/             <-- QUELLE (Technischer Index)
+│   └── 5_[ID]_LZA.index                          <-- wird gesucht
+└── 5_[disk_archive_ID]_LZA/                      <-- ZIEL
+    └── logfiles/                                 <-- ZIEL
+        ├── 5_[ID]_LZA_premis.xml                 <-- finale PREMIS-Datei
+        └── 5_[ID]_LZA_derivation-image.img       <-- wird gesucht (falls vorhanden)
+            └── *.log                             <-- wird gesucht (Packaging-Log)
+
+
+### Medienerkennung (automatische Weiche)
+
+Das Skript analysiert den `logfiles`-Ordner in Stufe 1 in folgender Reihenfolge:
+
+| Gefundene Datei/Inhalt | Modus | Media Type | Besonderheiten |
+|------------------------|-------|------------|----------------|
+| `*image-log.txt` mit "Exterro" oder "FTK" | `usb_stick` | FTK Imager | extrahiert Tableau-WriteBlocker, Drive Model, Serial, Examiner, Acquisition Date, MD5/SHA1 aus Verification Results |
+| `*image-log.txt` mit "redumper" | `optical_disc` | Redumper | extrahiert Laufwerk, Erstellungsdatum, MD5/SHA1 aus `<rom>`-Tag |
+| `*image-log.txt` (sonstige) | `floppy` | Greaseweazle | extrahiert User, Host Tools, SHA-256, Cylinders, Heads |
+| `*.map`-Datei im LZA-Hauptordner (eine Ebene über logfiles) | `hdd` | ddrescue | kein detailliertes Parsing, nur Erkennung |
+| Keine der oben genannten | `unknown` | Standard | Fallback mit leeren Werten |
+
+### GND-/LOBID-Suche (Urheber-Auswahl)
+
+**Ablauf:**
+1. Benutzer gibt Namen ein (z. B. "Brigitte Hamann")
+2. Zuerst wird die **DNB SRU-Schnittstelle** abgefragt (`https://services.dnb.de/sru/authorities`)
+3. Bei Erfolglosigkeit oder Verbindungsfehler → **lobid-gnd API** (`https://lobid.org/gnd/search`)
+4. Ergebnisse werden als nummerierte Liste angezeigt
+5. Benutzer wählt Nummer oder `s` (neue Suche) oder `x` (ohne GND fortfahren)
+
+**Extrahiert bei DNB:** GND-ID, Name, Lebensdaten, Typ (Person/Körperschaft/Ort/Werk), Berufe/Info  
+**Extrahiert bei lobid:** GND-ID, Name, Geburts-/Todesdatum, Berufe (aus `professionOrOccupation`)
+
+**Fallback:** Bei `x` wird `creator_gnd_id = None` gesetzt, Agent-ID wird aus dem eingegebenen Namen generiert.
+
+### PREMIS-Objekt-Typen
+
+| Typ | Verwendung | Beispiele |
+|-----|------------|-----------|
+| `representation` | Träger, Flux-Stream-Set, Archivpaket | `[ID]_carrier`, `[ID]_flux-stream-set` |
+| `file` | Einzeldateien | Fotos (.tif), Disk-Images (.img/.001/.bin/.dd), extrahierte Dateien, Derivate |
+
+### PREMIS-Element-Reihenfolge
+
+Das Skript erzwingt zwingend folgende Reihenfolge (XSD-konform):
+1. `object` (alle)
+2. `event` (alle)
+3. `agent` (alle)
+4. `rights` (alle)
+
+Innerhalb von `object` gilt:
+1. `objectIdentifier`
+2. `preservationLevel`
+3. `significantProperties`
+4. `objectCharacteristics`
+5. `originalName`
+6. `relationship`
+
+Innerhalb von `event`:
+1. `eventIdentifier`
+2. `eventType`
+3. `eventDateTime`
+4. `eventOutcomeInformation`
+5. `linkingAgentIdentifier`
+6. `linkingObjectIdentifier`
+
+### Erzeugte Events (Übersicht)
+
+| Event-ID | Typ | Beschreibung |
+|----------|-----|---------------|
+| `evt_imaging_[ID]` | `creation` | Disk Imaging (verknüpft Carrier mit Image) |
+| `evt_extraction_[ID]` | `extraction` | Brunnhilde Extraktion (verknüpft Image mit extrahierten Dateien) |
+| `evt_metadata_extraction_[ID]` | `metadata extraction` | Extraktion aus Siegfried/Index |
+| `evt_conversion_[ID]` | `migration` | PDF-Konvertierung (sofern Derivate existieren) |
+| `evt_packaging_[ID]` | `creation` | Finales Packaging (verknüpft alle archivierten Dateien mit Archiv-Image) |
+
+### Verwendete Agenten (Default)
+
+| Agent-ID | Name | Typ |
+|----------|------|-----|
+| `WBR` | Wienbibliothek im Rathaus | organization |
+| `SW_Brunnhilde` | Brunnhilde File Characterization Tool | software |
+| `SW_InternalPythonScripts_Conversion` | Internal Python Conversion Scripts | software |
+| `SW_InternalPythonScripts_Metadata` | Internal Python Metadata Extraction Scripts | software |
+
+### Dateiformat-Identifikation (PRONOM)
+
+| Objekt | Format | PRONOM-ID |
+|--------|--------|------------|
+| TIF-Foto | Tagged Image File Format | `fmt/353` |
+| Disk-Image (generisch) | Raw Disk Image | `x-fmt/263` |
+| PDF-Derivat | PDF Derivative | aus Siegfried übernommen |
+| Flux-Stream | Greaseweazle Raw Flux Stream | (keine PRONOM-ID) |
+
+### Quellen für extrahierte Dateien (Stufe 2)
+
+Das Skript verwendet folgende Priorität:
+1. **Index-Datei:** `3_[ID]_for-transfer/5_[ID]_LZA.index` (bevorzugt, da enthält SHA-256, Größe, PRONOM-ID, Creator-Tool)
+2. **Siegfried-CSV:** `2_[ID]_extracted-files/.../siegfried.csv` (Fallback, enthält Dateiname, Größe, PRONOM-ID)
+3. **Ableitung:** Original-Extraktionen werden über Pfad-Präfix erkannt (wenn Dateipfad mit einem Original-Extraktionspfad beginnt)
+
+### Integritätsprüfung (XML-Validierung)
+
+Nach dem Schreiben der PREMIS-Datei führt das Skript eine Live-Validierung durch:
+- Lädt das offizielle XSD-Schema von `https://www.loc.gov/standards/premis/v3/premis-v3-0.xsd`
+- Validiert die erzeugte XML dagegen
+- Bei Fehlern: Ausgabe von Zeilennummer und Fehlermeldung
+- Bei Erfolg: grüne Bestätigung
+
+### Fehlerfälle und Abbruchbedingungen
+
+| Fehlerfall | Verhalten |
+|------------|-----------|
+| `path_step5_lza` existiert nicht | FATALER FEHLER + `sys.exit(1)` |
+| Keine Kommandozeilen-Argumente | Fehlermeldung + `sys.exit(1)` |
+| Keine Objekte in `xml_objects` | Warnung + Minimal-Objekt wird erstellt (damit XML valide bleibt) |
+| GND-Suche schlägt komplett fehl | Benutzer kann ohne GND fortfahren (`creator_gnd_id = None`) |
+| XSD-Validierung schlägt fehl | Fehlermeldung mit Details, Skript läuft weiter (kein Abbruch) |
+
+### Plattformabhängiges Öffnen des Zielordners
+
+Nach Abschluss fragt das Skript: `Ordner öffnen? (j/n):`. Bei `j`:
+- **Windows** → `subprocess.Popen(['explorer', str(target_path)])`
+- **macOS** → `subprocess.run(["open", str(target_path)])`
+- **Linux/andere** → `subprocess.run(["xdg-open", str(target_path)])`
+
+### Abhängigkeiten
+
+**Erforderliche Python-Pakete:**
+- `lxml` (für XML-Verarbeitung, Sortierung, XSD-Validierung)
+- `requests` (für GND-/lobid-API-Abfragen)
+- `urllib3` (für Retry-Strategie bei DNB)
+
+**Standardbibliothek:** `sys`, `re`, `os`, `csv`, `subprocess`, `hashlib`, `glob`, `xml.etree.ElementTree`, `pathlib`, `datetime`
+
+### Wichtige Einschränkungen
+
+- `.tiff`-Dateien werden nicht als Hardware-Fotos erkannt (nur `.tif`)
+- Redumper-Parser sucht nach `<rom name="...">`-Tag im Log
+- FTK-Parser extrahiert Hashes nur aus dem Abschnitt "Image Verification Results"
+- Greaseweazle-Parser setzt `has_flux_stream = True` und erzeugt ein Flux-Stream-Set-`representation`
+- ddrescue-Erkennung basiert nur auf Existenz von `.map`-Dateien (kein Inhalts-Parsing)
+
+---
+
 ## Lizenz
 
 Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>

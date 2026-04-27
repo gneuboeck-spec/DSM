@@ -73,7 +73,6 @@ pause
 
 ---
 
-
 ## Detaillierte Hinweise zum Skriptverhalten
 
 ### Erwartete Eingabestruktur (streng erforderlich)

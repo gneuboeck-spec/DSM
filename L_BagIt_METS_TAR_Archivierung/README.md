@@ -86,6 +86,151 @@ Beispielhafter Aufruf in einer start.bat:
 
 ---
 
+## Detaillierte Hinweise zum Skriptverhalten
+
+### Erwartete Ordnerstruktur vor Ausführung
+
+C:\Users\digit\Documents\data\[AC_number]\[disk_archive_ID]/
+├── 4_[disk_archive_ID]_VL/                      <-- bleibt erhalten
+└── 5_[disk_archive_ID]_LZA/                     <-- wird zu BagIt konvertiert
+    ├── 3_files/                                 <-- Nutzdaten
+    ├── logfiles/                                <-- alle Logs und Metadaten
+    ├── 5_[ID]_LZA.index                         <-- Master-Index (optional, wird in data/ erwartet)
+    ├── 5_[ID]_LZA_premis.xml                    <-- PREMIS (optional, wird in data/logfiles/ erwartet)
+    └── [andere Dateien aus Stufe 1-3]           <-- werden ebenfalls in data/ verschoben
+
+**Wichtiger Hinweis zum Pfad:** Das Skript verwendet einen fest codierten Basispfad:
+
+base_root = Path(r"C:\Users\digit\Documents\data")
+
+Dies muss bei Bedarf an die lokale Umgebung angepasst werden.
+
+### SCHRITT 1: BagIt-Erstellung
+
+bag = bagit.make_bag(str(f5_lza), metadata, checksums=['sha256'])
+
+**Was passiert:**
+- Der gesamte Inhalt von `5_[ID]_LZA/` wird in ein Unterverzeichnis `data/` verschoben
+- Es werden folgende BagIt-Dateien erstellt: `bagit.txt`, `bag-info.txt`, `manifest-sha256.txt`
+- **Nicht** erstellt wird `tagmanifest-sha256.txt` (da `checksums` nur auf Manifeste angewendet wird, nicht auf Tag-Dateien)
+
+**Metadaten im bag-info.txt:**
+
+Contact-Name: Datenrettung Digit
+ZPH-ID: [disk_id]
+External-Identifier: [ac_number]
+
+
+### SCHRITT 2: Master-Index als Tag-File positionieren
+
+Das Skript sucht im neu erstellten `data/`-Unterordner rekursiv nach der Datei `5_[ID]_LZA.index`. Sobald gefunden, wird sie **nach `f5_lza / master_index_name`** (also auf Bag-Root-Ebene) verschoben.
+
+**Wichtig:** Der Index muss sich nach diesem Schritt also **außerhalb** des `data/`-Verzeichnisses befinden, damit er als Tag-File im Bag-Container fungiert.
+
+### SCHRITT 3: METS-Datei generieren
+
+Die `mets.xml` wird mit folgendem festen Aufbau erstellt:
+
+| Element | Inhalt |
+|---------|--------|
+| `OBJID` | `[ac_number]_[disk_id]` |
+| `dmdSec/mdRef` | `MDTYPE="OTHER" OTHERMDTYPE="MASTER-INDEX"` → verweist auf `5_[ID]_LZA.index` |
+| `amdSec/techMD/mdRef` | `MDTYPE="PREMIS"` → verweist auf `data/logfiles/5_[ID]_LZA_premis.xml` |
+| `fileSec/fileGrp/file/FLocat` | `xlink:href="data/"` |
+| `structMap` | Physische Struktur: AIP → VOLUME → fptr zu FILEID="BAG_0001" |
+
+**Wichtige Einschränkung:** Die METS-Datei wird **nicht** bei späteren `bag.save()`-Aufrufen automatisch in das Manifest aufgenommen, da sie erst nach der ersten `make_bag` erstellt wird.
+
+### SCHRITT 4: BagIt-Manifeste aktualisieren
+
+bag.save(manifests=True)
+
+Dadurch werden:
+- Die bestehenden Manifest-Dateien (`manifest-sha256.txt`) neu berechnet
+- **Achtung:** `tagmanifest-sha256.txt` wird standardmäßig nicht erstellt (wird nur bei `save(manifests=True, tag_manifests=True)` generiert)
+
+### SCHRITT 5: TAR-Archiv erstellen
+
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+tar_name = f"{ac_number}_{disk_id}_{timestamp}.tar"
+tar_full_path = disk_path / tar_name
+
+with tarfile.open(tar_full_path, "w") as tar:
+    for item in os.listdir(f5_lza):
+        tar.add(f5_lza / item, arcname=item)
+
+**Besonderheiten:**
+- Unkomprimiertes TAR (Modus `"w"`, nicht `"w:gz"`)
+- Alle Inhalte von `f5_lza` werden auf oberster Ebene im TAR abgelegt (kein zusätzliches Wurzelverzeichnis)
+- Der Zeitstempel im Dateinamen verhindert Überschreiben
+
+### SCHRITT 6: Bereinigung des temporären Bag-Ordners
+
+shutil.rmtree(f5_lza)
+
+Löscht den gesamten `5_[ID]_LZA`-Ordner nach erfolgreicher TAR-Erstellung.
+
+### SCHRITT 7: Löschen der alten Stufen 0-3
+
+Gelöscht werden folgende Ordner (unabhängig davon, ob sie existieren):
+
+stages_to_delete = [
+    f"0_{disk_id}_picture-carrier",
+    f"1_{disk_id}_image-LZA",
+    f"2_{disk_id}_extracted-files",
+    f"3_{disk_id}_for-transfer"
+]
+
+**VL-Stufe (4) bleibt erhalten** als aktives Repository.
+
+### Sicherheitsabfrage
+
+Vor der Ausführung erscheint:
+
+[!] HINWEIS: Explorer-Fenster von 5_[ID]_LZA schliessen.
+ Bagging und Archivierung jetzt starten? (j/n):
+
+Nur bei Eingabe `j` wird fortgefahren.
+
+### Fehlerbehandlung
+
+| Fehlerfall | Verhalten |
+|------------|-----------|
+| `f5_lza` existiert nicht | rote Fehlermeldung + `return` (kein Abbruch mit `sys.exit`) |
+| Master-Index nicht in `data/` gefunden | rote Meldung, Skript fährt fort |
+| Einzelner Ordner kann nicht gelöscht werden | gelbe Warnung, andere Ordner werden weiter gelöscht |
+| Allgemeiner Fehler während der Verarbeitung | rote Meldung + Traceback wird ausgegeben |
+
+### Endgültige Projektstruktur nach Skriptende
+
+C:\Users\digit\Documents\data\[AC_number]\[disk_archive_ID]/
+├── 4_[disk_archive_ID]_VL/                      <-- ERGEBNIS 1 (Active Repository)
+│   ├── files/
+│   ├── 2_[ID]_extracted-files.content
+│   ├── 2_[ID]_extracted-files_tree.txt
+│   ├── 3_[ID]_for-transfer.index
+│   └── 3_[ID]_for-transfer_integrity.log
+└── [AC_number]_[disk_archive_ID]_[YYYYMMDD_HHMMSS].tar   <-- ERGEBNIS 2 (AIP)
+
+### Abhängigkeiten
+
+**Erforderliche Python-Pakete:**
+- `bagit` (für BagIt-Containerisierung)
+- `colorama` (für farbige Terminal-Ausgabe; Fallback bei Importfehler)
+
+**Standardbibliothek:** `os`, `sys`, `shutil`, `time`, `tarfile`, `glob`, `datetime`, `pathlib`
+
+### Wichtige Einschränkungen und Hinweise
+
+- Der Basispfad ist **fest codiert** auf `C:\Users\digit\Documents\data`
+- `tagmanifest-sha256.txt` wird **nicht** erstellt (nur `manifest-sha256.txt`)
+- Die METS-Datei wird **nicht** von BagIt manifestiert (da sie nach dem letzten `save` erstellt wird)
+- Das TAR-Archiv ist **unkomprimiert** (nur Verpackung, keine Kompression)
+- Die VL-Stufe (4) bleibt **unverändert** erhalten – nur die Stufen 0,1,2,3,5 werden gelöscht
+- Es gibt **keine Prüfung**, ob das TAR-Archiv bereits existiert (Zeitstempel verhindert Überschreiben nur im selben Sekundenbruchteil)
+
+---
+
 ## Lizenz
 
 Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>

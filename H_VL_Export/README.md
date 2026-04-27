@@ -60,6 +60,80 @@ Beispielhafter Aufruf:
 
 ---
 
+## Detaillierte Hinweise zum Skriptverhalten
+
+### Erwartete Ordnerstruktur
+
+~/Documents/data/[AC_number]/[disk_archive_ID]/
+├── 0_[disk_archive_ID]_picture-carrier/
+│   └── *.tif                                    <-- QUELLE (alle TIF-Dateien)
+├── 2_[disk_archive_ID]_extracted-files/
+│   ├── 2_[disk_archive_ID]_extracted-files.content  <-- QUELLE
+│   └── 2_[disk_archive_ID]_extracted-files_tree.txt <-- QUELLE
+└── 4_[disk_archive_ID]_VL/                      <-- ZIEL (muss existieren)
+
+
+### Kopierte Dateien im Detail
+
+| Quelle | Ziel | Bedingung |
+|--------|------|------------|
+| `0_[ID]_picture-carrier/*.tif` | `4_[ID]_VL/*.tif` | nur wenn Quelldatei existiert und Ziel nicht bereits vorhanden |
+| `2_[ID]_extracted-files/2_[ID]_extracted-files.content` | `4_[ID]_VL/2_[ID]_extracted-files.content` | nur wenn Quelldatei existiert und Ziel nicht bereits vorhanden |
+| `2_[ID]_extracted-files/2_[ID]_extracted-files_tree.txt` | `4_[ID]_VL/2_[ID]_extracted-files_tree.txt` | nur wenn Quelldatei existiert und Ziel nicht bereits vorhanden |
+
+### Fehlerfälle und Abbruchbedingungen
+
+| Fehlerfall | Verhalten |
+|------------|-----------|
+| `base_path` (Dokumente/data/[AC]) existiert nicht | rote Meldung + `sys.exit(1)` |
+| `main_folder` (Dokumente/data/[AC]/[ID]) existiert nicht | rote Meldung + `sys.exit(1)` |
+| `destination_folder` (`4_[ID]_VL`) existiert nicht | rote Meldung + `sys.exit(1)` |
+| Quellordner `0_[ID]_picture-carrier` existiert nicht | gelbe Warnung, Kopiervorgang wird übersprungen (kein Abbruch) |
+| Quellordner `2_[ID]_extracted-files` existiert nicht | wird nicht separat geprüft; die fehlenden Dateien werden einzeln mit gelber Warnung gemeldet |
+| Quelldatei existiert nicht | gelbe Warnung, keine Kopie |
+| Zieldatei existiert bereits | gelbe Warnung, Überspringen (kein Überschreiben) |
+
+### Kopiermethode
+
+Das Skript verwendet `shutil.copy2()`, welches die ursprünglichen Metadaten (z. B. Zeitstempel) beibehält.
+
+### TIF-Erkennung
+
+Das Skript sucht mit `source_picture_carrier.glob("*.tif")` nach Dateien mit der Endung `.tif` (Groß-/Kleinschreibung wird nicht explizit behandelt; Windows ist case-insensitiv). Dateien mit Endung `.tiff` werden nicht erkannt.
+
+### Dublettenprüfung
+
+Für jede Datei wird vor dem Kopieren geprüft, ob die Zieldatei bereits existiert (`dest_file.exists()`). Wenn ja, erscheint eine gelbe Warnung und die Datei wird übersprungen.
+
+### Farbkodierung (colorama)
+
+| Farbe | Verwendung |
+|-------|------------|
+| Grün (`Fore.GREEN`) | Erfolgsmeldungen (Kopie erfolgreich, Pfade vorhanden) |
+| Gelb (`Fore.YELLOW`) | Warnungen (Datei existiert bereits, Ordner/Datei nicht gefunden, manuelle Eingabe-Aufforderung) |
+| Rot (`Fore.RED`) | Fehler (Pfade existieren nicht, Skriptabbruch) |
+| Magenta (`Fore.MAGENTA`) | Kopfzeilen (Trennlinien, Überschriften) |
+| Cyan (`Fore.CYAN`) | Abschnittsüberschriften („Pfade definieren“, „Kopiervorgang starten“) |
+| Weiß (`Fore.WHITE`) | Pfadausgabe |
+
+### Fallback bei fehlenden Kommandozeilen-Argumenten
+
+Wenn das Skript ohne AC-Nummer und Datenträger-ID gestartet wird, fragt es interaktiv nach den Werten. Die Meldung erscheint in Gelb.
+
+### Plattformabhängiges Öffnen des Zielordners
+
+Nach Abschluss fragt das Skript: `Zielordner oeffnen? (j/n):`. Bei `j`:
+- **Windows** → `os.startfile(destination_folder)`
+- **macOS** → `subprocess.run(["open", destination_folder])`
+- **Linux/andere** → `subprocess.run(["xdg-open", destination_folder])`
+
+### Abhängigkeiten
+
+- **Erforderlich**: `colorama` (muss installiert sein, sonst Abbruch mit Fehlermeldung)
+- **Standardbibliothek**: `os`, `sys`, `re`, `shutil`, `subprocess`, `pathlib`
+
+---
+
 ## Lizenz
 
 Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
