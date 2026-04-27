@@ -66,7 +66,7 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
 │   ├── 2_[ID]_extracted-files_tree.txt          <-- Kopie aus Stufe 2
 │   ├── 3_[ID]_for-transfer.index                <-- Technischer Index (Stufe 4 Stand)
 │   └── 3_[ID]_for-transfer_integrity.log        <-- Fixity-Beweis gegen Phase 1
-└── (Logs wandern parallel nach Stufe 5/logfiles)
+└── (Logs aus Bereinigung: 4_[ID]_VL_delete-all.log, 4_[ID]_VL_delete-converted-odfs.log, 4_[ID]_VL_delete-converted-wavs.log wandern nach Stufe 5/logfiles)
 ```
 ```text
 ================================================================================
@@ -87,9 +87,14 @@ TREE-STRUKTUR (VOR DER TAR-VERSIEGELUNG):
 └── logfiles/                                    <-- DER PROZESS-BEWEIS (Audit Trail)
     ├── 1_[ID]_image-log.csv / 01_[ID]_image-log.txt
     ├── 2_[ID]_extracted-files_brunnhilde-summary.json
-    ├── 4_[ID]_VL_delete-all.log                 
+    ├── 2_[ID]_extracted-files_brunnhilde/       <-- kompletter Ordner mit Detailberichten
+    ├── 3_[ID]_for-transfer.index                <-- Technischer Vor-Index
+    ├── 3_[ID]_for-transfer_integrity.log        <-- Fixity-Beweis Phase 3
+    ├── 4_[ID]_VL_delete-all.log                 <-- Bereinigung Phase 3 (Skript E)
+    ├── 4_[ID]_VL_delete-converted-odfs.log      <-- Artefakt-Bereinigung (Skript F)
+    ├── 4_[ID]_VL_delete-converted-wavs.log      <-- Artefakt-Bereinigung (Skript F)
     ├── 5_[ID]_LZA_premis.xml                    <-- Erhaltungs-Metadaten
-    └── 5_[ID]_LZA_integrity.log                 <-- Finaler Fixity-Beweis
+    └── 5_[ID]_LZA_integrity.log                 <-- Finaler Fixity-Beweis (Skript K)
 ```
 ```text
 ================================================================================
