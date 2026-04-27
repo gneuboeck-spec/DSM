@@ -63,6 +63,110 @@ Im Archivierungsworkflow wird diese Datei primär vom Metadaten-Skript genutzt:
 
 ---
 
+## Detaillierte Hinweise zur YARA-Regelsammlung
+
+### Aufbau einer Regel
+
+Jede Regel folgt diesem Grundmuster:
+
+rule REGELNAME {
+    meta:
+        pronom_id = "fmt/XXX"
+        note = "Beschreibung des Formats"
+    strings:
+        $variable1 = {HEX BYTES}
+        $variable2 = "Textstring"
+    condition:
+        Bedingung mit $variable1, $variable2
+}
+
+### Verwendete Meta-Felder
+
+| Feld | Bedeutung | Beispiel |
+|------|-----------|----------|
+| pronom_id | PRONOM-Identifikator (falls bekannt) | `fmt/18` für PDF |
+| note | Beschreibender Text | `"Adobe PDF (kein PDF/A)"` |
+
+Nicht alle Regeln haben ein `pronom_id`-Feld. Für proprietäre oder weniger verbreitete Formate (z.B. Apple Pages, Lotus AmiPro, Corel Presentations) ist nur `note` vorhanden.
+
+### Wichtige Regeln im Detail
+
+**PDF vs. PDF/A**
+- `rule PDF`: Erkennt Standard-PDF (%PDF- am Anfang, aber kein pdfaid-Namespace)
+- `rule PDFA`: Erkennt PDF/A (%PDF- am Anfang + Namespace + Teil 1,2 oder 3)
+
+**CSV (heuristisch)**
+- Sucht nach 3 Vorkommen des Patterns `(\r\n|\n|\r|^)[^\r\n,]+(,[^\r\n,]+)+` in den ersten 2048 Bytes
+- Schliesst bekannte Formate aus (XML, RTF, PDF, HTML), die Kommas enthalten koennten
+- Erhoeht die Zuverlässigkeit durch minimale Trefferzahl (3)
+
+**TXT (Fallback-Regel)**
+- Trifft zu, wenn KEINE bekannte Binär-Signatur am Anfang gefunden wird
+- Prueft auf: ZIP, PDF, OLE, PNG, JPEG, BMP, TIFF, GIF
+- Datei muss groesser als 0 Bytes sein
+- Diese Regel wird normalerweise zuletzt ausgewertet
+
+**SAM (Lotus AmiPro)**
+- Sucht nach den Headern `[ver]`, `[sty]`, `[files]`, `[charset]`, `[revisions]`
+- Bedingung: alle fuenf Header muessen in den ersten 512 Bytes vorkommen
+
+**EML (E-Mail)**
+- Prueft auf `From:`, `To:`, `Subject:`, `Date:`, `MIME-Version:`
+- Alternative 1: `From:` oder `Subject:` oder `Date:` an Position 0
+- Alternative 2: mindestens 2 der fuenf Header irgendwo in der Datei
+
+**ZIP_ARCHIVE**
+- Prueft auf ZIP-Magic `{50 4B 03 04}` an Position 0
+- ODER: `{50 4B 01 02}` (Zentralverzeichnis) und `{50 4B 05 06}` (Ende des Zentralverzeichnisses) beide vorhanden
+
+**MUSICXML vs. XML**
+- `rule XML`: Erkennt generisches XML (`<?xml` am Anfang) aber NICHT `<score-partwise>` oder `<score-timewise>`
+- `rule MUSICXML`: Erkennt unkomprimiertes MusicXML (`<?xml` am Anfang + Score-Tag)
+- `rule MXL`: Erkennt komprimiertes MusicXML (ZIP-Magic + `META-INF/container.xml`)
+
+### Besondere Schreibweisen
+
+| Syntax | Bedeutung |
+|--------|-----------|
+| `{D0 CF 11 E0 A1 B1 1A E1}` | Hex-Byte-Sequenz (OLE-Header) |
+| `"WordDocument"` | Textstring (case-sensitive) |
+| `nocase` | Flag fuer case-insensitive Suche |
+| `uint16be(0) == 0xFFD8` | 16-Bit Integer im Big-Endian-Format an Position 0 |
+| `at 0` | Die Zeichenkette muss an Position 0 beginnen |
+| `in (0..512)` | Suchbereich auf die ersten 512 Bytes begrenzt |
+| `1 of ($a, $b, $c)` | Mindestens 1 der aufgelisteten Strings muss vorkommen |
+| `all of ($a, $b, $c)` | Alle aufgelisteten Strings muessen vorkommen |
+| `filesize > 0` | Datei darf nicht leer sein |
+
+### Format-Kategorien (uebersicht)
+
+| Kategorie | Enthaltene Regeln |
+|-----------|-------------------|
+| Dokumente | DOC, DOCX, RTF, PAGES, SAM, PDF, PDFA |
+| E-Mails/Daten | DBX, EML, JSON |
+| Praesentationen | PPT, PPTX, ODP, KEY, PRZ, SHW |
+| Tabellen | XLS, CSV |
+| Audio | MP3, WAV, FLAC |
+| Video | MP4, AVI, MKV |
+| Bilder | JPEG, PNG, TIFF, GIF, BMP |
+| Auszeichnungssprachen | XML, MUSICXML, MXL, HTML, XHTML |
+| Text | TXT (Fallback) |
+| Archive | ZIP_ARCHIVE |
+
+### Einschraenkungen und bekannte Probleme
+
+- Die CSV-Regel kann bei sehr kleinen Dateien (weniger als 3 Zeilen) fehlschlagen
+- Die TXT-Regel ist ein Negativ-Test und kann Dateien faelschlicherweise als Text klassifizieren, wenn sie keine der geprueften Magic Bytes haben (z.B. leere Dateien)
+- Die MUSICXML-Regel setzt voraus, dass die XML-Deklaration `<?xml` an Position 0 steht
+- Die PRONOM-IDs sind nicht fuer alle Regeln verfuegbar (nur fuer Standard-Formate)
+- Die Regel `PS` (PostScript) ist in der Sammlung enthalten, wird aber in der README nicht als Kategorie aufgefuehrt
+
+### Abhaengigkeiten
+
+Die Regeldatei ist unabhaengig von externen Bibliotheken und kann mit jedem YARA-kompatiblen Parser verwendet werden (z.B. `yara-python`, `yara` CLI). Keine zusaetzlichen Python-Pakete erforderlich.
+
+---
+
 ## Lizenz & Urheberrecht
 
 Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
