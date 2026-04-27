@@ -204,6 +204,7 @@ Nur bei Eingabe `j` wird fortgefahren.
 
 ### Endgültige Projektstruktur nach Skriptende
 
+```Text
 C:\Users\digit\Documents\data\[AC_number]\[disk_archive_ID]/
 ├── 4_[disk_archive_ID]_VL/                      <-- ERGEBNIS 1 (Active Repository)
 │   ├── files/
@@ -212,7 +213,7 @@ C:\Users\digit\Documents\data\[AC_number]\[disk_archive_ID]/
 │   ├── 3_[ID]_for-transfer.index
 │   └── 3_[ID]_for-transfer_integrity.log
 └── [AC_number]_[disk_archive_ID]_[YYYYMMDD_HHMMSS].tar   <-- ERGEBNIS 2 (AIP)
-
+```
 ### Abhängigkeiten
 
 **Erforderliche Python-Pakete:**
