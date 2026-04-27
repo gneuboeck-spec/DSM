@@ -73,6 +73,68 @@ pause
 
 ---
 
+## Detaillierte Hinweise zum Skriptverhalten
+
+### Erwartete Eingabestruktur (streng erforderlich)
+
+Das Skript setzt zwingend folgende Ordnerstruktur voraus. Die zu analysierenden Dateien MÜSSEN bereits in `files/` liegen:
+
+~/Documents/data/[AC-Nummer]/[Datenträger-ID]/2_[DatentrÃ¤ger-ID]_extracted-files/files/
+  └── (Ihre zu analysierenden Dateien und Unterordner)
+
+Fehlt dieses `files/`-Verzeichnis oder ist es leer, bricht das Skript mit einer Fehlermeldung ab.
+
+### Fehlerfälle und Abbruchbedingungen
+
+Das Skript prüft beim Start:
+- Existenz von `files/` und dem übergeordneten `…_extracted-files/`
+- `sf.exe` im konfigurierten `SIEGFRIED_DIR` (falls angegeben)
+- `clamscan.exe` im konfigurierten `CLAMAV_DIR` (falls angegeben)
+
+Bei Fehlern erscheint eine rote Fehlermeldung (`\033[91m`), das Skript wird mit `return None` bzw. `sys.exit(1)` beendet.
+
+### Temporäres Verzeichnis für Brunnhilde
+
+Wenn in der Funktion `extract_brunnhilde_info` der Parameter `brunnhilde_output_dir` leer ist oder `None`, erzeugt das Skript ein temporäres Verzeichnis (mit `tempfile.mkdtemp`). Dieses wird nach der Analyse **automatisch gelöscht**. Der Regelfall (aus `setup_and_validate_analysis_paths`) verwendet jedoch ein festes Verzeichnis.
+
+### Pfad-Erweiterung für Brunnhilde
+
+Brunnhilde wird mit erweiterter Umgebungsvariable `PATH` aufgerufen: Die Ordner von Siegfried und ClamAV werden vorne an `PATH` angehängt. Dadurch findet Brunnhilde die Kommandozeilenwerkzeuge, auch wenn sie nicht systemweit installiert sind.
+
+### Exakter ClamAV-Live-Check
+
+Das Skript überwacht die Ausgabe von Brunnhilde **zeilenweise** auf die Zeichenkette `"older than 7 days"` (Groß-/Kleinschreibung wird ignoriert). Sobald diese Zeile erscheint, wird sofort eine Update-Anleitung ausgegeben – **ohne dass der Scan abbricht**.
+
+### SHA-256-Fehlerbehandlung
+
+`calculate_sha256()` fängt alle Ausnahmen ab und schreibt dann `f"Error: {str(e)}"` in das SHA-256-Feld. Im JSON erscheint also kein korrekter Hash, sondern ein Fehlertext.
+
+### Aufbau der erzeugten JSON-Datei
+
+Die finale `*-summary.json` enthält folgende Felder:
+
+| Feld | Inhalt |
+|------|--------|
+| `file_fixity_sha256` | Liste von `{"file": "relativer Pfad", "sha256": "Hash oder Fehlertext"}` |
+| `brunhilde_format_summary` | JSON-String des `formats.csv` von Brunnhilde |
+| `brunhilde_mime_type_summary` | JSON-String des `mimetypes.csv` |
+| `structured_siegfried_warnings` | Dictionary: Dateipfad → Liste der Warnungszeilen aus `siegfried_warnings.csv` |
+| `structured_unidentified_files` | Liste der Dateipfade aus `unidentified.csv` |
+| `brunhilde_clamav_infected_files` | Anzahl infizierter Dateien (als String) aus `virus_scan_log.txt` |
+| `brunhilde_clamav_virus_details` | JSON-String der Liste `[Datei, Virusname]` (nur wenn Infizierte > 0) |
+| `brunhilde_clamav_status` | Nur wenn kein Log gefunden: `"Kein virus_scan_log.txt gefunden."` |
+
+### Manuelle `tree.txt`-Erstellung (Windows)
+
+Das Skript verwendet nicht `tree.exe`, sondern direkt `cmd /c tree "…" /A /F > "tree.txt"`. Dies wird unabhängig vom Erfolg von Brunnhilde ausgeführt. Falls der Befehl fehlschlägt, erscheint eine Warnung, das Skript wird aber **fortgesetzt**.
+
+### Plattformabhängiges Öffnen des Zielordners
+
+Nach Abschluss fragt das Skript: `Zielordner oeffnen? (j/n)`. Bei `j`:
+- **Windows** → `os.startfile(destination_folder)`
+- **macOS** → `open`
+- **Linux/andere** → `xdg-open`
+
 ## Lizenz
 
 Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
