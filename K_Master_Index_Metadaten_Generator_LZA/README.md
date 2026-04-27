@@ -78,6 +78,7 @@ Das Skript wird über die Kommandozeile mit AC-Nummer und Datenträger-ID gestar
 
 Das Skript erwartet folgende vollständig konsolidierte Struktur nach Ausführung von Skript J (Staging):
 
+```text
 ~/Documents/data/[AC_number]/[disk_archive_ID]/
 └── 5_[disk_archive_ID]_LZA/                      <-- BASE_DIR (wird rekursiv gescannt)
     ├── 01_[ID].img / *.001 / *.bin / *.dd        <-- Disk-Images
@@ -94,7 +95,7 @@ Das Skript erwartet folgende vollständig konsolidierte Struktur nach Ausführun
         ├── 3_[ID]_for-transfer.index
         ├── 5_[ID]_LZA_premis.xml
         └── 5_[ID]_LZA_integrity.log              <-- ZIEL (finales Integritäts-Log)
-
+```
 
 ### Referenzquellen für Integritätsprüfung (load_all_lza_reference_hashes)
 

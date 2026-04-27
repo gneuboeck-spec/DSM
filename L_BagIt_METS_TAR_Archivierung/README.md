@@ -90,6 +90,7 @@ Beispielhafter Aufruf in einer start.bat:
 
 ### Erwartete Ordnerstruktur vor Ausführung
 
+```text
 C:\Users\digit\Documents\data\[AC_number]\[disk_archive_ID]/
 ├── 4_[disk_archive_ID]_VL/                      <-- bleibt erhalten
 └── 5_[disk_archive_ID]_LZA/                     <-- wird zu BagIt konvertiert
@@ -98,7 +99,7 @@ C:\Users\digit\Documents\data\[AC_number]\[disk_archive_ID]/
     ├── 5_[ID]_LZA.index                         <-- Master-Index (optional, wird in data/ erwartet)
     ├── 5_[ID]_LZA_premis.xml                    <-- PREMIS (optional, wird in data/logfiles/ erwartet)
     └── [andere Dateien aus Stufe 1-3]           <-- werden ebenfalls in data/ verschoben
-
+```
 **Wichtiger Hinweis zum Pfad:** Das Skript verwendet einen fest codierten Basispfad:
 
 base_root = Path(r"C:\Users\digit\Documents\data")

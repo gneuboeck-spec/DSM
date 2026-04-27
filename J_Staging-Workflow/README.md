@@ -82,6 +82,7 @@ Beispielhafter Aufruf:
 
 ### Erwartete Ordnerstruktur vor Ausführung
 
+```text
 ~/Documents/data/[AC_number]/[disk_archive_ID]/
 ├── 0_[disk_archive_ID]_picture-carrier/
 │   ├── *.tif                                    <-- Hardware-Fotos
@@ -104,7 +105,7 @@ Beispielhafter Aufruf:
 │   └── logfiles/ (falls vorhanden)              <-- wird migriert
 ├── 4_[disk_archive_ID]_VL/                      <-- Ziel für Kopien
 └── 5_[disk_archive_ID]_LZA/                     <-- Ziel für Migration
-
+```
 
 ### `safe_move_item()` Funktion
 

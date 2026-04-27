@@ -73,6 +73,7 @@ Beispielhafter Aufruf in einer start.bat:
 
 ### Erwartete Ordnerstruktur
 
+```text
 ~/Documents/data/[AC_number]/[disk_archive_ID]/
 ├── 4_[disk_archive_ID]_VL/
 │   └── files/                                    <-- ARBEITSBEREICH (Eingabe & Löschung)
@@ -80,6 +81,7 @@ Beispielhafter Aufruf in einer start.bat:
     └── logfiles/                                 <-- LOG-ZIEL (wird automatisch erstellt)
         ├── 4_[ID]_VL_delete-converted-odfs.log   <-- Protokoll ODF-Bereinigung
         └── 4_[ID]_VL_delete-converted-wavs.log   <-- Protokoll WAV-Bereinigung
+```
 
 ### Original-Endungen für ODF-Bereinigung
 
@@ -112,7 +114,7 @@ Das Skript löscht `.wav`-Dateien, die aus folgenden Audioformaten konvertiert w
 ### Interaktives Menü
 
 Das Skript zeigt folgendes Menü an:
-
+```
 ========================================
   Wählen Sie eine Aufräum-Aktion:
 ========================================
@@ -120,6 +122,7 @@ Das Skript zeigt folgendes Menü an:
   2 - Konvertierte WAV-Dateien löschen
   Q - Beenden
 ========================================
+```
 Ihre Wahl:
 
 Nach jeder abgeschlossenen Aktion muss der Benutzer **Enter drücken**, um zum Menü zurückzukehren.

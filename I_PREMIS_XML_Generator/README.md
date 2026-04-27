@@ -74,6 +74,7 @@ Beispielhafter Aufruf:
 
 ### Erwartete Ordnerstruktur
 
+```text
 ~/Documents/data/[AC_number]/[disk_archive_ID]/
 ├── 0_[disk_archive_ID]_picture-carrier/          <-- QUELLE (Hardware-Fotos .tif)
 ├── 1_[disk_archive_ID]_image-LZA/                <-- QUELLE (Disk-Images)
@@ -89,7 +90,7 @@ Beispielhafter Aufruf:
         ├── 5_[ID]_LZA_premis.xml                 <-- finale PREMIS-Datei
         └── 5_[ID]_LZA_derivation-image.img       <-- wird gesucht (falls vorhanden)
             └── *.log                             <-- wird gesucht (Packaging-Log)
-
+```
 
 ### Medienerkennung (automatische Weiche)
 

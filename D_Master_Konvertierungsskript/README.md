@@ -123,10 +123,12 @@ Das Skript verarbeitet Dateien in folgender Priorität (definiert durch die Reih
 
 ### Erwartete Ordnerstruktur
 
+```text
 ~/Documents/data/[AC_number]/[disk_archive_ID]/
 └── 3_[disk_archive_ID]_for-transfer/
     ├── files/                                    <-- QUELLE & ZIEL (rekursive Verarbeitung)
     └── 3_[disk_archive_ID]_for-transfer_all-conversions.log   <-- LOG-DATEI
+```
 
 ### Plattformabhängiges Öffnen des Zielordners
 

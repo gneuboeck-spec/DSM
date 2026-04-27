@@ -64,6 +64,7 @@ Beispielhafter Aufruf:
 
 ### Erwartete Ordnerstruktur
 
+```text
 ~/Documents/data/[AC_number]/[disk_archive_ID]/
 ├── 0_[disk_archive_ID]_picture-carrier/
 │   └── *.tif                                    <-- QUELLE (alle TIF-Dateien)
@@ -71,7 +72,7 @@ Beispielhafter Aufruf:
 │   ├── 2_[disk_archive_ID]_extracted-files.content  <-- QUELLE
 │   └── 2_[disk_archive_ID]_extracted-files_tree.txt <-- QUELLE
 └── 4_[disk_archive_ID]_VL/                      <-- ZIEL (muss existieren)
-
+```
 
 ### Kopierte Dateien im Detail
 
