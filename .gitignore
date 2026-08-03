@@ -1,20 +1,88 @@
+# ----------------------------------------------------
 # macOS-spezifische Dateien
+# ----------------------------------------------------
 .DS_Store
 ._*
 .Spotlight-V100
 .Trashes
 __MACOSX
 
+
+# ----------------------------------------------------
+# Windows-spezifische Dateien
+# ----------------------------------------------------
+Thumbs.db
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+
+# ----------------------------------------------------
 # Python-spezifische Cache- und Build-Dateien
+# ----------------------------------------------------
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
-.env
-venv/
 *.egg-info/
 
-# Eigene Log- und Ausgabedateien (Beispiele)
+
+# ----------------------------------------------------
+# Virtuelle Python-Umgebungen
+# ----------------------------------------------------
+.venv/
+venv/
+env/
+ENV/
+
+
+# ----------------------------------------------------
+# Secrets / lokale Konfiguration
+# ----------------------------------------------------
+.env
+.env.local
+*.local
+
+
+# ----------------------------------------------------
+# IDE / Editoren
+# ----------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+
+# ----------------------------------------------------
+# Eigene Log- und Ausgabedateien
+# ----------------------------------------------------
 *.log
 *.mapfile
-*.xml
 temp_pdf_conversion/
+*.tmp
+*.temp
+*.bak
+*.old
+
+
+# ----------------------------------------------------
+# Datenrettung / Disk-Images / große Binärdateien
+# ----------------------------------------------------
+*.img
+*.dd
+*.raw
+*.E01
+*.e01
+*.vhd
+*.vhdx
+*.dmg
+*.iso
+
+
+# ----------------------------------------------------
+# XML-Dateien
+# ----------------------------------------------------
+# Wenn XML-Dateien bei dir nur Ausgaben/Reports sind,
+# kann die Zeile bleiben.
+# Wenn du XML-Dateien bewusst versionieren willst,
+# sollte diese Zeile entfernt oder eingeschränkt werden.
+*.xml
