@@ -1,29 +1,29 @@
-# Skript I: PREMIS v3 XML-Generator (Digital Preservation)
+# I - PREMIS v3 XML-Generator (Digital Preservation)
 
 Dieses Skript ist das zentrale Dokumentationswerkzeug im Archivierungsworkflow. Es generiert eine valide PREMIS v3 (Preservation Metadata: Implementation Strategies) XML-Datei, die den gesamten Lebenszyklus eines digitalen Objekts – von der physischen Quelle bis zum fertigen Archivpaket – normgerecht und maschinenlesbar dokumentiert. 
 
-Das Skript verfügt über eine intelligente "Medien-Weiche" (Version 22.3), die automatisch erkennt, ob es sich um USB-Sticks (FTK), Disketten (Greaseweazle), Festplatten (ddrescue) oder optische Datenträger (Redumper) handelt, und extrahiert die entsprechenden forensischen Metadaten direkt aus den jeweiligen Logs.
+Das Skript verfügt über eine intelligente "Medien-Weiche", die automatisch erkennt, ob es sich um USB-Sticks (FTK), Disketten (Greaseweazle), Festplatten (ddrescue) oder optische Datenträger (Redumper) handelt, und extrahiert die entsprechenden forensischen Metadaten direkt aus den jeweiligen Logs.
 
 ---
 
 ## Hauptfunktionen
 
-*   **Automatisierte Medien-Erkennung (Forensic Context):**
-    *   **FTK-Parser:** Extrahiert Hardware-Informationen (z.B. Tableau Write-Blocker), Seriennummern und Verifikations-Hashes aus forensischen USB-Images.
-    *   **Redumper-Parser:** NEU – Liest Metadaten aus Audio-CD/DVD-Rips (Redumper) und übernimmt die Hardware-Kennung des optischen Laufwerks.
-    *   **Greaseweazle-Parser:** Dokumentiert Flux-Stream-Parameter, Heads/Cylinders und Host-Tools für Disketten-Images.
-    *   **ddrescue-Support:** Erkennt HDD-Clones anhand von Mapfiles.
-*   **Normdaten-Integration (GND & LOBID):**
-    *   Interaktive Suche nach Urhebern in der Deutschen Nationalbibliothek (DNB) via SRU-Schnittstelle.
-    *   **LOBID-Fallback:** Nutzt bei Erreichbarkeitsproblemen der DNB automatisch die lobid-gnd API (hbz), um Namen, Lebensdaten und Berufe zur Identifikation zu verknüpfen.
-*   **Hierarchische PREMIS-Struktur:**
-    *   **Objects:** Dokumentiert Träger-Fotos (Stage 0), Disk-Images (Stage 1), extrahierte Originaldateien (Stage 2) und den technischen Index (Stage 3).
-    *   **Events:** Protokolliert Imaging, Extraktion, Metadaten-Erfassung, Konvertierung und Packaging.
-    *   **Agents:** Verknüpft Software-Tools (Siegfried, Brunnhilde, Python-Scripts), Hardware und Personen (Urheber).
-    *   **Rights:** Erstellt Copyright-Statements basierend auf den Urheberdaten.
-*   **Schema-Validierung & XSD-Compliance:**
-    *   Erzwingt die strikte Einhaltung der Element-Reihenfolge (Objects -> Events -> Agents -> Rights).
-    *   Integrierte Live-Validierung gegen das offizielle PREMIS-Schema der Library of Congress (LOC).
+* **Automatisierte Medien-Erkennung (Forensic Context):**
+  * **FTK-Parser:** Extrahiert Hardware-Informationen (z. B. Tableau Write-Blocker), Seriennummern und Verifikations-Hashes aus forensischen USB-Images.
+  * **Redumper-Parser:** Liest Metadaten aus Audio-CD/DVD-Rips (Redumper) und übernimmt die Hardware-Kennung des optischen Laufwerks.
+  * **Greaseweazle-Parser:** Dokumentiert Flux-Stream-Parameter, Heads/Cylinders und Host-Tools für Disketten-Images.
+  * **ddrescue-Support:** Erkennt HDD-Clones anhand von Mapfiles.
+* **Normdaten-Integration (GND & LOBID):**
+  * Interaktive Suche nach Urhebern in der Deutschen Nationalbibliothek (DNB) via SRU-Schnittstelle.
+  * **LOBID-Fallback:** Nutzt bei Erreichbarkeitsproblemen der DNB automatisch die lobid-gnd API (hbz), um Namen, Lebensdaten und Berufe zur Identifikation zu verknüpfen.
+* **Hierarchische PREMIS-Struktur:**
+  * **Objects:** Dokumentiert Träger-Fotos (Stufe 0), Disk-Images (Stufe 1), extrahierte Originaldateien (Stufe 2) und den technischen Index (Stufe 3).
+  * **Events:** Protokolliert Imaging, Extraktion, Metadaten-Erfassung, Konvertierung und Packaging.
+  * **Agents:** Verknüpft Software-Tools (Siegfried, Brunnhilde, Python-Skripte), Hardware und Personen (Urheber).
+  * **Rights:** Erstellt Copyright-Statements basierend auf den Urheberdaten.
+* **Schema-Validierung & XSD-Compliance:**
+  * Erzwingt die strikte Einhaltung der Element-Reihenfolge (Objects → Events → Agents → Rights).
+  * Integrierte Live-Validierung gegen das offizielle PREMIS-Schema der Library of Congress (LOC).
 
 ---
 
@@ -42,31 +42,43 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
     └── logfiles/                    <-- ZIEL (Hier wird die Dokumentation erstellt)
         └── 5_[ID]_LZA_premis.xml    <-- Das finale PREMIS-Hauptdokument
 ```
+
 ---
 
 ## Technische Voraussetzungen
 
-*   Python: Version 3.10 oder neuer empfohlen.
-*   Bibliotheken: Benötigt `lxml` (für XML-Sortierung/Validierung) und `requests` (für GND-Abfragen).
-    pip install lxml requests urllib3
+* **Python:** Version 3.10 oder neuer empfohlen.
+* **Bibliotheken:** Benötigt `lxml` (für XML-Sortierung/Validierung), `requests` (für GND-Abfragen) und `urllib3`.
+  ```bash
+  pip install lxml requests urllib3
+  ```
 
 ---
 
 ## Ausführung
 
-Das Skript erwartet die AC-Nummer und die Datenträger-ID als Argumente.
+Das Skript wird im normalen Arbeitsablauf über den zentralen **Workflow Launcher** (`Workflow_Launcher_start.bat`) und das darauf folgende **Auswahlmenü** gestartet. Die benötigten Parameter (AC-Nummer und Datenträger-ID) werden dabei automatisch vom Menü an das Skript übergeben.
 
-Beispielhafter Aufruf:
-    python generate_premis.py AC_0001 ID_001
+Für manuelle Tests oder Debugging kann das Skript auch direkt über die Kommandozeile aufgerufen werden. Es erwartet zwingend zwei Argumente: die AC-Nummer und die Datenträger-ID.
+
+**Beispiel für einen manuellen Aufruf:**
+
+```bat
+@echo off
+set AC_NUMBER=AC_0001
+set DISK_ID=ID_001
+python "J_generate_premis_win.py" %AC_NUMBER% %DISK_ID%
+pause
+```
 
 ### Ablauf der Ausführung
 
-1.  **Urheber-Wahl:** Das Skript bittet um die Eingabe eines Namens und sucht diesen in der GND. Ein passender Eintrag kann interaktiv ausgewählt werden.
-2.  **Referenz-Analyse:** Imaging-Logs in Stufe 1 werden gescannt, um den Medientyp (USB, CD, Floppy, HDD) zu bestimmen.
-3.  **Objekt-Erstellung:** Hashes und Metadaten aller Objekte (aus 0, 1, 2 und 3) werden als PREMIS-Objekte angelegt.
-4.  **Event-Verknüpfung:** Die gesamte Kette (Imaging -> Extraktion -> Metadaten -> Konvertierung) wird dokumentiert.
-5.  **Reihenfolge-Fix:** Das Skript sortiert alle XML-Elemente XSD-konform um (Objects -> Events -> Agents -> Rights).
-6.  **Validierung:** Die finale Datei wird live gegen den LOC-Standard geprüft und in Stufe 5 gespeichert.
+1. **Urheber-Wahl:** Das Skript bittet um die Eingabe eines Namens und sucht diesen in der GND. Ein passender Eintrag kann interaktiv ausgewählt werden.
+2. **Referenz-Analyse:** Imaging-Logs in Stufe 1 werden gescannt, um den Medientyp (USB, CD, Floppy, HDD) zu bestimmen.
+3. **Objekt-Erstellung:** Hashes und Metadaten aller Objekte (aus Stufe 0, 1, 2 und 3) werden als PREMIS-Objekte angelegt.
+4. **Event-Verknüpfung:** Die gesamte Kette (Imaging → Extraktion → Metadaten → Konvertierung) wird dokumentiert.
+5. **Reihenfolge-Fix:** Das Skript sortiert alle XML-Elemente XSD-konform um (Objects → Events → Agents → Rights).
+6. **Validierung:** Die finale Datei wird live gegen den LOC-Standard geprüft und in Stufe 5 gespeichert.
 
 ---
 
@@ -75,21 +87,21 @@ Beispielhafter Aufruf:
 ### Erwartete Ordnerstruktur
 
 ```text
-~/Documents/data/[AC_number]/[disk_archive_ID]/
-├── 0_[disk_archive_ID]_picture-carrier/          <-- QUELLE (Hardware-Fotos .tif)
-├── 1_[disk_archive_ID]_image-LZA/                <-- QUELLE (Disk-Images)
-│   └── logfiles/                                 <-- QUELLE (Imaging-Logs)
-├── 2_[disk_archive_ID]_extracted-files/          <-- QUELLE (Brunnhilde-Berichte)
+~/Documents/data/[AC-Nummer]/[Datenträger-ID]/
+├── 0_[Datenträger-ID]_picture-carrier/          <-- QUELLE (Hardware-Fotos .tif)
+├── 1_[Datenträger-ID]_image-LZA/                <-- QUELLE (Disk-Images)
+│   └── logfiles/                                <-- QUELLE (Imaging-Logs)
+├── 2_[Datenträger-ID]_extracted-files/          <-- QUELLE (Brunnhilde-Berichte)
 │   └── 2_[ID]_extracted-files_brunnhilde/
 │       └── files_collection_report/
-│           └── siegfried.csv                     <-- QUELLE (Dateiliste)
-├── 3_[disk_archive_ID]_for-transfer/             <-- QUELLE (Technischer Index)
-│   └── 5_[ID]_LZA.index                          <-- wird gesucht
-└── 5_[disk_archive_ID]_LZA/                      <-- ZIEL
-    └── logfiles/                                 <-- ZIEL
-        ├── 5_[ID]_LZA_premis.xml                 <-- finale PREMIS-Datei
-        └── 5_[ID]_LZA_derivation-image.img       <-- wird gesucht (falls vorhanden)
-            └── *.log                             <-- wird gesucht (Packaging-Log)
+│           └── siegfried.csv                    <-- QUELLE (Dateiliste)
+├── 3_[Datenträger-ID]_for-transfer/             <-- QUELLE (Technischer Index)
+│   └── 5_[ID]_LZA.index                         <-- wird gesucht
+└── 5_[Datenträger-ID]_LZA/                      <-- ZIEL
+    └── logfiles/                                <-- ZIEL
+        ├── 5_[ID]_LZA_premis.xml                <-- finale PREMIS-Datei
+        └── 5_[ID]_LZA_derivation-image.img      <-- wird gesucht (falls vorhanden)
+            └── *.log                            <-- wird gesucht (Packaging-Log)
 ```
 
 ### Medienerkennung (automatische Weiche)
@@ -107,14 +119,14 @@ Das Skript analysiert den `logfiles`-Ordner in Stufe 1 in folgender Reihenfolge:
 ### GND-/LOBID-Suche (Urheber-Auswahl)
 
 **Ablauf:**
-1. Benutzer gibt Namen ein (z. B. "Brigitte Hamann")
-2. Zuerst wird die **DNB SRU-Schnittstelle** abgefragt (`https://services.dnb.de/sru/authorities`)
-3. Bei Erfolglosigkeit oder Verbindungsfehler → **lobid-gnd API** (`https://lobid.org/gnd/search`)
-4. Ergebnisse werden als nummerierte Liste angezeigt
-5. Benutzer wählt Nummer oder `s` (neue Suche) oder `x` (ohne GND fortfahren)
+1. Benutzer gibt Namen ein (z. B. "Brigitte Hamann").
+2. Zuerst wird die **DNB SRU-Schnittstelle** abgefragt.
+3. Bei Erfolglosigkeit oder Verbindungsfehler → **lobid-gnd API**.
+4. Ergebnisse werden als nummerierte Liste angezeigt.
+5. Benutzer wählt Nummer oder `s` (neue Suche) oder `x` (ohne GND fortfahren).
 
-**Extrahiert bei DNB:** GND-ID, Name, Lebensdaten, Typ (Person/Körperschaft/Ort/Werk), Berufe/Info  
-**Extrahiert bei lobid:** GND-ID, Name, Geburts-/Todesdatum, Berufe (aus `professionOrOccupation`)
+**Extrahiert bei DNB:** GND-ID, Name, Lebensdaten, Typ (Person/Körperschaft/Ort/Werk), Berufe/Info.  
+**Extrahiert bei lobid:** GND-ID, Name, Geburts-/Todesdatum, Berufe (aus `professionOrOccupation`).
 
 **Fallback:** Bei `x` wird `creator_gnd_id = None` gesetzt, Agent-ID wird aus dem eingegebenen Namen generiert.
 
@@ -180,17 +192,17 @@ Innerhalb von `event`:
 ### Quellen für extrahierte Dateien (Stufe 2)
 
 Das Skript verwendet folgende Priorität:
-1. **Index-Datei:** `3_[ID]_for-transfer/5_[ID]_LZA.index` (bevorzugt, da enthält SHA-256, Größe, PRONOM-ID, Creator-Tool)
-2. **Siegfried-CSV:** `2_[ID]_extracted-files/.../siegfried.csv` (Fallback, enthält Dateiname, Größe, PRONOM-ID)
-3. **Ableitung:** Original-Extraktionen werden über Pfad-Präfix erkannt (wenn Dateipfad mit einem Original-Extraktionspfad beginnt)
+1. **Index-Datei:** `3_[ID]_for-transfer/5_[ID]_LZA.index` (bevorzugt, da enthält SHA-256, Größe, PRONOM-ID, Creator-Tool).
+2. **Siegfried-CSV:** `2_[ID]_extracted-files/.../siegfried.csv` (Fallback, enthält Dateiname, Größe, PRONOM-ID).
+3. **Ableitung:** Original-Extraktionen werden über Pfad-Präfix erkannt (wenn Dateipfad mit einem Original-Extraktionspfad beginnt).
 
 ### Integritätsprüfung (XML-Validierung)
 
 Nach dem Schreiben der PREMIS-Datei führt das Skript eine Live-Validierung durch:
-- Lädt das offizielle XSD-Schema von `https://www.loc.gov/standards/premis/v3/premis-v3-0.xsd`
-- Validiert die erzeugte XML dagegen
-- Bei Fehlern: Ausgabe von Zeilennummer und Fehlermeldung
-- Bei Erfolg: grüne Bestätigung
+* Lädt das offizielle XSD-Schema von `https://www.loc.gov/standards/premis/v3/premis-v3-0.xsd`.
+* Validiert die erzeugte XML dagegen.
+* Bei Fehlern: Ausgabe von Zeilennummer und Fehlermeldung.
+* Bei Erfolg: grüne Bestätigung.
 
 ### Fehlerfälle und Abbruchbedingungen
 
@@ -205,26 +217,26 @@ Nach dem Schreiben der PREMIS-Datei führt das Skript eine Live-Validierung durc
 ### Plattformabhängiges Öffnen des Zielordners
 
 Nach Abschluss fragt das Skript: `Ordner öffnen? (j/n):`. Bei `j`:
-- **Windows** → `subprocess.Popen(['explorer', str(target_path)])`
-- **macOS** → `subprocess.run(["open", str(target_path)])`
-- **Linux/andere** → `subprocess.run(["xdg-open", str(target_path)])`
+* **Windows** → `subprocess.Popen(['explorer', str(target_path)])`
+* **macOS** → `subprocess.run(["open", str(target_path)])`
+* **Linux/andere** → `subprocess.run(["xdg-open", str(target_path)])`
 
 ### Abhängigkeiten
 
 **Erforderliche Python-Pakete:**
-- `lxml` (für XML-Verarbeitung, Sortierung, XSD-Validierung)
-- `requests` (für GND-/lobid-API-Abfragen)
-- `urllib3` (für Retry-Strategie bei DNB)
+* `lxml` (für XML-Verarbeitung, Sortierung, XSD-Validierung)
+* `requests` (für GND-/lobid-API-Abfragen)
+* `urllib3` (für Retry-Strategie bei DNB)
 
 **Standardbibliothek:** `sys`, `re`, `os`, `csv`, `subprocess`, `hashlib`, `glob`, `xml.etree.ElementTree`, `pathlib`, `datetime`
 
 ### Wichtige Einschränkungen
 
-- `.tiff`-Dateien werden nicht als Hardware-Fotos erkannt (nur `.tif`)
-- Redumper-Parser sucht nach `<rom name="...">`-Tag im Log
-- FTK-Parser extrahiert Hashes nur aus dem Abschnitt "Image Verification Results"
-- Greaseweazle-Parser setzt `has_flux_stream = True` und erzeugt ein Flux-Stream-Set-`representation`
-- ddrescue-Erkennung basiert nur auf Existenz von `.map`-Dateien (kein Inhalts-Parsing)
+* `.tiff`-Dateien werden nicht als Hardware-Fotos erkannt (nur `.tif`).
+* Redumper-Parser sucht nach `<rom name="...">`-Tag im Log.
+* FTK-Parser extrahiert Hashes nur aus dem Abschnitt "Image Verification Results".
+* Greaseweazle-Parser setzt `has_flux_stream = True` und erzeugt ein Flux-Stream-Set-`representation`.
+* ddrescue-Erkennung basiert nur auf Existenz von `.map`-Dateien (kein Inhalts-Parsing).
 
 ---
 

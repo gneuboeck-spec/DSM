@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 import os
 import sys
 import shutil
@@ -16,13 +20,34 @@ except ImportError:
     class Fore: GREEN = RED = YELLOW = CYAN = MAGENTA = WHITE = ""
     class Style: RESET_ALL = ""
 
+def compress_and_remove_folder(folder_path: Path, output_name: str):
+    """
+    Hilfsfunktion: Komprimiert einen spezifischen Ordner zu .tar.gz und löscht den Originalordner.
+    """
+    if folder_path.exists() and folder_path.is_dir():
+        print(f"{Fore.CYAN} -> Komprimiere: {folder_path.name}")
+        output_path = folder_path.parent / output_name
+        
+        # w:gz steht für write + gzip Komprimierung
+        with tarfile.open(output_path, "w:gz") as tar:
+            # arcname sorgt dafür, dass im Archiv nur der Ordnername als Wurzel liegt
+            tar.add(folder_path, arcname=folder_path.name)
+            
+        print(f"{Fore.GREEN}    [OK] Archiv erstellt: {output_name}")
+        print(f"{Fore.YELLOW}    -> Lösche unkomprimierten Originalordner zur Speicherplatzfreigabe...")
+        shutil.rmtree(folder_path)
+        print(f"{Fore.GREEN}    [OK] Originalordner erfolgreich gelöscht.")
+    else:
+        print(f"{Fore.YELLOW}    [INFO] Ordner nicht gefunden, Komprimierung übersprungen: {folder_path}")
+
 def run_final_archiving(ac_number, disk_id):
     """
-    1. Erstellt BagIt (verschiebt alles nach data/)
+    0. Komprimiert NUR den Brunnhilde-Unterordner zu .tar.gz (Speicherplatz-Optimierung)
+    1. Erstellt BagIt (verschiebt alles nach data/, inkl. der neuen .tar.gz Datei)
     2. Verschiebt Master-Index ins Bag-Root (Tag-File)
     3. Generiert mets.xml im Bag-Root (Tag-File)
-    4. Erstellt flaches TAR-Archiv
-    5. Bereinigt Staging-Ordner
+    4. Aktualisiert BagIt Manifeste (SHA-256 für die neuen Dateien)
+    5. Der Ordner 5_..._LZA bleibt als fertiges BagIt-Archiv (AIP) erhalten.
     6. Löscht alte Stufen 0-3 (VL bleibt erhalten)
     """
     base_root = Path(r"C:\Users\digit\Documents\data")
@@ -35,7 +60,7 @@ def run_final_archiving(ac_number, disk_id):
     premis_name = f"5_{disk_id}_LZA_premis.xml"
 
     print(f"\n{Fore.MAGENTA}===================================================")
-    print(f"{Fore.WHITE}   FINALISIERUNG: BAGIT, METS & TAR")
+    print(f"{Fore.WHITE}   FINALISIERUNG: BAGIT & METS (mit Teil-Komprimierung)")
     print(f"{Fore.MAGENTA}==================================================={Fore.RESET}")
 
     if not f5_lza.exists():
@@ -44,9 +69,19 @@ def run_final_archiving(ac_number, disk_id):
 
     # Sicherheits-Check
     print(f"{Fore.YELLOW}[!] HINWEIS: Explorer-Fenster von {f5_lza.name} schliessen.")
-    if input(" Bagging und Archivierung jetzt starten? (j/n): ").lower() != 'j': return
+    if input(" Komprimierung, Bagging und Archivierung jetzt starten? (j/n): ").lower() != 'j': 
+        return
 
     try:
+        # --- SCHRITT 0: GEZIELTE SPEICHERPLATZ-OPTIMIERUNG (VOR BAGIT) ---
+        print(f"\n{Fore.CYAN}--- SCHRITT 0: Gezielte Komprimierung des Brunnhilde-Ordners ---")
+        
+        # NUR der spezifische Unterordner in 'logfiles' wird komprimiert
+        brunnhilde_folder = f5_lza / "logfiles" / f"2_{disk_id}_extracted-files_brunnhilde"
+        compress_and_remove_folder(brunnhilde_folder, f"2_{disk_id}_extracted-files_brunnhilde.tar.gz")
+        
+        print(f"{Fore.GREEN} [OK] Schritt 0 abgeschlossen. BagIt wird nun mit dem komprimierten Archiv erstellt.")
+
         # --- SCHRITT 1: BAGIT ERSTELLEN ---
         print(f"\n{Fore.CYAN}--- SCHRITT 1: BagIt-Container erstellen ---")
         metadata = {
@@ -54,7 +89,7 @@ def run_final_archiving(ac_number, disk_id):
             'ZPH-ID': disk_id,
             'External-Identifier': ac_number
         }
-        # Erstellt den Bag (Inhalt wandert nach data/)
+        # Erstellt den Bag (Inhalt wandert nach data/, inkl. der soeben erstellten .tar.gz Datei)
         bag = bagit.make_bag(str(f5_lza), metadata, checksums=['sha256'])
         print(f"{Fore.GREEN} [OK] Basis-Bag erstellt.")
 
@@ -76,7 +111,6 @@ def run_final_archiving(ac_number, disk_id):
         # --- SCHRITT 3: METS GENERIEREN ---
         print(f"\n{Fore.CYAN}--- SCHRITT 3: METS-Datei generieren ---")
         
-        # Pfade für METS (Relativ zum Root des Bags)
         mets_index_path = master_index_name
         mets_premis_path = f"data/logfiles/{premis_name}"
         
@@ -101,27 +135,16 @@ def run_final_archiving(ac_number, disk_id):
 
         # --- SCHRITT 4: BAGIT AKTUALISIEREN ---
         print(f"\n{Fore.CYAN}--- SCHRITT 4: BagIt Manifeste aktualisieren ---")
+        # BagIt berechnet nun die SHA-256 Prüfsummen für die .tar.gz Datei und die mets.xml
         bag.save(manifests=True) 
-        print(f"{Fore.GREEN} [OK] BagIt-Prüfsummen aktualisiert.")
+        print(f"{Fore.GREEN} [OK] BagIt-Prüfsummen (SHA-256) aktualisiert.")
 
-        # --- SCHRITT 5: TAR-ARCHIV ERSTELLEN ---
-        print(f"\n{Fore.CYAN}--- SCHRITT 5: TAR-Archiv verpacken ---")
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        tar_name = f"{ac_number}_{disk_id}_{timestamp}.tar"
-        tar_full_path = disk_path / tar_name
-        
-        with tarfile.open(tar_full_path, "w") as tar:
-            for item in os.listdir(f5_lza):
-                tar.add(f5_lza / item, arcname=item)
-        print(f"{Fore.GREEN} [OK] TAR erstellt: {tar_name}")
+        # --- SCHRITT 5: ABSCHLUSS-CHECK ---
+        print(f"\n{Fore.CYAN}--- SCHRITT 5: Abschluss-Check ---")
+        print(f"{Fore.GREEN} [INFO] Der BagIt-Ordner ({f5_lza.name}) bleibt als fertiges Archiv (AIP) bestehen.")
 
-        # --- SCHRITT 6: BEREINIGUNG (Temporären Bag-Ordner löschen) ---
-        print(f"\n{Fore.CYAN}--- SCHRITT 6: Bereinigung ---")
-        shutil.rmtree(f5_lza)
-        print(f"{Fore.GREEN} [Cleanup] Temporärer Bag-Ordner gelöscht.")
-
-        # --- SCHRITT 7: ALTE STUFEN 0-3 LÖSCHEN (VL STUFE 4 BLEIBT) ---
-        print(f"\n{Fore.CYAN}--- SCHRITT 7: Alte Stufen 0-3 bereinigen ---")
+        # --- SCHRITT 6: ALTE STUFEN 0-3 LÖSCHEN (VL STUFE 4 BLEIBT) ---
+        print(f"\n{Fore.CYAN}--- SCHRITT 6: Alte Stufen 0-3 bereinigen ---")
         
         stages_to_delete = [
             f"0_{disk_id}_picture-carrier",
@@ -139,11 +162,10 @@ def run_final_archiving(ac_number, disk_id):
                     print(f"{Fore.GREEN} [Cleanup] Gelöscht: {stage_name}")
                     deleted_count += 1
                 except Exception as e:
-                    print(f"{Fore.YELLOW} [WARNUNG] Konnte {stage_name} nicht löschen: {e}")
+                    print(f"{Fore.YELLOW} [WARNUNG] Konnte {stage_name} nicht löschen (z.B. durch offene Datei): {e}")
             else:
                 print(f"{Fore.CYAN} [Info] {stage_name} existiert nicht (bereits gelöscht).")
         
-        # Optional: Zeige an, dass VL (Stufe 4) erhalten bleibt
         if f4_vl.exists():
             print(f"{Fore.CYAN} [Info] VL-Stufe (4_{disk_id}_VL) bleibt als Arbeitskopie erhalten.")
         
@@ -154,7 +176,7 @@ def run_final_archiving(ac_number, disk_id):
         print(f"==================================================={Style.RESET_ALL}")
 
     except Exception as e:
-        print(f"{Fore.RED} [!] FEHLER: {e}")
+        print(f"{Fore.RED} [!] KRITISCHER FEHLER: {e}")
         import traceback
         traceback.print_exc()
 
@@ -162,4 +184,4 @@ if __name__ == "__main__":
     if len(sys.argv) >= 3:
         run_final_archiving(sys.argv[1], sys.argv[2])
     else:
-        print(f"{Fore.RED}Fehler: AC-Nummer und ID fehlen.")
+        print(f"{Fore.RED}Fehler: AC-Nummer und ID fehlen. Aufruf: script.py <AC_NUMMER> <DISK_ID>")

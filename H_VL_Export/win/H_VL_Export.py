@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Florian Lüftner <florian.lueftner@posteo.com>
+# SPDX-FileCopyrightText: 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
 #
 # SPDX-License-Identifier: MIT
 
@@ -73,7 +73,6 @@ def main():
     source_picture_carrier = main_folder / f"0_{disk_archive_id}_picture-carrier"
     source_extracted_files = main_folder / f"2_{disk_archive_id}_extracted-files"
     source_for_transfer = main_folder / f"3_{disk_archive_id}_for-transfer"
-    source_files_folder = source_for_transfer / "files"
 
     print("\n" + Fore.CYAN + "Kopiervorgang starten")
 
@@ -107,18 +106,32 @@ def main():
     else:
         print(Fore.YELLOW + f"  WARNUNG: Datei nicht gefunden: {content_file}")
 
-    # --- 3. tree-Datei kopieren ---
-    print("\n" + Fore.CYAN + "3. tree-Datei kopieren")
-    tree_file = source_extracted_files / f"2_{disk_archive_id}_extracted-files_tree.txt"
-    if tree_file.is_file():
-        dest_file = destination_folder / tree_file.name
+    # --- 3. Tree-Datei aus extrahierten Dateien kopieren ---
+    print("\n" + Fore.CYAN + "3. Tree-Datei aus extrahierten Dateien kopieren")
+    tree_file_extracted = source_extracted_files / f"2_{disk_archive_id}_extracted-files_tree.txt"
+    if tree_file_extracted.is_file():
+        dest_file = destination_folder / tree_file_extracted.name
         if dest_file.exists():
-            print(Fore.YELLOW + f"  WARNUNG: Datei existiert bereits: {tree_file.name}")
+            print(Fore.YELLOW + f"  WARNUNG: Datei existiert bereits: {tree_file_extracted.name}")
         else:
-            shutil.copy2(tree_file, dest_file)
-            print(Fore.GREEN + f"  Kopiert: {tree_file.name}")
+            shutil.copy2(tree_file_extracted, dest_file)
+            print(Fore.GREEN + f"  Kopiert: {tree_file_extracted.name}")
     else:
-        print(Fore.YELLOW + f"  WARNUNG: Datei nicht gefunden: {tree_file}")
+        print(Fore.YELLOW + f"  WARNUNG: Datei nicht gefunden: {tree_file_extracted}")
+
+    # --- 4. Tree-Datei aus For-Transfer-Ordner kopieren ---
+    print("\n" + Fore.CYAN + "4. Tree-Datei aus For-Transfer-Ordner kopieren")
+    transfer_tree_filename = f"3_{disk_archive_id}_for-transfer_tree.txt"
+    tree_file_for_transfer = source_for_transfer / transfer_tree_filename
+    if tree_file_for_transfer.is_file():
+        dest_file = destination_folder / tree_file_for_transfer.name
+        if dest_file.exists():
+            print(Fore.YELLOW + f"  WARNUNG: Datei existiert bereits: {tree_file_for_transfer.name}")
+        else:
+            shutil.copy2(tree_file_for_transfer, dest_file)
+            print(Fore.GREEN + f"  Kopiert: {tree_file_for_transfer.name}")
+    else:
+        print(Fore.YELLOW + f"  WARNUNG: Datei nicht gefunden: {tree_file_for_transfer}")
 
     # --- Zielordner optional öffnen ---
     print("")

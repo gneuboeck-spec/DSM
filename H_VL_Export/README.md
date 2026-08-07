@@ -1,19 +1,19 @@
-# Skript H: VL-Export (Dateien konsolidieren)
+# H - VL-Export (Konsolidierung)
 
 Dieses Skript dient der abschließenden Zusammenführung aller relevanten Metadaten-Berichte und Objektaufnahmen in das Verzeichnis der Stufe 4 (VL). Es automatisiert das Kopieren von TIF-Bildern des physischen Datenträgers (aus Stufe 0) sowie der generierten Inhalts-Zusammenfassungen und Verzeichnisstrukturen (aus Stufe 2), um ein vollständiges Paket für die Kuratierung und Archivierung bereitzustellen.
 
-Das Skript ist für den Einsatz innerhalb einer standardisierten Ordnerstruktur konzipiert und nutzt farbliche Rückmeldungen (colorama) zur Statusanzeige.
+Das Skript ist für den Einsatz innerhalb einer standardisierten Ordnerstruktur konzipiert und nutzt farbliche Rückmeldungen (`colorama`) zur Statusanzeige.
 
 ---
 
 ## Hauptfunktionen
 
-*   Automatisierte Konsolidierung: Sammelt dezentrale Dateien aus verschiedenen Vorstufen (0 und 2) und führt sie zentral in Stufe 4 zusammen.
-*   Hardware-Dokumentation: Identifiziert und kopiert alle Objektaufnahmen (.tif) des Datenträgers aus Stufe 0.
-*   Metadaten-Aggregation: Kopiert die Inhaltszusammenfassung (.content) und den Verzeichnis-Tree (_tree.txt) aus Stufe 2.
-*   Sicherheitscheck: Verhindert das versehentliche Überschreiben bereits existierender Dateien im Zielordner.
-*   Metadaten-Erhalt: Nutzt shutil.copy2, um die ursprünglichen Zeitstempel der Berichte beim Kopieren beizubehalten.
-*   Farbkodierte Konsole: Erfolg (Grün), Warnungen (Gelb) und Fehler (Rot) werden zur besseren Übersicht farblich hervorgehoben.
+* **Automatisierte Konsolidierung:** Sammelt dezentrale Dateien aus verschiedenen Vorstufen (0 und 2) und führt sie zentral in Stufe 4 zusammen.
+* **Hardware-Dokumentation:** Identifiziert und kopiert alle Objektaufnahmen (`.tif`) des Datenträgers aus Stufe 0.
+* **Metadaten-Aggregation:** Kopiert die Inhaltszusammenfassung (`.content`) und den Verzeichnis-Tree (`_tree.txt`) aus Stufe 2.
+* **Sicherheitscheck:** Verhindert das versehentliche Überschreiben bereits existierender Dateien im Zielordner.
+* **Metadaten-Erhalt:** Nutzt `shutil.copy2`, um die ursprünglichen Zeitstempel der Berichte beim Kopieren beizubehalten.
+* **Farbkodierte Konsole:** Erfolg (Grün), Warnungen (Gelb) und Fehler (Rot) werden zur besseren Übersicht farblich hervorgehoben.
 
 ---
 
@@ -33,30 +33,42 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
     ├── 2_[ID]_extracted-files.content     <-- Kopierter Inhaltsbericht
     └── 2_[ID]_extracted-files_tree.txt    <-- Kopierter Struktur-Tree
 ```
+
 ---
 
 ## Technische Voraussetzungen
 
-*   Python: Version 3.10 oder neuer empfohlen.
-*   Bibliotheken: Benötigt das Paket colorama für die farbige Darstellung.
-    pip install colorama
+* **Python:** Version 3.10 oder neuer empfohlen.
+* **Bibliotheken:** Benötigt das Paket `colorama` für die farbige Darstellung.
+  ```bash
+  pip install colorama
+  ```
 
 ---
 
 ## Ausführung
 
-Das Skript wird idealerweise über die zentrale start.bat oder das menu.py gestartet, welche die AC-Nummer und Datenträger-ID übergeben.
+Das Skript wird im normalen Arbeitsablauf über den zentralen **Workflow Launcher** (`Workflow_Launcher_start.bat`) und das darauf folgende **Auswahlmenü** gestartet. Die benötigten Parameter (AC-Nummer und Datenträger-ID) werden dabei automatisch vom Menü an das Skript übergeben.
 
-Beispielhafter Aufruf:
-    python Skript_H_VL_Export.py AC_12345 ID_001
+Für manuelle Tests oder Debugging kann das Skript auch direkt über die Kommandozeile aufgerufen werden. Es erwartet zwei Argumente: die AC-Nummer und die Datenträger-ID.
+
+**Beispiel für einen manuellen Aufruf:**
+
+```bat
+@echo off
+set AC_NUMBER=AC_12345
+set DISK_ID=ID_001
+python "H_VL_Export.py" %AC_NUMBER% %DISK_ID%
+pause
+```
 
 ### Ablauf der Ausführung
 
-1. Validierung: Das Skript prüft die Existenz der Basisordner und des Zielverzeichnisses (Stufe 4).
-2. TIF-Kopiervorgang: Alle Bilddateien aus Stufe 0 werden nach Stufe 4 übertragen.
-3. Berichts-Kopiervorgang: Die XML-Zusammenfassung (.content) und die Text-Struktur (_tree.txt) werden aus Stufe 2 übertragen.
-4. Dubletten-Check: Falls eine Datei bereits im Zielordner vorhanden ist, wird der Kopiervorgang für diese Datei übersprungen (Warnmeldung).
-5. Abschluss: Der Benutzer kann den VL-Zielordner auf Wunsch direkt im Explorer öffnen.
+1. **Validierung:** Das Skript prüft die Existenz der Basisordner und des Zielverzeichnisses (Stufe 4).
+2. **TIF-Kopiervorgang:** Alle Bilddateien aus Stufe 0 werden nach Stufe 4 übertragen.
+3. **Berichts-Kopiervorgang:** Die XML-Zusammenfassung (`.content`) und die Text-Struktur (`_tree.txt`) werden aus Stufe 2 übertragen.
+4. **Dubletten-Check:** Falls eine Datei bereits im Zielordner vorhanden ist, wird der Kopiervorgang für diese Datei übersprungen (Warnmeldung).
+5. **Abschluss:** Der Benutzer kann den VL-Zielordner auf Wunsch direkt im Explorer öffnen.
 
 ---
 
@@ -65,15 +77,14 @@ Beispielhafter Aufruf:
 ### Erwartete Ordnerstruktur
 
 ```text
-~/Documents/data/[AC_number]/[disk_archive_ID]/
-├── 0_[disk_archive_ID]_picture-carrier/
+~/Documents/data/[AC-Nummer]/[Datenträger-ID]/
+├── 0_[Datenträger-ID]_picture-carrier/
 │   └── *.tif                                    <-- QUELLE (alle TIF-Dateien)
-├── 2_[disk_archive_ID]_extracted-files/
-│   ├── 2_[disk_archive_ID]_extracted-files.content  <-- QUELLE
-│   └── 2_[disk_archive_ID]_extracted-files_tree.txt <-- QUELLE
-└── 4_[disk_archive_ID]_VL/                      <-- ZIEL (muss existieren)
+├── 2_[Datenträger-ID]_extracted-files/
+│   ├── 2_[Datenträger-ID]_extracted-files.content  <-- QUELLE
+│   └── 2_[Datenträger-ID]_extracted-files_tree.txt <-- QUELLE
+└── 4_[Datenträger-ID]_VL/                       <-- ZIEL (muss existieren)
 ```
-
 
 ### Kopierte Dateien im Detail
 
@@ -87,8 +98,8 @@ Beispielhafter Aufruf:
 
 | Fehlerfall | Verhalten |
 |------------|-----------|
-| `base_path` (Dokumente/data/[AC]) existiert nicht | rote Meldung + `sys.exit(1)` |
-| `main_folder` (Dokumente/data/[AC]/[ID]) existiert nicht | rote Meldung + `sys.exit(1)` |
+| `base_path` (`Dokumente/data/[AC]`) existiert nicht | rote Meldung + `sys.exit(1)` |
+| `main_folder` (`Dokumente/data/[AC]/[ID]`) existiert nicht | rote Meldung + `sys.exit(1)` |
 | `destination_folder` (`4_[ID]_VL`) existiert nicht | rote Meldung + `sys.exit(1)` |
 | Quellordner `0_[ID]_picture-carrier` existiert nicht | gelbe Warnung, Kopiervorgang wird übersprungen (kein Abbruch) |
 | Quellordner `2_[ID]_extracted-files` existiert nicht | wird nicht separat geprüft; die fehlenden Dateien werden einzeln mit gelber Warnung gemeldet |
@@ -97,7 +108,7 @@ Beispielhafter Aufruf:
 
 ### Kopiermethode
 
-Das Skript verwendet `shutil.copy2()`, welches die ursprünglichen Metadaten (z. B. Zeitstempel) beibehält.
+Das Skript verwendet `shutil.copy2()`, welches die ursprünglichen Metadaten (z. B. Zeitstempel) beibehält.
 
 ### TIF-Erkennung
 
@@ -107,7 +118,7 @@ Das Skript sucht mit `source_picture_carrier.glob("*.tif")` nach Dateien mit der
 
 Für jede Datei wird vor dem Kopieren geprüft, ob die Zieldatei bereits existiert (`dest_file.exists()`). Wenn ja, erscheint eine gelbe Warnung und die Datei wird übersprungen.
 
-### Farbkodierung (colorama)
+### Farbkodierung (`colorama`)
 
 | Farbe | Verwendung |
 |-------|------------|
@@ -131,8 +142,8 @@ Nach Abschluss fragt das Skript: `Zielordner oeffnen? (j/n):`. Bei `j`:
 
 ### Abhängigkeiten
 
-- **Erforderlich**: `colorama` (muss installiert sein, sonst Abbruch mit Fehlermeldung)
-- **Standardbibliothek**: `os`, `sys`, `re`, `shutil`, `subprocess`, `pathlib`
+- **Erforderlich:** `colorama` (muss installiert sein, sonst Abbruch mit Fehlermeldung)
+- **Standardbibliothek:** `os`, `sys`, `re`, `shutil`, `subprocess`, `pathlib`
 
 ---
 
@@ -142,5 +153,6 @@ Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
 
 Dieses Skript ist unter der MIT-Lizenz lizenziert.
 
+---
 SPDX-FileCopyrightText: 2025 Gregor Neuboeck
 SPDX-License-Identifier: MIT

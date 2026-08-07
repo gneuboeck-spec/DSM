@@ -20,7 +20,7 @@ import tempfile
 # --- Audio-Konfiguration ---
 FFMPEG_PATH = "ffmpeg.exe"
 FFPROBE_PATH = "ffprobe.exe"
-SOURCE_AUDIO_EXTENSIONS = {".aiff", ".flac", ".ogg", ".wav", ".m4a", ".wma", ".aac", ".mp3"}
+SOURCE_AUDIO_EXTENSIONS = {".aiff", ".flac", ".ogg", ".wav", ".m4a", ".wma", ".aac", ".mp3", ".opus", ".voc"}
 
 # --- Bild-Konfiguration ---
 IMAGEMAGICK_PATH = "magick.exe"
@@ -46,7 +46,8 @@ CONVERSION_MAP = {
     ".cws": ("odt", "writer_pdf_Export"), ".xls": ("ods", "calc_pdf_Export"), ".xlsx": ("ods", "calc_pdf_Export"),
     ".xlw": ("ods", "calc_pdf_Export"), ".xlt": ("ods", "calc_pdf_Export"), ".ods": ("ods", "calc_pdf_Export"),
     ".ots": ("ods", "calc_pdf_Export"), ".sxc": ("ods", "calc_pdf_Export"), ".stc": ("ods", "calc_pdf_Export"),
-    ".fods": ("ods", "calc_pdf_Export"), ".uos": ("ods", "calc_pdf_Export"), ".ppt": ("odp", "impress_pdf_Export"),
+    ".fods": ("ods", "calc_pdf_Export"), ".uos": ("ods", "calc_pdf_Export"), ".tsv": ("ods", "calc_pdf_Export"),
+    ".ppt": ("odp", "impress_pdf_Export"),
     ".pptx": ("odp", "impress_pdf_Export"), ".pps": ("odp", "impress_pdf_Export"), ".pot": ("odp", "impress_pdf_Export"),
     ".odp": ("odp", "impress_pdf_Export"), ".otp": ("odp", "impress_pdf_Export"), ".sxi": ("odp", "impress_pdf_Export"),
     ".sti": ("odp", "impress_pdf_Export"), ".fodd": ("odp", "impress_pdf_Export"), ".uop": ("odp", "impress_pdf_Export"),
@@ -56,7 +57,8 @@ VALID_TEXT_EXTENSIONS = set(CONVERSION_MAP.keys())
 
 # --- Video-Konfiguration ---
 SOURCE_VIDEO_EXTENSIONS = {".avi", ".mov", ".mkv", ".flv", ".wmv", ".webm", ".mpg", ".mpeg", ".m4v", ".vob", ".m2ts", ".mts",
-    ".mxf", ".ogm", ".ts"}
+    ".mxf", ".ogm", ".ts", ".mp4", ".ogv", ".r3d", ".3gp", ".asf", ".dv", ".f4v", ".gxf", ".m1v", ".m2v",
+    ".mp2v", ".mpe", ".mpv", ".qt", ".rm", ".swf", ".tp", ".trp", ".vdr", ".viv", ".vivo", ".vro", ".wtv"}
 
 # Globale Liste für fehlgeschlagene Konvertierungen
 conversion_errors = []
@@ -193,10 +195,14 @@ def process_image_file(filepath):
 # ==============================================================================
 
 def process_text_file(filepath):
-    root, filename = os.path.split(filepath); name, ext = os.path.splitext(filename); ext = ext.lower()
+    root, filename = os.path.split(filepath)
+    name, ext = os.path.splitext(filename)
+    ext = ext.lower()
     target_odf_ext, pdf_export_filter = CONVERSION_MAP[ext]
-    odf_filename = f"{name}{ext}.{target_odf_ext}"; odf_path_target = os.path.join(root, odf_filename)
-    pdf_filename = f"{name}{ext}.pdf"; pdf_path = os.path.join(root, pdf_filename)
+    odf_filename = f"{name}{ext}.{target_odf_ext}"
+    odf_path_target = os.path.join(root, odf_filename)
+    pdf_filename = f"{name}{ext}.pdf"
+    pdf_path = os.path.join(root, pdf_filename)
     
     if os.path.exists(odf_path_target): os.remove(odf_path_target)
     if os.path.exists(pdf_path): os.remove(pdf_path)
@@ -207,20 +213,36 @@ def process_text_file(filepath):
         source_for_pdf_export = filepath
     else:
         log(f"         -> Schritt 1: Konvertiere zu ODF ({odf_filename})")
-        cmd_convert = [LIBREOFFICE_PATH, "--headless", "--convert-to", target_odf_ext, "--outdir", root, filepath]
-        subprocess.run(cmd_convert, capture_output=True, text=True)
         
-        real_odf_name_by_lo = f"{name}.{target_odf_ext}"; real_odf_path_by_lo = os.path.join(root, real_odf_name_by_lo)
-        if os.path.exists(real_odf_path_by_lo):
-            os.replace(real_odf_path_by_lo, odf_path_target); source_for_pdf_export = odf_path_target
-        elif os.path.exists(odf_path_target): 
+        # 1. Versuch: Standard-Konvertierung
+        subprocess.run([LIBREOFFICE_PATH, "--headless", "--convert-to", target_odf_ext, "--outdir", root, filepath], capture_output=True)
+        
+        # 2. Versuch: Wenn .sdw erkannt wird, versuche StarWriter-Filter explizit
+        if not any(f.startswith(name) and f.endswith(f".{target_odf_ext}") for f in os.listdir(root)) and ext == ".sdw":
+            log(f"         [INFO] Standard-Filter fehlgeschlagen, erzwinge StarWriter-Import...")
+            subprocess.run([LIBREOFFICE_PATH, "--headless", "--infilter=StarWriter 5.0", "--convert-to", target_odf_ext, "--outdir", root, filepath], capture_output=True)
+        
+        # 3. Versuch: Wenn immer noch nichts da ist, .doc Auto-Detection (für getarnte Dateien)
+        if not any(f.startswith(name) and f.endswith(f".{target_odf_ext}") for f in os.listdir(root)):
+            log(f"         [INFO] Filter fehlgeschlagen, versuche .doc Auto-Detection...")
+            temp_doc = os.path.join(root, f"{name}_temp.doc")
+            shutil.copy2(filepath, temp_doc)
+            subprocess.run([LIBREOFFICE_PATH, "--headless", "--convert-to", target_odf_ext, "--outdir", root, temp_doc], capture_output=True)
+            if os.path.exists(temp_doc): os.remove(temp_doc)
+
+        # Suche nach der Datei
+        generated_files = [f for f in os.listdir(root) if f.startswith(name) and f.endswith(f".{target_odf_ext}")]
+        
+        if generated_files:
+            best_match = os.path.join(root, generated_files[0])
+            os.replace(best_match, odf_path_target)
             source_for_pdf_export = odf_path_target
         else: 
             log(f"         [FEHLER] ODF-Erstellung fehlgeschlagen.")
             conversion_errors.append((filename, "LibreOffice: ODF-Zwischenschritt fehlgeschlagen."))
             return
     
-    # SCHRITT 2: PDF/A (Fix für lange Pfade)
+    # SCHRITT 2: PDF/A
     log(f"         -> Schritt 2: Konvertiere zu PDF/A ({pdf_filename})")
     temp_output_dir = os.path.join(tempfile.gettempdir(), "lo_conversion_work")
     if os.path.exists(temp_output_dir): shutil.rmtree(temp_output_dir, ignore_errors=True)
@@ -246,27 +268,81 @@ def process_text_file(filepath):
     shutil.rmtree(temp_output_dir, ignore_errors=True)
 
 # ==============================================================================
-# --- VIDEO-LOGIK
+# --- VIDEO-LOGIK (Mit Long-Path-Fix und R3D-Toleranz)
 # ==============================================================================
 
 def process_video_file(filepath):
     root, filename = os.path.split(filepath)
-    mp4_target_path = os.path.join(root, f"{filename}.mp4")
-    log(f"         Starte Konvertierung: {filename} → {os.path.basename(mp4_target_path)}")
+    path_obj = Path(filepath)
+    ext = path_obj.suffix.lower()
     
+    # 1. Intelligente Prüfung: Ist es bereits eine MKV mit den richtigen Codecs?
+    if ext == ".mkv":
+        try:
+            # Video-Codec prüfen
+            v_codec = subprocess.run(
+                [FFPROBE_PATH, "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_name", "-of", "default=noprint_wrappers=1:nokey=1", str(filepath)],
+                capture_output=True, text=True, check=True
+            ).stdout.strip()
+            
+            # Audio-Codec prüfen (erster Audio-Stream)
+            a_codec = subprocess.run(
+                [FFPROBE_PATH, "-v", "error", "-select_streams", "a:0", "-show_entries", "stream=codec_name", "-of", "default=noprint_wrappers=1:nokey=1", str(filepath)],
+                capture_output=True, text=True, check=True
+            ).stdout.strip()
+            
+            if v_codec == "ffv1" and a_codec in ["flac", ""]:
+                log(f"         [INFO] Datei ist bereits im Archivformat (FFV1/FLAC in MKV). Konvertierung übersprungen.")
+                return
+            else:
+                log(f"         [INFO] MKV erkannt, aber Codecs ({v_codec}/{a_codec}) entsprechen nicht dem Archivstandard. Wird neu kodiert.")
+                mkv_target_path = os.path.join(root, f"{filename}")
+        except Exception as e:
+            log(f"         [WARNUNG] Codec-Prüfung fehlgeschlagen ({e}). Datei wird sicherheitshalber neu konvertiert.")
+            mkv_target_path = os.path.join(root, f"{filename}")
+    else:
+        # Bei allen anderen Formaten: dateiname.originalendung.mkv
+        mkv_target_path = os.path.join(root, f"{filename}.mkv")
+    
+    log(f"         Starte Konvertierung: {filename} → {os.path.basename(mkv_target_path)}")
+    
+    # WICHTIG: Absolute Pfade mit Windows Long-Path-Präfix (\\?\) erstellen
+    abs_input = os.path.abspath(filepath)
+    abs_output = os.path.abspath(mkv_target_path)
+    if os.name == 'nt':
+        abs_input = "\\\\?\\" + abs_input
+        abs_output = "\\\\?\\" + abs_output
+
+    # Sicherheitsmaßnahme: Verhindert Korruption, falls Quelle und Ziel identisch sind
+    if abs_input == abs_output:
+        temp_target_path = "\\\\?\\" + os.path.abspath(os.path.join(root, f"{path_obj.stem}_temp_convert.mkv"))
+        final_target_path = abs_output
+    else:
+        temp_target_path = abs_output
+        final_target_path = abs_output
+
     command = [
-        FFMPEG_PATH, "-y", "-i", filepath,
-        "-c:v", "libx264", "-preset", "fast", "-crf", "22",
-        "-c:a", "aac", "-b:a", "192k",
-        "-movflags", "+faststart",
-        mp4_target_path
+        FFMPEG_PATH, "-y",
+        "-err_detect", "ignore_err",
+        "-i", abs_input,
+        "-c:v", "ffv1",
+        "-c:a", "flac",
+        temp_target_path
     ]
     try:
         subprocess.run(command, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
+        
+        if temp_target_path != final_target_path:
+            if os.path.exists(final_target_path):
+                os.remove(final_target_path)
+            os.replace(temp_target_path, final_target_path)
+            
         log(f"         [OK] Erfolgreich konvertiert.")
     except subprocess.CalledProcessError as e:
         log(f"         [FEHLER] Video-Konvertierung fehlgeschlagen.")
-        conversion_errors.append((filename, f"Video-Konvertierung (FFmpeg) fehlgeschlagen: {e.stderr[:100]}"))
+        if temp_target_path != final_target_path and os.path.exists(temp_target_path):
+            os.remove(temp_target_path)
+        conversion_errors.append((filename, f"Video-Konvertierung (FFmpeg) fehlgeschlagen: {e.stderr[:200]}"))
 
 # ==============================================================================
 # --- HAUPT-AUSFÜHRUNGSBLOCK ---
@@ -329,9 +405,34 @@ if __name__ == "__main__":
             else:
                 log("\n✅ Alle Dateien wurden erfolgreich ohne Fehler konvertiert.")
 
+        # ==============================================================================
+        # --- NEU: Tree-Generierung für den Transfer-Ordner (am Ende, damit alle Derivate enthalten sind)
+        # ==============================================================================
+        transfer_dir = validated_paths["source_folder"].parent
+        transfer_files_dir = validated_paths["source_folder"]
+        tree_filename = f"3_{disk_archive_id_input}_for-transfer_tree.txt"
+        tree_output_file = transfer_dir / tree_filename
+
+        log(f"\n--- Erstelle '{tree_filename}' für den Transfer-Ordner... ---")
+        tree_command = f'cmd /c tree "{str(transfer_files_dir)}" /A /F > "{str(tree_output_file)}"'
+        
+        try:
+            subprocess.run(tree_command, shell=True, check=True, text=True, encoding='utf-8', errors='replace')
+            
+            if tree_output_file.exists() and tree_output_file.stat().st_size > 0:
+                log(f"--- '{tree_filename}' erfolgreich erstellt unter: {tree_output_file} ---")
+            else:
+                log(f"--- WARNUNG: '{tree_filename}' konnte nicht erstellt werden oder ist leer. ---")
+        except subprocess.CalledProcessError as e:
+            log(f"--- FEHLER beim Ausführen von 'tree.exe': Befehl schlug fehl mit Code {e.returncode}. ---")
+        except Exception as e:
+            log(f"--- FEHLER beim manuellen Erstellen von '{tree_filename}': {e} ---")
+        # ==============================================================================
+
+        # JETZT erst wird die Log-Datei geschlossen, nachdem ALLE log()-Aufrufe erledigt sind
         LOG_FILE_HANDLE.close()
 
-        destination_folder = validated_paths["source_folder"].parent
+        destination_folder = transfer_dir
         print("")
         if input("Zielordner oeffnen? (j/n): ").lower() == 'j':
             os.startfile(destination_folder)

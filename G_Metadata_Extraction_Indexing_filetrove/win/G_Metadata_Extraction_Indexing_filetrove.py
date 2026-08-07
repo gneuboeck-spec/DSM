@@ -54,11 +54,14 @@ def hash_sha256(filepath):
 
 # --- 1. System-Pfade und Listen (manuell anpassen, falls nötig) ---
 # Diese Pfade sind systemweit und bleiben als manuelle Konfiguration erhalten.
-YARA_RULES_FILE = "C:\\Users\\digit\\Desktop\\Skripte\\rules.yar"
 EXIFTOOL_PATH = "C:\\Program Files\\ExifTool\\exiftool.exe"
 FFPROBE_PATH = "C:\\Program Files\\ffmpeg\\ffprobe.exe"
 HACHOIR_METADATA_PATH = "C:\\Users\\digit\\.venv\\Scripts\\hachoir-metadata.exe"
 SIEGFRIED_PATH = "C:\\Program Files\\Siegfried\\sf.exe"
+
+# NEU: Dynamischer Pfad für lokale Skript-Dateien (wie rules.yar)
+SCRIPT_DIR = Path(__file__).resolve().parent
+YARA_RULES_FILE = str(SCRIPT_DIR / "rules.yar")
 
 # --- NEU: Globaler Speicher für Referenz-Hashes ---
 REFERENCE_HASHES = {}

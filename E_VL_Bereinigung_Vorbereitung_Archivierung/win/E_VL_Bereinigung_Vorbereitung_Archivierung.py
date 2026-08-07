@@ -6,6 +6,7 @@ import os
 import sys
 import shutil  # HINZUGEFÜGT für den Kopiervorgang
 import subprocess
+import stat
 from collections import defaultdict
 from pathlib import Path
 from datetime import datetime
@@ -123,15 +124,32 @@ def perform_deletion(files_to_delete, empty_dirs_to_delete, extensions_counter, 
     
     for file_path in files_to_delete:
         try:
+            # 1. Versuch: Normaler Löschversuch
             os.remove(file_path)
             print(f"[OK] Datei gelöscht: {file_path}")
             final_deleted_files.append(file_path)
             
             ext = next((ext for ext in DELETE_EXTENSIONS if file_path.lower().endswith(ext)), "Andere")
             extensions_counter[ext] += 1
+            
+        except PermissionError:
+            # 2. Versuch: Wenn die Datei schreibgeschützt ist, Attribut entfernen und erneut versuchen
+            try:
+                os.chmod(file_path, stat.S_IWRITE)
+                os.remove(file_path)
+                print(f"[OK] Datei gelöscht (Schreibschutz entfernt): {file_path}")
+                final_deleted_files.append(file_path)
+                
+                ext = next((ext for ext in DELETE_EXTENSIONS if file_path.lower().endswith(ext)), "Andere")
+                extensions_counter[ext] += 1
+            except Exception as e2:
+                print(f"[FEHLER] Kein Zugriff auf: {file_path}")
+                print(f"         Grund: Datei ist wahrscheinlich gerade in Verwendung oder eine geschützte Systemdatei. ({e2})")
+                
         except Exception as e:
-            print(f"[FEHLER] Fehler beim Löschen von {file_path}: {e}")
+            print(f"[FEHLER] Unerwarteter Fehler beim Löschen von {file_path}: {e}")
 
+    # Ordner-Logik bleibt unverändert
     for dir_path in sorted(empty_dirs_to_delete, key=len, reverse=True):
         try:
             os.rmdir(dir_path)

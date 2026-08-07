@@ -15,9 +15,11 @@ except ImportError:
 
 def run_staging_workflow(ac_number, disk_id):
     """
-    Workflow V10 (Angepasst) - Vorbereitung für Master-Index:
+    Workflow V11 (Angepasst):
     1. VL-Export (Stufe 4) vervollständigen (Fotos & Metadaten kopieren)
     2. LZA-Staging (Stufe 5) vorbereiten (Alles verschieben & strukturieren)
+       - Images (.img, .raw) gehen in Unterordner 'images'
+       - Logs (.csv, .log, .txt, .index) gehen in Unterordner 'logfiles'
     3. KEINE automatische Bereinigung mehr (verschoben nach K3)
     """
     # Pfad-Definition (Nutzt Path.home() für bessere Kompatibilität)
@@ -33,7 +35,7 @@ def run_staging_workflow(ac_number, disk_id):
     f5_lza = disk_path / f"5_{disk_id}_LZA"
 
     print(f"\n{Fore.MAGENTA}===================================================")
-    print(f"{Fore.WHITE}   STAGING-WORKFLOW V10 (REDUZIERT): VL & LZA")
+    print(f"{Fore.WHITE}   STAGING-WORKFLOW V11 (REDUZIERT): VL & LZA")
     print(f"{Fore.MAGENTA}==================================================={Fore.RESET}")
 
     # Suche nach dem 'files' Ordner in Stufe 3 (wird für LZA-Umzug benötigt)
@@ -86,7 +88,6 @@ def run_staging_workflow(ac_number, disk_id):
             print(f"{Fore.GREEN} [Kopie] -> Übersicht {item} nach VL kopiert.")
 
     # C) Technischen Index (erstellt von H1) verifizieren
-    # H1 hat ihn bereits in f4_vl und f5_lza/logfiles abgelegt. 
     index_name = f"3_{disk_id}_for-transfer.index"
     if (f4_vl / index_name).exists():
         print(f"{Fore.GREEN} [OK] Technischer Index bereits in VL vorhanden.")
@@ -100,9 +101,14 @@ def run_staging_workflow(ac_number, disk_id):
     if not f5_lza.exists():
         f5_lza.mkdir(parents=True)
     
+    # NEU: Unterordner für Logs und Image anlegen (Singular "image" für Konsistenz!)
     lza_logs_dir = f5_lza / "logfiles"
+    lza_images_dir = f5_lza / "image"  # <--- HIER GEÄNDERT: aus "images" wurde "image"
+    
     if not lza_logs_dir.exists():
         lza_logs_dir.mkdir(parents=True)
+    if not lza_images_dir.exists():
+        lza_images_dir.mkdir(parents=True)
 
     # A) Konsolidierung bereits vorhandener 'logfiles' Unterordner
     for source_stage in [f0, f1, f2, f3]:
@@ -122,12 +128,24 @@ def run_staging_workflow(ac_number, disk_id):
     if src_files_dir:
         safe_move_item(src_files_dir, f5_lza, rename_to="3_files")
 
-    # D) Ordner 1 (Image-LZA) verschieben
+    # D) Ordner 1 (Image-LZA) verschieben - MIT NEUER UNTERSCHEIDUNG
     if f1.exists():
-        # Wir verschieben den Inhalt von f1 direkt in f5_lza
         for item in f1.iterdir():
-            shutil.move(str(item), str(f5_lza / item.name))
-        print(f"{Fore.GREEN} [Move] -> Images aus Stufe 1 nach Stufe 5 verschoben.")
+            if item.is_file():
+                ext = item.suffix.lower()
+                # GEÄNDERT: Images gehen in den 'image'-Unterordner (Singular)
+                if ext in [".img", ".raw"]:
+                    shutil.move(str(item), str(lza_images_dir / item.name))
+                    print(f"{Fore.GREEN} [Move] -> Image {item.name} nach image/ verschoben.")
+                # NEU: Logs (csv, log) gehen in den 'logfiles'-Unterordner
+                elif ext in [".csv", ".log"]:
+                    shutil.move(str(item), str(lza_logs_dir / item.name))
+                    print(f"{Fore.GREEN} [Move] -> Log {item.name} nach logfiles/ verschoben.")
+                # Andere Dateien (z.B. .dd, .001, .bin) bleiben im Hauptordner
+                else:
+                    shutil.move(str(item), str(f5_lza / item.name))
+                    print(f"{Fore.GREEN} [Move] -> {item.name} nach Stufe 5 (Hauptordner) verschoben.")
+        print(f"{Fore.GREEN} [Move] -> Inhalte aus Stufe 1 strukturiert nach Stufe 5 verschoben.")
 
     # E) Alle Berichte aus Ordner 2 (Inhalte) nach logfiles verschieben
     items_f2 = [f"2_{disk_id}_extracted-files.content", 
@@ -138,10 +156,11 @@ def run_staging_workflow(ac_number, disk_id):
         if (f2 / item).exists():
             safe_move_item(f2 / item, lza_logs_dir)
 
-    # F) Alle verbliebenen Dateien aus Ordner 3 (Index, Logs) nach logfiles verschieben
+    # F) Alle verbliebenen Dateien aus Ordner 3 (Index, Logs, Tree) nach logfiles verschieben
+    # NEU: .txt wurde zur Liste hinzugefügt, damit auch die Tree-Datei hier landet
     if f3.exists():
         for item in f3.iterdir():
-            if item.is_file() and item.suffix in [".log", ".index"]:
+            if item.is_file() and item.suffix in [".log", ".index", ".txt"]:
                 safe_move_item(item, lza_logs_dir)
 
     print(f"\n{Fore.MAGENTA}===================================================")

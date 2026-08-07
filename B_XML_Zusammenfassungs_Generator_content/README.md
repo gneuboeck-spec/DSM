@@ -1,23 +1,23 @@
-# XML-Zusammenfassungs-Generator (.content)
+# B - XML-Zusammenfassungs-Generator (.content)
 
-Dieses Skript ist ein spezialisiertes Werkzeug zur Automatisierung der Berichterstellung innerhalb eines digitalen Archivierungsworkflows. Es sammelt Informationen aus zwei unterschiedlichen Quellen – einer manuell erstellten XML-Beschreibung des physischen Datenträgers und einem automatisch generierten HTML-Analysebericht von Brunnhilde – und führt sie zu einer einzigen, strukturierten XML-Zusammenfassungsdatei (.content) zusammen.
+Dieses Skript ist ein spezialisiertes Werkzeug zur Automatisierung der Berichterstellung innerhalb eines digitalen Archivierungsworkflows. Es sammelt Informationen aus zwei unterschiedlichen Quellen – einer manuell erstellten XML-Beschreibung des physischen Datenträgers und einem automatisch generierten HTML-Analysebericht von Brunnhilde – und führt sie zu einer einzigen, strukturierten XML-Zusammenfassungsdatei (`.content`) zusammen.
 
-Diese .content-Datei dient als zentrale Übersicht über den Inhalt und die technischen Eigenschaften eines archivierten Datenträgers.
+Diese `.content`-Datei dient als zentrale Übersicht über den Inhalt und die technischen Eigenschaften eines archivierten Datenträgers.
 
 ---
 
 ## Hauptfunktionen
 
 1. **Einlesen der Datenträger-Beschreibung:**
-   * Quelle: Eine XML-Datei (0_[ID]_carrier-description.xml), die manuell erstellte Metadaten über den physischen Datenträger enthält (Typ, Beschriftung, Zustand).
+   * Quelle: Eine XML-Datei (`0_[ID]_carrier-description.xml`), die manuell erstellte Metadaten über den physischen Datenträger enthält (Typ, Beschriftung, Zustand).
    * Aktion: Das Skript integriert diese deskriptiven Daten in die finale Zusammenfassung.
 
 2. **Einlesen des Analyse-Berichts:**
-   * Quelle: Ein HTML-Bericht (report.html), der zuvor vom Analyse-Tool Brunnhilde erstellt wurde.
+   * Quelle: Ein HTML-Bericht (`report.html`), der zuvor vom Analyse-Tool Brunnhilde erstellt wurde.
    * Aktion: Das Skript parst diesen Bericht mit BeautifulSoup 4, um statistische Daten zu extrahieren (Dateianzahl, Gesamtgröße, Zeitspanne, Dateiformate nach PRONOM).
 
 3. **Erstellung der XML-Zusammenfassung:**
-   * Ziel: Eine neue XML-Datei mit der Endung .content im Stufe-2-Verzeichnis.
+   * Ziel: Eine neue XML-Datei mit der Endung `.content` im Stufe-2-Verzeichnis.
    * Aktion: Erstellt eine saubere, maschinenlesbare Übersicht. Ein Überschreiben existierender Dateien wird vom Skript verhindert.
 
 ---
@@ -37,32 +37,41 @@ Das Skript verknüpft Daten aus verschiedenen Verarbeitungsstufen. Die Existenz 
 │   └── 2_[ID]_extracted-files.content          <-- ZIEL (Zusammenfassungsbericht)
 └── 3_[ID]_for-transfer/                        <-- VALIDIERUNG (Muss existieren)
 ```
+
 ---
 
 ## Technische Voraussetzungen
 
 * Python: Version 3.10 oder neuer empfohlen.
 * Bibliotheken: Beautiful Soup 4 muss installiert sein:
-    pip install beautifulsoup4
+  ```bash
+  pip install beautifulsoup4
+  ```
 
 ---
 
 ## Ausführung
 
-Das Skript kann flexibel gestartet werden:
+Das Skript wird im normalen Arbeitsablauf über den zentralen **Workflow Launcher** (`Workflow_Launcher_start.bat`) und das darauf folgende **Auswahlmenü** gestartet. Die benötigten Parameter (AC-Nummer und Datenträger-ID) werden dabei automatisch vom Menü an das Skript übergeben.
 
-1. **Automatisiert (via Kommandozeile):** Übergabe der AC-Nummer und Datenträger-ID als Argumente (z.B. durch eine start.bat oder das Hauptmenü).
-2. **Manuell:** Falls keine Argumente übergeben werden, fragt das Skript die benötigten Daten interaktiv ab.
+Für manuelle Tests oder Debugging kann das Skript auch direkt über die Kommandozeile aufgerufen werden. Es erwartet zwei Argumente: die AC-Nummer und die Datenträger-ID.
 
-Beispielhafter Aufruf:
-    python content_generator.py AC_12345 ID_001
+**Beispiel für einen manuellen Aufruf:**
+
+```bat
+@echo off
+set AC_NUMBER=AC_12345
+set DISK_ID=ID_001
+python "B_XML_Zusammenfassungs_Generator.py" %AC_NUMBER% %DISK_ID%
+pause
+```
 
 ### Ablauf der Ausführung
 
 1. **Validierung:** Prüfung der Argumente sowie Verifizierung aller Quellpfade und des Transfer-Ordners.
 2. **XML-Parsing:** Einlesen der physischen Carrier-Metadaten.
 3. **HTML-Parsing:** Extraktion der statistischen Daten und Format-Listen aus dem Brunnhilde-Bericht.
-4. **XML-Generierung:** Erstellung der .content-Datei mit strukturierter Einrückung.
+4. **XML-Generierung:** Erstellung der `.content`-Datei mit strukturierter Einrückung.
 5. **Abschluss:** Optionale Abfrage, ob der Zielordner im Explorer geöffnet werden soll.
 
 ---
@@ -71,17 +80,17 @@ Beispielhafter Aufruf:
 
 ### Exakte Pfadstruktur (streng erforderlich)
 
-Das Skript erwartet folgende Dateipfade. Weicht nur einer ab, bricht das Skript mit einer roten Fehlermeldung ab:
+Das Skript erwartet die oben definierte Dateistruktur. Weicht ein Pfad ab, bricht das Skript mit einer roten Fehlermeldung ab.
 
-Der `3_…_for-transfer`-Ordner **muss existieren**, wird aber vom Skript nicht beschrieben oder verändert – er dient nur als Validierungsprüfung, dass die Verarbeitungsstufe 3 erreicht ist.
+Der `3_…_for-transfer`-Ordner **muss existieren**, wird aber vom Skript nicht beschrieben oder verändert – er dient nur als Validierungsprüfung, dass die Verarbeitungsstufe 3 bereits erreicht wurde.
 
 ### Fallback bei manuellem Aufruf
 
-Wenn das Skript **nicht** mit zwei Kommandozeilen-Argumenten gestartet wird (z. B. direkt per Doppelklick), fragt es interaktiv nach AC‑Nummer und Datenträger‑ID. Das ist in der README korrekt erwähnt – allerdings wird dabei **keine erneute Pfadvalidierung durchlaufen**; die Abfrage ersetzt nur die fehlenden `sys.argv`.
+Wenn das Skript **nicht** mit zwei Kommandozeilen-Argumenten gestartet wird (z. B. direkt per Doppelklick ohne Batch), fragt es interaktiv nach AC-Nummer und Datenträger-ID. Dabei wird **keine erneute Pfadvalidierung durchlaufen**; die Abfrage ersetzt nur die fehlenden `sys.argv`.
 
-### Extrahierte Felder aus der HTML‑Datei
+### Extrahierte Felder aus der HTML-Datei
 
-Das Skript sucht in `report.html` nach **exakt diesen Textmustern** in `〈p〉〈strong〉…〈/strong〉〈/p〉`:
+Das Skript sucht in `report.html` nach **exakt diesen Textmustern** in `<p><strong>…</strong></p>`:
 
 | Gesuchter Text | Ergebnisvariable |
 |----------------|------------------|
@@ -104,21 +113,17 @@ Das Skript sucht nach einer `<h2>`-Überschrift mit dem exakten Text **„File f
 
 | Fehlerfall | Verhalten |
 |------------|-----------|
-| XML‑Parsefehler | Fehlermeldung + `exit(1)` |
-| XML‑ oder HTML‑Datei fehlt | rote Fehlermeldung + `exit()` |
+| XML-Parsefehler | Fehlermeldung + `exit(1)` |
+| XML- oder HTML-Datei fehlt | rote Fehlermeldung + `exit()` |
 | `base_path` existiert nicht | rote Fehlermeldung + `exit()` |
 | `for-transfer`-Ordner fehlt | rote Fehlermeldung + `exit()` |
-| **Ziel‑`.content`-Datei existiert bereits** | **Abbruch ohne Überschreiben** (rote Meldung + `exit()`) |
+| **Ziel-`.content`-Datei existiert bereits** | **Abbruch ohne Überschreiben** (rote Meldung + `exit()`) |
 
 Die letzte Zeile ist besonders wichtig: Das Skript schützt existierende Ausgaben vor versehentlichem Überschreiben.
 
 ### Aufbau der erzeugten `.content`-XML
 
 Die Ausgabedatei hat folgende Struktur (vereinfacht):
-
-~/Documents/data/[AC_number]/[disk_archive_ID]/0_[disk_archive_ID]_picture-carrier/0_[disk_archive_ID]_carrier-description.xml
-~/Documents/data/[AC_number]/[disk_archive_ID]/2_[disk_archive_ID]_extracted-files/2_[disk_archive_ID]_extracted-files_brunnhilde/files_collection_report/report.html
-~/Documents/data/[AC_number]/[disk_archive_ID]/3_[disk_archive_ID]_for-transfer/
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -147,11 +152,9 @@ Die Ausgabedatei hat folgende Struktur (vereinfacht):
         <DateLatestModified>[latest_date]</DateLatestModified>
     </FileStatistic>
 </DataCarrierSummary>
-
 ```
 
 Die Einrückung erfolgt mit vier Leerzeichen (`ET.indent(space="    ")`).
-
 
 ### Plattformabhängiges Öffnen des Zielordners
 
@@ -165,15 +168,18 @@ Die Umwandlung des `Path`-Objekts in einen String ist zwingend erforderlich – 
 
 ### Abhängigkeiten (zusätzlich)
 
-Neben `beautifulsoup4` werden keine weiteren externen Bibliotheken benötigt. `xml.etree.ElementTree`, `subprocess`, `platform`, `sys` und `pathlib` sind in der Python‑Standardbibliothek enthalten.
+Neben `beautifulsoup4` werden keine weiteren externen Bibliotheken benötigt. `xml.etree.ElementTree`, `subprocess`, `platform`, `sys` und `pathlib` sind in der Python-Standardbibliothek enthalten.
 
 ---
 
 ## Lizenz
 
+Copyright (c) 2025 Florian Lüftner <florian.lueftner@posteo.com>
 Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
 
 Dieses Skript ist unter der MIT-Lizenz lizenziert.
 
+---
+SPDX-FileCopyrightText: 2025 Florian Lüftner
 SPDX-FileCopyrightText: 2025 Gregor Neuboeck
 SPDX-License-Identifier: MIT

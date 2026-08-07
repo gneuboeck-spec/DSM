@@ -1,4 +1,4 @@
-# Automatisches Analyse-Skript (Brunnhilde & Fixity)
+# A - Analyse-Skript (Brunnhilde & Fixity)
 
 Dieses Skript automatisiert die Analyse von Dateisammlungen mithilfe des digitalen Archivierungs-Tools Brunnhilde. Es berechnet kryptografische Prüfsummen (SHA-256), integriert Siegfried zur Dateiformat-Identifikation und nutzt optional ClamAV für Virenscans. 
 
@@ -8,18 +8,18 @@ Eine Besonderheit ist die Live-Überwachung des Virenscanners: Sollten die Viren
 
 ## Hauptfunktionen
 
-* Vollständige Automatisierung: Führt den gesamten Analyseprozess von Brunnhilde mit einem einzigen Befehl aus.
-* SHA-256 Fixity-Check: Berechnet automatisch SHA-256 Prüfsummen für alle Dateien im Quellverzeichnis und bettet diese direkt in den JSON-Bericht ein.
-* Live-Virenschutz-Check: Überwacht den Status von ClamAV während der Ausführung und gibt bei veralteten Signaturen eine Anleitung zur Aktualisierung (freshclam) aus.
-* Dynamische Pfad-Konfiguration: Alle Pfade werden zur Laufzeit basierend auf einer AC-Nummer und einer Datenträger-ID generiert.
-* Zusammenfassender Bericht: Erstellt eine strukturierte JSON-Datei, die alle wichtigen Ergebnisse (Hashes, Formate, Warnungen, Virenfunde) bündelt.
-* Windows-Optimierung: Enthält Workarounds für die manuelle Erstellung der tree.txt-Datei unter Windows (CMD-basiert).
+* **Vollständige Automatisierung:** Führt den gesamten Analyseprozess von Brunnhilde mit einem einzigen Befehl aus.
+* **SHA-256 Fixity-Check:** Berechnet automatisch SHA-256 Prüfsummen für alle Dateien im Quellverzeichnis und bettet diese direkt in den JSON-Bericht ein.
+* **Live-Virenschutz-Check:** Überwacht den Status von ClamAV während der Ausführung und gibt bei veralteten Signaturen eine Anleitung zur Aktualisierung (`freshclam`) aus.
+* **Dynamische Pfad-Konfiguration:** Alle Pfade werden zur Laufzeit basierend auf einer AC-Nummer und einer Datenträger-ID generiert.
+* **Zusammenfassender Bericht:** Erstellt eine strukturierte JSON-Datei, die alle wichtigen Ergebnisse (Hashes, Formate, Warnungen, Virenfunde) bündelt.
+* **Windows-Optimierung:** Enthält Workarounds für die manuelle Erstellung der `tree.txt`-Datei unter Windows (CMD-basiert).
 
 ---
 
 ## TREE-Struktur & Dateipfade
 
-Das Skript erwartet die Datenstruktur unter ~/Documents/data/. Die Ergebnisse werden im Extraktions-Ordner (Stufe 2) abgelegt:
+Das Skript erwartet die Datenstruktur unter `~/Documents/data/`. Die Ergebnisse werden im Extraktions-Ordner (Stufe 2) abgelegt:
 
 ```text
 [AC-Nummer]/[Datenträger-ID]/
@@ -30,13 +30,14 @@ Das Skript erwartet die Datenstruktur unter ~/Documents/data/. Die Ergebnisse we
     ├── 2_[ID]_extracted-files_brunnhilde-summary.json <-- ZIEL (Zentrale Hash- & Formatliste)
     └── 2_[ID]_extracted-files_tree.txt         <-- ZIEL (Verzeichnisstruktur)
 ```
+
 ---
 
 ## Technische Voraussetzungen
 
 Stellen Sie sicher, dass folgende Programme installiert sind:
 
-1. Python 3.10+ (inkl. Modul Brunnhilde: pip install brunnhilde)
+1. Python 3.10+ (inkl. Modul Brunnhilde: `pip install brunnhilde`)
 2. Siegfried (identifiziert Dateiformate via PRONOM)
 3. ClamAV (optional für Virenscans)
 
@@ -46,30 +47,38 @@ Stellen Sie sicher, dass folgende Programme installiert sind:
 
 Passen Sie die Installationspfade der Tools am Anfang der Python-Datei an:
 
+```python
 SIEGFRIED_DIR = r"C:\Program Files\Siegfried"
 CLAMAV_DIR = r"C:\Program Files\ClamAV"
+```
 
 ---
 
 ## Ausführung
 
-Das Skript benötigt zwingend zwei Argumente: die AC-Nummer und die Datenträger-ID. Diese können über eine start.bat übergeben werden:
+Das Skript wird im normalen Arbeitsablauf über den zentralen **Workflow Launcher** (`Workflow_Launcher_start.bat`) und das darauf folgende **Auswahlmenü** gestartet. Die benötigten Parameter (AC-Nummer und Datenträger-ID) werden dabei automatisch vom Menü an das Skript übergeben.
 
+Für manuelle Tests oder Debugging kann das Skript auch direkt über die Kommandozeile aufgerufen werden. Es benötigt zwingend zwei Argumente: die AC-Nummer und die Datenträger-ID.
+
+**Beispiel für einen manuellen Aufruf:**
+
+```bat
 @echo off
 set AC_NUMBER=AC_12345
 set DISK_ID=ID_001
-python analyse_skript.py %AC_NUMBER% %DISK_ID%
+python "A_Analyse_Skript_Brunnhilde_Fixity.py" %AC_NUMBER% %DISK_ID%
 pause
+```
 
 ### Ablauf der Ausführung
 
-1. Validierung: Prüfung von Argumenten, Ordnern sowie der Existenz von sf.exe und clamscan.exe.
-2. SHA-256 Hashing: Erstellt Prüfsummen für alle Dateien im Ordner files/.
-3. Brunnhilde-Ausführung: Analyse der Dateiformate und Echtzeit-Überwachung des ClamAV-Status (Warnung bei veralteten Signaturen).
-4. Tree-Workaround: Manuelle Erstellung der tree.txt innerhalb des Berichtsordners.
-5. Parsing & JSON: Zusammenfassung der CSV-Ergebnisse (Formate, Warnungen, Viren) in der zentralen JSON-Datei.
-6. Finalisierung: Verschieben der tree.txt in die übergeordnete Ebene (2_[ID]_extracted-files).
-7. Abschluss: Optionale Abfrage, ob der Zielordner im Windows Explorer geöffnet werden soll.
+1. **Validierung:** Prüfung von Argumenten, Ordnern sowie der Existenz von `sf.exe` und `clamscan.exe`.
+2. **SHA-256 Hashing:** Erstellt Prüfsummen für alle Dateien im Ordner `files/`.
+3. **Brunnhilde-Ausführung:** Analyse der Dateiformate und Echtzeit-Überwachung des ClamAV-Status (Warnung bei veralteten Signaturen).
+4. **Tree-Workaround:** Manuelle Erstellung der `tree.txt` innerhalb des Berichtsordners.
+5. **Parsing & JSON:** Zusammenfassung der CSV-Ergebnisse (Formate, Warnungen, Viren) in der zentralen JSON-Datei.
+6. **Finalisierung:** Verschieben der `tree.txt` in die übergeordnete Ebene (`2_[ID]_extracted-files`).
+7. **Abschluss:** Optionale Abfrage, ob der Zielordner im Windows Explorer geöffnet werden soll.
 
 ---
 
@@ -79,8 +88,10 @@ pause
 
 Das Skript setzt zwingend folgende Ordnerstruktur voraus. Die zu analysierenden Dateien MÜSSEN bereits in `files/` liegen:
 
-~/Documents/data/[AC-Nummer]/[Datenträger-ID]/2_[DatentrÃ¤ger-ID]_extracted-files/files/
+```text
+~/Documents/data/[AC-Nummer]/[Datenträger-ID]/2_[Datenträger-ID]_extracted-files/files/
   └── (Ihre zu analysierenden Dateien und Unterordner)
+```
 
 Fehlt dieses `files/`-Verzeichnis oder ist es leer, bricht das Skript mit einer Fehlermeldung ab.
 
@@ -91,7 +102,7 @@ Das Skript prüft beim Start:
 - `sf.exe` im konfigurierten `SIEGFRIED_DIR` (falls angegeben)
 - `clamscan.exe` im konfigurierten `CLAMAV_DIR` (falls angegeben)
 
-Bei Fehlern erscheint eine rote Fehlermeldung (`\033[91m`), das Skript wird mit `return None` bzw. `sys.exit(1)` beendet.
+Bei Fehlern erscheint eine rote Fehlermeldung, das Skript wird beendet.
 
 ### Temporäres Verzeichnis für Brunnhilde
 
@@ -126,7 +137,7 @@ Die finale `*-summary.json` enthält folgende Felder:
 
 ### Manuelle `tree.txt`-Erstellung (Windows)
 
-Das Skript verwendet nicht `tree.exe`, sondern direkt `cmd /c tree "…" /A /F > "tree.txt"`. Dies wird unabhängig vom Erfolg von Brunnhilde ausgeführt. Falls der Befehl fehlschlägt, erscheint eine Warnung, das Skript wird aber **fortgesetzt**.
+Das Skript verwendet nicht `tree.exe` direkt, sondern `cmd /c tree "…" /A /F > "tree.txt"`. Dies wird unabhängig vom Erfolg von Brunnhilde ausgeführt. Falls der Befehl fehlschlägt, erscheint eine Warnung, das Skript wird aber **fortgesetzt**.
 
 ### Plattformabhängiges Öffnen des Zielordners
 
@@ -135,11 +146,14 @@ Nach Abschluss fragt das Skript: `Zielordner oeffnen? (j/n)`. Bei `j`:
 - **macOS** → `open`
 - **Linux/andere** → `xdg-open`
 
+---
+
 ## Lizenz
 
 Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
 
 Dieses Skript ist unter der MIT-Lizenz lizenziert.
 
+---
 SPDX-FileCopyrightText: 2025 Gregor Neuboeck
 SPDX-License-Identifier: MIT

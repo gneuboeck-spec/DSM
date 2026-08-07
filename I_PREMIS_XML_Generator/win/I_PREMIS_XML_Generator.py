@@ -28,6 +28,7 @@ import subprocess
 import hashlib
 import requests
 import glob
+import shutil
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from datetime import datetime
@@ -276,17 +277,38 @@ def parse_greaseweazle_log(log_path):
 
 def analyze_source_media(logfiles_path):
     """
-    Sucht im logfiles-Ordner nach Imaging-Logs (*.txt) 
-    und im übergeordneten LZA-Ordner nach ddrescue-Maps (*.map).
+    Sucht nach Imaging-Logs. 
+    NEU: Falls der 'logfiles'-Ordner fehlt, sucht es im Hauptordner, 
+    erstellt den Ordner und verschiebt die Log-Datei dorthin.
     """
-    # 1. Pfad-Validierung
+    # 1. Prüfen, ob der logfiles-Ordner existiert
     if not logfiles_path.exists():
-        print(f"WARNUNG: Log-Verzeichnis {logfiles_path} nicht gefunden.")
-        return MediaContext()
+        print(f"INFO: Unterordner 'logfiles' nicht gefunden. Suche Log-Datei direkt im Hauptordner {logfiles_path.parent}...")
+        
+        # Fallback: Suche im übergeordneten Ordner (Stufe 1)
+        log_candidates = list(logfiles_path.parent.glob("*image-log.txt"))
+        
+        if log_candidates:
+            print("INFO: Log-Datei im Hauptordner gefunden. Erstelle 'logfiles'-Ordner und verschiebe Datei dorthin für zukünftige Konsistenz.")
+            # Ordner erstellen
+            logfiles_path.mkdir(parents=True, exist_ok=True)
+            
+            # Datei(en) verschieben
+            for log_file in log_candidates:
+                target_path = logfiles_path / log_file.name
+                shutil.move(str(log_file), str(target_path))
+                print(f"   -> Verschoben: {log_file.name} nach {logfiles_path.name}/")
+            
+            # Kandidatenliste aktualisieren, damit der Rest der Funktion normal weiterläuft
+            log_candidates = list(logfiles_path.glob("*image-log.txt"))
+        else:
+            print(f"WARNUNG: Auch im Hauptordner keine Logs gefunden.")
+            return MediaContext()
+    else:
+        # Normaler Pfad: Ordner existiert bereits
+        log_candidates = list(logfiles_path.glob("*image-log.txt"))
 
-    # 2. Suche nach TEXT-LOGS (USB, CD, Floppy) im logfiles-Ordner
-    log_candidates = list(logfiles_path.glob("*image-log.txt"))
-    
+    # 2. Auswertung der gefundenen Logs (ab hier bleibt Ihr ursprünglicher Code)
     if log_candidates:
         log_file = log_candidates[0]
         try:
@@ -300,16 +322,12 @@ def analyze_source_media(logfiles_path):
                 print(f"   [INFO] Modus erkannt: OPTICAL DISC (Redumper)")
                 return parse_redumper_log(log_file)
             else:
-                # Standard-Annahme: Greaseweazle oder ähnliche Disketten-Tools
                 print(f"   [INFO] Modus erkannt: DISKETTE (Greaseweazle/Standard)")
                 return parse_greaseweazle_log(log_file)
         except Exception as e:
             print(f"WARNUNG: Fehler bei der Log-Analyse von {log_file.name}: {e}")
-            # Wir machen hier nicht return, sondern schauen weiter, ob vielleicht eine .map existiert
 
     # 3. Suche nach DDRESCUE-MAPS (Festplatten)
-    # WICHTIG: Da die .map Datei meist im Hauptordner von Stufe 5 liegt, 
-    # schauen wir eine Ebene höher als im logfiles-Ordner.
     lza_root = logfiles_path.parent
     dd_map = list(lza_root.glob("*.map"))
     
@@ -322,7 +340,7 @@ def analyze_source_media(logfiles_path):
         ctx.has_flux_stream = False
         return ctx
 
-    # 4. Endgültiger Fallback, wenn gar nichts gefunden wurde
+    # 4. Endgültiger Fallback
     print("   [WARNUNG] Kein bekanntes Imaging-Log oder Mapfile gefunden. Nutze Standard-Modus.")
     return MediaContext()
 
