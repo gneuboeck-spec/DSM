@@ -17,6 +17,7 @@ Die Arbeitsumgebung wird zentral über den **Workflow Launcher** gestartet.
 
 Das Repository ist so aufgebaut, dass jedes Skript (oder jede Skript-Gruppe) einen eigenen Ordner mit zugehöriger Dokumentation (`README.md`) und den eigentlichen Python-Dateien (im Unterordner `win/`) besitzt.
 
+```text
 Skripte/
 ├── Workflow_Launcher_start.bat       <-- Startpunkt für die Arbeitsumgebung
 ├── Python_Skript_Starter_menu.py     <-- Zentrales Auswahlmenü
@@ -34,6 +35,7 @@ Skripte/
 │       ├── G_Metadata_Extraction_Indexing_filetrove.py
 │       └── rules.yar                 <-- YARA-Regeln für die Dateiformat-Identifizierung
 └── ...
+```
 
 ---
 
@@ -49,8 +51,9 @@ Ziel: Physische Dokumentation, Bit-Identität sichern und forensische Analyse.
 
 ### TREE-STRUKTUR (PHASE 1):
 
+```text
 Documents/data/[AC-Nummer]/[Datenträger-ID]/
-├── 0_[ID]_picture-carrier/          
+── 0_[ID]_picture-carrier/          
 │   ├── *.tif                                    <-- Hardware-Fotos
 │   └── 0_[ID]_carrier-description.xml           <-- Physische Beschreibung
 ├── 1_[ID]_image-LZA/                
@@ -65,6 +68,7 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
         ├── 2_[ID]_..._summary.json              <-- Fixity-Referenz (SHA-256)
         ├── 2_[ID]_..._tree.txt                  <-- Struktur-Bericht
         └── files_collection_report/             <-- Forensische Detail-Logs
+```
 
 ================================================================================
 PHASE 2: REPARATUR & NORMALISIERUNG (STUFE 3)
@@ -74,14 +78,16 @@ Ziel: Dateifehler beheben und Erhaltungs-Derivate (Digital Twins) erzeugen.
 
 ### TREE-STRUKTUR (PHASE 2):
 
+```text
 Documents/data/[AC-Nummer]/[Datenträger-ID]/
 └── 3_[ID]_for-transfer/             
     ├── files/                                   <-- KOPIE aus Stufe 2
     │   ├── dokument.doc                         <-- Reparatur: Endung korrigiert
     │   ├── dokument.doc.odt                     <-- ODF-Zwischenschritt
-    │   └── dokument.doc.pdf                     <-- PDF/A Archiv-Derivat
+    │   ── dokument.doc.pdf                     <-- PDF/A Archiv-Derivat
     ├── 3_[ID]_for-transfer_repair-file-extension.log <-- Reparatur-Protokoll
     └── 3_[ID]_for-transfer_all-conversions.log  <-- Konvertierungs-Protokoll
+```
 
 ================================================================================
 PHASE 3: KURATIERUNG & VL-REPRESENTATION (STUFE 4 / VL)
@@ -91,6 +97,7 @@ Ziel: Bereinigung für das aktive Repository und Integritäts-Check.
 
 ### TREE-STRUKTUR (PHASE 3):
 
+```text
 Documents/data/[AC-Nummer]/[Datenträger-ID]/
 ├── 4_[ID]_VL/                      
 │   ├── files/                                   <-- KOPIE aus Stufe 3
@@ -101,6 +108,7 @@ Documents/data/[AC-Nummer]/[Datenträger-ID]/
 │   ├── 3_[ID]_for-transfer.index                <-- Technischer Index (Stufe 4 Stand)
 │   └── 3_[ID]_for-transfer_integrity.log        <-- Fixity-Beweis gegen Phase 1
 └── (Logs aus Bereinigung: 4_[ID]_VL_delete-all.log, 4_[ID]_VL_delete-converted-odfs.log, 4_[ID]_VL_delete-converted-wavs.log wandern nach Stufe 5/logfiles)
+```
 
 ================================================================================
 PHASE 4: ARCHIV-VERSIEGELUNG (STUFE 5 / LZA)
@@ -110,10 +118,11 @@ Ziel: Konsolidierung aller Beweise und Erstellung des finalen AIP.
 
 ### TREE-STRUKTUR (PHASE 4):
 
+```text
 TREE-STRUKTUR (VOR DER TAR-VERSIEGELUNG):
 5_[ID]_LZA/
 ├── 01_[ID].img                                  <-- UMZUG aus Stufe 1
-├── 3_files/                                     <-- UMZUG aus Stufe 3/files
+── 3_files/                                     <-- UMZUG aus Stufe 3/files
 ├── 5_[ID]_LZA.index                             <-- Finaler Master-Index
 ├── mets.xml                                     <-- METS-Steuerdatei
 └── logfiles/                                    <-- DER PROZESS-BEWEIS (Audit Trail)
@@ -126,7 +135,8 @@ TREE-STRUKTUR (VOR DER TAR-VERSIEGELUNG):
     ├── 4_[ID]_VL_delete-converted-odfs.log      <-- Artefakt-Bereinigung (Skript F)
     ├── 4_[ID]_VL_delete-converted-wavs.log      <-- Artefakt-Bereinigung (Skript F)
     ├── 5_[ID]_LZA_premis.xml                    <-- Erhaltungs-Metadaten
-    └── 5_[ID]_LZA_integrity.log                 <-- Finaler Fixity-Beweis (Skript K)
+    ── 5_[ID]_LZA_integrity.log                 <-- Finaler Fixity-Beweis (Skript K)
+```
 
 ================================================================================
 DAS ENDERGEBNIS (Dualer Output)
