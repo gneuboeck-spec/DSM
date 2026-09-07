@@ -1,0 +1,8 @@
+python-docx
+PyMuPDF
+pdfplumber
+openpyxl
+rapidfuzz
+tqdm
+matplotlib
+sentence-transformers
