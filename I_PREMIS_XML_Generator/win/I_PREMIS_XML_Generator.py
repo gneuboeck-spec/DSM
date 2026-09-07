@@ -9,13 +9,12 @@
 #
 # Autor: Ihr Name / Ihre Abteilung
 # Datum: 2025-12-15
-# Version: 22.3 - LOBID-GND FIX
-#                 1. AUTO-WEICHE: Erkennt nun auch Optical Discs (Redumper Logs).
-#                 2. FTK-PARSER: Extrahiert Metadaten (Tableau, Hashes, SN) aus FTK Logs.
-#                 3. REDUMPER-PARSER: Extrahiert Metadaten aus Audio-CD Rips.
-#                 4. SSL-FIX: Behebt UNEXPECTED_EOF bei DNB GND-Abfragen.
-#                 5. LOBID-FALLBACK: Nutzt lobid-gnd API wenn DNB nicht erreichbar.
-#                 6. BUGFIX: Korrekte lobid-gnd Query und creator_gnd_id Initialisierung.
+# Version: 22.4.1 - CLAMAV FIX
+#                 1. BUGFIX: relatedObjectIdentifier ist in PREMIS relationship zwingend.
+#                 2. CLAMAV-PARSER: Liest viruscheck-log.txt aus Stufe 2 oder 5.
+#                 3. PREMIS-EVENT: Erstellt valides 'virus check' Event mit ClamAV-Agent.
+#                 4. DATUMS-FIX: Normalisiert ClamAV-Datumsformate (2026:08:12 -> ISO-8601).
+#                 5. LOGFILE-OBJEKT: Speichert den Virenscan-Report selbst als PREMIS-Artefakt.
 #
 # Benötigt: lxml (pip install lxml), requests (pip install requests)
 # ==============================================================================
@@ -399,7 +398,7 @@ class PremisGenerator:
         self.root = etree.Element(PREMIS + 'premis', nsmap=NSMAP, version="3.0")
         self.root.set(XSI + 'schemaLocation', SCHEMA_LOCATION)
 
-        print(f"INFO: PREMIS Generator V22.3 (Staging-Aware) für '{self.disk_id}' initialisiert.")
+        print(f"INFO: PREMIS Generator V22.4.1 (Staging-Aware + ClamAV) für '{self.disk_id}' initialisiert.")
         if not self.path_step5_lza.exists():
             print(f"FATALER FEHLER: Archiv-Staging-Ordner (5) nicht gefunden: {self.path_step5_lza}")
             sys.exit(1)
@@ -442,10 +441,6 @@ class PremisGenerator:
 
     # --- VERBESSERTE GND SUCHE MIT LOBID-GND FALLBACK (V22.3) ---
     def _search_dnb_sru(self, query_str, session, headers):
-        """
-        Versucht eine Suche über die DNB SRU-Schnittstelle.
-        Gibt bei Erfolg die geparsten Ergebnisse zurück, sonst None.
-        """
         try:
             print(f"Suche bei DNB nach: {query_str} ...")
             r = session.get("https://services.dnb.de/sru/authorities", 
@@ -467,21 +462,17 @@ class PremisGenerator:
             results = []
             for rec in recs:
                 try:
-                    # ID
                     id_node = rec.find('./marc:controlfield[@tag="001"]', ns)
                     if id_node is None: continue 
                     gid = id_node.text
                     
-                    # Name
                     name_node = rec.find('./marc:datafield[@tag="100"]/marc:subfield[@code="a"]', ns)
                     if name_node is None: continue
                     n = name_node.text
                     
-                    # Lebensdaten
                     d = rec.find('./marc:datafield[@tag="100"]/marc:subfield[@code="d"]', ns)
                     ds = f"({d.text})" if (d is not None and d.text) else ""
                     
-                    # Typ
                     type_label = "Unbekannt"
                     f075 = rec.find('./marc:datafield[@tag="075"]/marc:subfield[@code="b"]', ns)
                     if f075 is not None:
@@ -493,13 +484,11 @@ class PremisGenerator:
                         elif c == 's': type_label = "Sachbegriff"
                         elif c == 'w': type_label = "Werk"
                     
-                    # Werktitel
                     title_part = rec.find('./marc:datafield[@tag="100"]/marc:subfield[@code="t"]', ns)
                     if title_part is not None:
                         type_label = "Werk/Titel"
                         n = f"{n} : {title_part.text}"
                     
-                    # Berufe
                     infos = []
                     for f550 in rec.findall('./marc:datafield[@tag="550"]', ns):
                         sub_a = f550.find('./marc:subfield[@code="a"]', ns)
@@ -520,15 +509,9 @@ class PremisGenerator:
             return None
 
     def _search_lobid_gnd(self, search_term):
-        """
-        Versucht eine Suche über die lobid-gnd API (hbz).
-        Sucht gezielt nach Personen und extrahiert Namen, Lebensdaten sowie IDs.
-        Behebt den Fehler: 'expected str instance, dict found'.
-        """
         try:
             print(f"Suche bei lobid-gnd (Fallback) nach Person: {search_term} ...")
             url = "https://lobid.org/gnd/search"
-            # Filter auf Person (type:Person) und JSON-Format
             params = {
                 'q': f'preferredName:"{search_term}"', 
                 'filter': 'type:Person', 
@@ -543,7 +526,6 @@ class PremisGenerator:
             members = data.get('member', [])
 
             if not members:
-                # Falls keine exakte Namensübereinstimmung, breitere Suche ohne Feld-Einschränkung
                 params['q'] = search_term
                 r = requests.get(url, params=params, headers=headers, timeout=15)
                 members = r.json().get('member', [])
@@ -551,14 +533,10 @@ class PremisGenerator:
             results = []
             for item in members:
                 try:
-                    # 1. GND-ID extrahieren (id ist eine URL, wir brauchen nur den letzten Teil)
                     full_id = item.get('id', '')
                     gid = full_id.split('/')[-1] if full_id else "unknown"
-                    
-                    # 2. Name extrahieren
                     name = item.get('preferredName') or item.get('label') or "Kein Name"
                     
-                    # 3. Lebensdaten (können Strings oder Listen sein)
                     def get_first_val(field):
                         val = item.get(field, "")
                         if isinstance(val, list) and val:
@@ -569,8 +547,6 @@ class PremisGenerator:
                     death = get_first_val('dateOfDeath')
                     dates = f" ({birth}-{death})" if (birth or death) else ""
                     
-                    # 4. Beruf/Info (Fix für: 'expected str instance, dict found')
-                    # Berufe sind bei lobid oft eine Liste von Dictionaries: [{'label': 'Historikerin', ...}]
                     info_list = []
                     professions = item.get('professionOrOccupation', [])
                     if isinstance(professions, list):
@@ -583,7 +559,6 @@ class PremisGenerator:
                     
                     info_str = f" | Info: {', '.join(info_list[:2])}" if info_list else ""
                     
-                    # Ergebnis für die Auswahl vorbereiten
                     results.append({
                         'id': gid, 
                         'name': name, 
@@ -602,9 +577,8 @@ class PremisGenerator:
     def _search_and_select_gnd_agent(self, initial_name):
         current_search_term = initial_name
         
-        # Session für DNB mit Retry-Strategie
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) PremisGenerator/22.3',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) PremisGenerator/22.4',
             'Connection': 'close'
         }
         session = requests.Session()
@@ -615,7 +589,6 @@ class PremisGenerator:
             if not current_search_term.strip():
                 return None
 
-            # Baue DNB Query
             parts = current_search_term.split()
             if not parts:
                 query_str = f'PER = "{current_search_term}"'
@@ -623,18 +596,15 @@ class PremisGenerator:
                 query_parts = [f'PER = "{p}"' for p in parts]
                 query_str = " and ".join(query_parts)
             
-            # Versuche zuerst DNB SRU
             results = self._search_dnb_sru(query_str, session, headers)
             used_api = "DNB"
             
-            # Fallback zu lobid-gnd wenn DNB keine Ergebnisse liefert
             if not results:
                 print("   DNB lieferte keine Ergebnisse oder ist nicht erreichbar.")
                 print("   Versuche lobid-gnd als Fallback...")
                 results = self._search_lobid_gnd(current_search_term)
                 used_api = "lobid-gnd"
             
-            # Anzeige der Ergebnisse
             if results:
                 print(f"\nGefundene GND-Einträge (via {used_api}):")
                 for i, res in enumerate(results):
@@ -642,7 +612,6 @@ class PremisGenerator:
             else:
                 print(f"\033[91mKeine Treffer für '{current_search_term}' (weder DNB noch lobid-gnd).\033[0m")
             
-            # Auswahlmenü
             print("\nOptionen:")
             if results:
                 print("  1-N: Eintrag auswählen")
@@ -675,33 +644,28 @@ class PremisGenerator:
         obj = etree.Element(PREMIS + 'object')
         obj.set(XSI + 'type', f"premis:{obj_type}")
 
-        # 1. Identifier
         oid = etree.SubElement(obj, PREMIS + 'objectIdentifier')
         self._add_simple(oid, 'objectIdentifierType', 'local')
         self._add_simple(oid, 'objectIdentifierValue', identifier_val)
 
-        # 2. Preservation Level
         if preservation_level:
             pl = etree.SubElement(obj, PREMIS + 'preservationLevel')
             self._add_simple(pl, 'preservationLevelType', 'long-term preservation')
             self._add_simple(pl, 'preservationLevelValue', preservation_level)
             self._add_simple(pl, 'preservationLevelRole', 'required')
 
-        # 3. Significant Properties
         if sig_props:
             for stype, sval in sig_props:
                 sp = etree.SubElement(obj, PREMIS + 'significantProperties')
                 self._add_simple(sp, 'significantPropertiesType', stype)
                 self._add_simple(sp, 'significantPropertiesValue', sval)
 
-        # 4. Object Characteristics
         if obj_type in ['file', 'bitstream']:
             has_char_data = (size is not None) or (fixity_list) or (format_info) or (creating_app) or (filetrove_dict)
             
             if has_char_data:
                 char = etree.SubElement(obj, PREMIS + 'objectCharacteristics')
                 
-                # Fixity
                 if fixity_list:
                     for algo, digest in fixity_list:
                         if digest:
@@ -709,11 +673,9 @@ class PremisGenerator:
                             self._add_simple(fix, 'messageDigestAlgorithm', algo)
                             self._add_simple(fix, 'messageDigest', digest)
 
-                # Size
                 if size is not None:
                     self._add_simple(char, 'size', size)
 
-                # Format
                 if format_info:
                     fmt = etree.SubElement(char, PREMIS + 'format')
                     if format_info[0]:
@@ -724,13 +686,11 @@ class PremisGenerator:
                         self._add_simple(reg, 'formatRegistryName', format_info[1] or 'PRONOM')
                         self._add_simple(reg, 'formatRegistryKey', format_info[2])
 
-                # Creating Application
                 if creating_app:
                     ca = etree.SubElement(char, PREMIS + 'creatingApplication')
                     if creating_app[0]: self._add_simple(ca, 'creatingApplicationName', creating_app[0])
                     if creating_app[1]: self._add_simple(ca, 'dateCreatedByApplication', creating_app[1])
 
-                # Extension
                 if filetrove_dict:
                     ext = etree.SubElement(char, PREMIS + 'objectCharacteristicsExtension')
                     ft = etree.SubElement(ext, FT + 'filetrove_metadata', nsmap={'ft': NSMAP['ft']})
@@ -739,17 +699,16 @@ class PremisGenerator:
                             elem = etree.SubElement(ft, FT + k)
                             elem.text = str(v)
 
-        # 5. Original Name
         if original_name:
             self._add_simple(obj, 'originalName', original_name)
 
-        # 6. Relationships
         if relationships:
             for rel_type, rel_subtype, rel_obj_id, rel_evt_id in relationships:
                 rel = etree.SubElement(obj, PREMIS + 'relationship')
                 self._add_simple(rel, 'relationshipType', rel_type)
                 if rel_subtype: self._add_simple(rel, 'relationshipSubType', rel_subtype)
                 
+                # FIX: relatedObjectIdentifier ist in PREMIS v3 zwingend und muss VOR relatedEventIdentifier stehen
                 if rel_obj_id:
                     roi = etree.SubElement(rel, PREMIS + 'relatedObjectIdentifier')
                     self._add_simple(roi, 'relatedObjectIdentifierType', 'local')
@@ -812,15 +771,14 @@ class PremisGenerator:
     # --- STEPS (MODULARIZED) ---
 
     def step_agents(self):
-        print("\n[1/7] Definiere Agenten...")
+        print("\n[1/8] Definiere Agenten...")
         i_id, i_name, i_type = self.AGENT_DEFS["INSTITUTION"]
         self.create_xml_agent(i_id, i_name, i_type)
         if self.creator_name:
-            # Übergebe gnd=None wenn keine GND-ID vorhanden ist
             self.create_xml_agent(self.creator_agent_id, self.creator_name, 'person', self.creator_gnd_id)
 
     def step0_carrier(self):
-        print("\n[2/7] Verarbeite Träger...")
+        print("\n[2/8] Verarbeite Träger...")
         if not self.path_step0.exists(): return
         
         cid = f"{self.disk_id}_carrier"
@@ -828,7 +786,6 @@ class PremisGenerator:
         if self.creator_agent_id:
             rels.append(('creator', 'is created by', self.creator_agent_id, None))
             
-        # Sammle Eigenschaften für den Träger
         props = [("physical form", self.ctx.carrier_label)]
         if self.ctx.original_hardware:
             props.append(("hardware model", self.ctx.original_hardware))
@@ -854,26 +811,23 @@ class PremisGenerator:
             print(f"  -> Foto: {f.name}")
 
     def step1_imaging(self):
-        print("\n[3/7] Verarbeite Disk-Image...")
+        print("\n[3/8] Verarbeite Disk-Image...")
         if not self.path_step1.exists(): return
         
         eid = f"evt_imaging_{self.disk_id}"
         cid = f"{self.disk_id}_carrier"
         
         agents = []
-        # User Agent
         if self.ctx.user_agent:
             aid, name, atype = self.ctx.user_agent
             self.create_xml_agent(aid, name, atype)
             agents.append(aid)
             
-        # Software Tool Agent
         if self.ctx.tool_agent:
             aid, name, atype = self.ctx.tool_agent
             self.create_xml_agent(aid, name, atype)
             agents.append(aid)
 
-        # Hardware Tool Agent (Write Blocker)
         if self.ctx.hardware_agent:
             aid, name, atype = self.ctx.hardware_agent
             self.create_xml_agent(aid, name, atype)
@@ -881,17 +835,14 @@ class PremisGenerator:
             
         self.create_xml_event(eid, "creation", "Success", "Disk Imaging", self.ctx.creation_date, agents, [])
 
-        # Image suchen (kann .img, .001, .dd sein, oder NEU: .bin)
         image_files = list(self.path_step1.glob('*.img')) + \
                       list(self.path_step1.glob('*.001')) + \
                       list(self.path_step1.glob('*.dd')) + \
                       list(self.path_step1.glob('*.bin'))
         
         for f in image_files:
-            # Hashes: Erst aus Log, sonst berechnen
             sha256 = self._get_sha256(f)
             
-            # Zusatzhashes aus FTK Log (MD5/SHA1)
             fixity = [("SHA-256", sha256)]
             if 'MD5' in self.ctx.image_hashes:
                 fixity.append(("MD5", self.ctx.image_hashes['MD5']))
@@ -903,14 +854,13 @@ class PremisGenerator:
                 identifier_val=f.name,
                 size=f.stat().st_size,
                 fixity_list=fixity,
-                format_info=(self.ctx.image_type_label, "PRONOM", "x-fmt/263"), # oder fmt/93 für Raw, hier generisch
+                format_info=(self.ctx.image_type_label, "PRONOM", "x-fmt/263"),
                 relationships=[("derivation", "is derived from", cid, eid)]
             )
             print(f"  -> Image: {f.name}")
             self.source_img_name = f.name
-            self.source_image_id = f.name # Update ID falls .001
+            self.source_image_id = f.name
 
-        # Raw Flux Streams (Nur bei Greaseweazle relevant)
         raws = sorted(list(self.path_step1.glob('*.raw')))
         if raws and self.ctx.has_flux_stream:
             fs_id = f"{self.disk_id}_flux-stream-set"
@@ -941,7 +891,7 @@ class PremisGenerator:
             print("  -> [INFO] .raw Dateien gefunden, aber im aktuellen Modus ignoriert.")
 
     def step2_and_3_extraction(self):
-        print("\n[4/7] Verarbeite Extraktion & Forensik...")
+        print("\n[4/8] Verarbeite Extraktion & Forensik...")
         if not self.path_step2.exists(): return
         
         aid_br = self.AGENT_DEFS["BRUNNHILDE"][0]
@@ -1029,8 +979,130 @@ class PremisGenerator:
             count += 1
         print(f"  -> {count} Dateien verarbeitet.")
 
+    # ==========================================================================
+    # NEU: CLAMAV VIRUS CHECK INTEGRATION (V22.4.1)
+    # ==========================================================================
+    def parse_viruscheck_log(self, log_path):
+        """Parst die viruscheck-log.txt und normalisiert das Datum."""
+        content = ""
+        try:
+            with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+        except Exception as e:
+            print(f"  WARNUNG: Konnte viruscheck-log.txt nicht lesen: {e}")
+            return None
+            
+        data = {}
+        
+        if m := re.search(r"Engine version:\s*(.*)", content):
+            data['engine_version'] = m.group(1).strip()
+        else:
+            data['engine_version'] = 'Unknown'
+            
+        if m := re.search(r"Scanned files:\s*(\d+)", content):
+            data['scanned_files'] = m.group(1).strip()
+        else:
+            data['scanned_files'] = '0'
+            
+        if m := re.search(r"Infected files:\s*(\d+)", content):
+            data['infected_files'] = m.group(1).strip()
+        else:
+            data['infected_files'] = '0'
+            
+        date_str = None
+        if m := re.search(r"Date scanned:\s*(.*)", content):
+            date_str = m.group(1).strip()
+        elif m := re.search(r"Start Date:\s*(.*)", content):
+            date_str = m.group(1).strip()
+            
+        if date_str:
+            # Normalisiere Format "2026:08:12" zu "2026-08-12"
+            date_str = re.sub(r'^(\d{4}):(\d{2}):(\d{2})', r'\1-\2-\3', date_str)
+            # Ersetze erstes Leerzeichen durch 'T' für ISO-8601
+            date_str = date_str.replace(' ', 'T', 1)
+            data['date'] = date_str
+        else:
+            data['date'] = datetime.now().isoformat()
+            
+        return data
+
+    def step_virus_check(self):
+        print("\n[5/8] Verarbeite Virus-Check...")
+        
+        # 1. Pfade prüfen (Stufe 2 Brunnhilde Report oder Stufe 5 LZA Logfiles)
+        path1 = self.path_step2 / f"2_{self.disk_id}_extracted-files_brunnhilde" / "files_collection_report" / "logs" / "viruscheck-log.txt"
+        path2 = self.path_step5_lza / "logfiles" / "viruscheck-log.txt"
+        
+        log_path = None
+        if path1.exists():
+            log_path = path1
+        elif path2.exists():
+            log_path = path2
+        else:
+            print("  [INFO] Keine viruscheck-log.txt gefunden. Überspringe Virus-Check.")
+            return
+
+        # 2. Log parsen
+        virus_data = self.parse_viruscheck_log(log_path)
+        if not virus_data:
+            return
+            
+        engine_ver = virus_data.get('engine_version', 'Unknown')
+        scanned = virus_data.get('scanned_files', '0')
+        infected = virus_data.get('infected_files', '0')
+        date = virus_data.get('date')
+        
+        # 3. ClamAV Agent erstellen
+        clean_ver = re.sub(r'[^\w\.\-]', '_', engine_ver)
+        agent_id = f"SW_ClamAV_{clean_ver}"
+        agent_name = f"ClamAV {engine_ver}"
+        self.create_xml_agent(agent_id, agent_name, "software")
+        
+        # 4. Virus Check Event erstellen
+        evt_id = f"evt_virus_check_{self.disk_id}"
+        evt_type = "virus check"
+        
+        try:
+            infected_count = int(infected)
+        except ValueError:
+            infected_count = 0
+            
+        if infected_count == 0:
+            outcome = "Success"
+            detail = f"Virus scan completed successfully. {scanned} files scanned, {infected} infected files. Engine version: {engine_ver}."
+        else:
+            outcome = "Failure"
+            detail = f"WARNING: Malware detected! {infected} infected files found out of {scanned} scanned files. Engine version: {engine_ver}."
+            
+        # Verknüpfung mit den gescannten Objekten
+        links = []
+        if self.archived_file_ids:
+            # Verknüpfe mit allen extrahierten/archivierten Dateien
+            links = [(fid, "source") for fid in self.archived_file_ids]
+        else:
+            # Fallback auf das Source-Image
+            links = [(self.source_image_id, "source")]
+            
+        self.create_xml_event(evt_id, evt_type, outcome, detail, date, [agent_id], links)
+        
+        # 5. Das Logfile selbst als PREMIS-Objekt (Artefakt) hinzufügen
+        # FIX: relatedObjectIdentifier darf NICHT None sein in PREMIS v3. Wir verknüpfen es mit dem Source-Image.
+        sha = self._get_sha256(log_path)
+        fixity = [("SHA-256", sha)] if sha else None
+        
+        self.create_xml_object(
+            obj_type="file",
+            identifier_val=log_path.name,
+            size=log_path.stat().st_size,
+            fixity_list=fixity,
+            format_info=("Plain Text", "PRONOM", "x-fmt/111"),
+            relationships=[("derivation", "is output of", self.source_image_id, evt_id)]
+        )
+        
+        print(f"  -> Virus-Check verarbeitet ({scanned} Dateien gescannt, {infected} infiziert). Logfile als Objekt gespeichert.")
+
     def step3b_conversion(self):
-        print("\n[5/7] Verarbeite Konvertierung...")
+        print("\n[6/8] Verarbeite Konvertierung...")
         idx_file = self.path_step3 / f"5_{self.disk_id}_LZA.index"
         if not idx_file.exists(): return
         
@@ -1071,7 +1143,7 @@ class PremisGenerator:
                 )
 
     def step5_package(self):
-        print("\n[6/7] Verarbeite Archiv-Paket...")
+        print("\n[7/8] Verarbeite Archiv-Paket...")
         if not self.path_step5_lza.exists(): return
         
         imgs = list(self.path_step5_lza.glob("*_LZA_derivation-image.img"))
@@ -1118,7 +1190,7 @@ class PremisGenerator:
         print(f"  -> Archiv-Image '{final_img.name}' erstellt.")
 
     def step_rights(self):
-        print("\n[7/7] Schreibe Rechte...")
+        print("\n[8/8] Schreibe Rechte...")
         cid = f"{self.disk_id}_carrier"
         
         rb = etree.Element(PREMIS + 'rights')
@@ -1205,13 +1277,10 @@ class PremisGenerator:
         """
         print(f"\n--- Starte XML-Validierung (Schema: PREMIS v3) ---")
         try:
-            # 1. Die erstellte XML-Datei laden
             with open(xml_path, 'rb') as f:
                 xml_doc = etree.parse(f)
 
-            # 2. Das offizielle Schema von der LOC-Webseite laden
             xsd_url = "https://www.loc.gov/standards/premis/v3/premis-v3-0.xsd"
-            # Wir nutzen die bereits im Skript konfigurierte Session für die Abfrage
             headers = {'User-Agent': 'Mozilla/5.0 PremisValidator/22.4'}
             response = requests.get(xsd_url, headers=headers, timeout=20)
             response.raise_for_status()
@@ -1219,7 +1288,6 @@ class PremisGenerator:
             schema_root = etree.XML(response.content)
             schema = etree.XMLSchema(schema_root)
 
-            # 3. Validierung durchführen
             if schema.validate(xml_doc):
                 print(f"\033[92m [ERFOLG] Die Datei ist valide nach dem offiziellen PREMIS-Schema.\033[0m")
                 return True
@@ -1240,6 +1308,10 @@ class PremisGenerator:
         self.step0_carrier()
         self.step1_imaging()
         self.step2_and_3_extraction() 
+        
+        # NEU: ClamAV Virus Check (nach Extraktion, da wir die archivierten Dateien verknüpfen)
+        self.step_virus_check()
+
         # Falls step3b existiert, ausführen
         if hasattr(self, 'step3b_conversion'):
             self.step3b_conversion()
@@ -1250,7 +1322,6 @@ class PremisGenerator:
         if not self.xml_objects:
             print("\033[91m [WARNUNG] Keine Objekte (Dateien/Images) gefunden!")
             print(" Ein valides PREMIS-Dokument benötigt mindestens ein 'object'.\033[0m")
-            # Wir erstellen ein Minimal-Objekt für den Datenträger, damit die XML valide bleibt
             self.create_xml_object(obj_type="representation", identifier_val=f"{self.disk_id}_LZA_Package")
 
         # 2. In der EXAKTEN Reihenfolge laut XSD-Schema an den Root hängen
@@ -1279,8 +1350,6 @@ class PremisGenerator:
             self.root.append(rgt)
 
         # 3. Datei speichern
-        # Wir nutzen hier den Pfad, den wir in __init__ definiert haben (self.path_logfiles)
-        # Falls du den Fehler "AttributeError" noch hast, verwende: self.path_step5_lza / "logfiles"
         output_path = self.path_step5_lza / "logfiles" / f"5_{self.disk_id}_LZA_premis.xml"
         self.write_premis_file(output_path)
 
@@ -1289,7 +1358,6 @@ class PremisGenerator:
 
     def write_premis_file(self, output_path):
         """Erstellt den Ordner falls nötig und schreibt die XML-Datei."""
-        # Sicherstellen, dass der Zielordner existiert
         output_path.parent.mkdir(parents=True, exist_ok=True)
         
         xml_string = etree.tostring(self.root, pretty_print=True, xml_declaration=True, encoding='UTF-8')
