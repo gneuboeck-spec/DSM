@@ -34,7 +34,7 @@ from datetime import datetime
 from lxml import etree
 # Für robustere API-Abfragen
 from requests.adapters import HTTPAdapter
-from urllib3.util import Retry
+from urllib3.util.retry import Retry
 
 # --- UTF-8 für Windows-Konsole ---
 if sys.platform == "win32":
@@ -1274,6 +1274,7 @@ class PremisGenerator:
     def validate_xml(self, xml_path):
         """
         Validiert die erstellte PREMIS-Datei gegen das offizielle XSD-Schema der LOC.
+        Mit 3-stufigem Fallback: 1. Direkt, 2. Mit Browser-User-Agent, 3. Lokal.
         """
         print(f"\n--- Starte XML-Validierung (Schema: PREMIS v3) ---")
         try:
@@ -1281,11 +1282,42 @@ class PremisGenerator:
                 xml_doc = etree.parse(f)
 
             xsd_url = "https://www.loc.gov/standards/premis/v3/premis-v3-0.xsd"
-            headers = {'User-Agent': 'Mozilla/5.0 PremisValidator/22.4'}
-            response = requests.get(xsd_url, headers=headers, timeout=20)
-            response.raise_for_status()
+            local_xsd_path = r"C:\Users\digit\Desktop\Skripte\I_PREMIS_XML_Generator\premis-v3-0.xsd"
             
-            schema_root = etree.XML(response.content)
+            schema_content = None
+            
+            # VERSUCH 1: Direkter Abruf
+            try:
+                print("  -> Versuch 1: Direkter Abruf des Schemas von loc.gov...")
+                response = requests.get(xsd_url, timeout=10)
+                response.raise_for_status()
+                schema_content = response.content
+                print("     [OK] Schema erfolgreich geladen.")
+            except requests.exceptions.RequestException as e1:
+                print(f"     [FEHLER] Versuch 1 fehlgeschlagen: {e1}")
+                
+                # VERSUCH 2: Abruf mit Browser-User-Agent
+                try:
+                    print("  -> Versuch 2: Abruf mit Browser-User-Agent...")
+                    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'}
+                    response = requests.get(xsd_url, headers=headers, timeout=10)
+                    response.raise_for_status()
+                    schema_content = response.content
+                    print("     [OK] Schema erfolgreich geladen (via User-Agent-Fallback).")
+                except requests.exceptions.RequestException as e2:
+                    print(f"     [FEHLER] Versuch 2 fehlgeschlagen: {e2}")
+                    
+                    # VERSUCH 3: Lokale Datei
+                    print(f"  -> Versuch 3: Suche nach lokaler Schema-Datei: {local_xsd_path}")
+                    if os.path.exists(local_xsd_path):
+                        with open(local_xsd_path, 'rb') as f_local:
+                            schema_content = f_local.read()
+                        print("     [OK] Lokales Schema erfolgreich geladen.")
+                    else:
+                        raise FileNotFoundError(f"Lokale Schema-Datei nicht gefunden: {local_xsd_path}")
+
+            # Schema validieren (gemeinsamer Code für alle 3 erfolgreichen Pfade)
+            schema_root = etree.XML(schema_content)
             schema = etree.XMLSchema(schema_root)
 
             if schema.validate(xml_doc):
@@ -1298,7 +1330,7 @@ class PremisGenerator:
                 return False
 
         except Exception as e:
-            print(f"\033[93m [WARNUNG] Validierung konnte nicht durchgeführt werden: {e}\033[0m")
+            print(f"\033[91m [FEHLER] Validierung konnte nicht durchgeführt werden: {e}\033[0m")
             return False
 
     def run(self):

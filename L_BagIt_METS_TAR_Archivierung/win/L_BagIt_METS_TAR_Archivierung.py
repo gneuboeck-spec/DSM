@@ -44,11 +44,10 @@ def run_final_archiving(ac_number, disk_id):
     """
     0. Komprimiert NUR den Brunnhilde-Unterordner zu .tar.gz (Speicherplatz-Optimierung)
     1. Erstellt BagIt (verschiebt alles nach data/, inkl. der neuen .tar.gz Datei)
-    2. Verschiebt Master-Index ins Bag-Root (Tag-File)
-    3. Generiert mets.xml im Bag-Root (Tag-File)
-    4. Aktualisiert BagIt Manifeste (SHA-256 für die neuen Dateien)
-    5. Der Ordner 5_..._LZA bleibt als fertiges BagIt-Archiv (AIP) erhalten.
-    6. Löscht alte Stufen 0-3 (VL bleibt erhalten)
+    2. Belässt Master-Index in data/logfiles/ (kein Verschieben ins Root mehr)
+    3. Aktualisiert BagIt Manifeste (SHA-256 für die neuen Dateien)
+    4. Der Ordner 5_..._LZA bleibt als fertiges BagIt-Archiv (AIP) erhalten.
+    5. Löscht alte Stufen 0-3 (VL bleibt erhalten)
     """
     base_root = Path(r"C:\Users\digit\Documents\data")
     disk_path = base_root / ac_number / disk_id
@@ -60,7 +59,7 @@ def run_final_archiving(ac_number, disk_id):
     premis_name = f"5_{disk_id}_LZA_premis.xml"
 
     print(f"\n{Fore.MAGENTA}===================================================")
-    print(f"{Fore.WHITE}   FINALISIERUNG: BAGIT & METS (mit Teil-Komprimierung)")
+    print(f"{Fore.WHITE}   FINALISIERUNG: BAGIT (mit Teil-Komprimierung)")
     print(f"{Fore.MAGENTA}==================================================={Fore.RESET}")
 
     if not f5_lza.exists():
@@ -93,58 +92,27 @@ def run_final_archiving(ac_number, disk_id):
         bag = bagit.make_bag(str(f5_lza), metadata, checksums=['sha256'])
         print(f"{Fore.GREEN} [OK] Basis-Bag erstellt.")
 
-        # --- SCHRITT 2: MASTER-INDEX AN DAS ROOT VERSCHIEBEN ---
-        print(f"\n{Fore.CYAN}--- SCHRITT 2: Master-Index als Tag-File positionieren ---")
+        # --- SCHRITT 2: MASTER-INDEX IN DATA/LOGFILES BELASSEN ---
+        print(f"\n{Fore.CYAN}--- SCHRITT 2: Master-Index Position prüfen ---")
         
-        index_source_path = None
-        for p in (f5_lza / "data").rglob(master_index_name):
-            index_source_path = p
-            break
-        
-        if index_source_path and index_source_path.exists():
-            final_index_path = f5_lza / master_index_name
-            shutil.move(str(index_source_path), str(final_index_path))
-            print(f"{Fore.GREEN} [OK] Master-Index verschoben nach: {final_index_path.name}")
+        expected_index_path = f5_lza / "data" / "logfiles" / master_index_name
+        if expected_index_path.exists():
+            print(f"{Fore.GREEN} [OK] Master-Index '{master_index_name}' verbleibt korrekt in data/logfiles/.")
         else:
-            print(f"{Fore.RED} [!] Master-Index '{master_index_name}' nicht in data/ gefunden!")
+            print(f"{Fore.YELLOW} [!] Hinweis: Master-Index '{master_index_name}' nicht in data/logfiles/ gefunden.")
 
-        # --- SCHRITT 3: METS GENERIEREN ---
-        print(f"\n{Fore.CYAN}--- SCHRITT 3: METS-Datei generieren ---")
-        
-        mets_index_path = master_index_name
-        mets_premis_path = f"data/logfiles/{premis_name}"
-        
-        mets_content = f'''<?xml version="1.0" encoding="UTF-8"?>
-<mets xmlns="http://www.loc.gov/METS/" xmlns:xlink="http://www.w3.org/1999/xlink" OBJID="{ac_number}_{disk_id}">
-    <dmdSec ID="DMD_0001">
-        <mdRef LOCTYPE="URL" MDTYPE="OTHER" OTHERMDTYPE="MASTER-INDEX" xlink:href="{mets_index_path}" />
-    </dmdSec>
-    <amdSec>
-        <techMD ID="TMD_0001">
-            <mdRef LOCTYPE="URL" MDTYPE="PREMIS" xlink:href="{mets_premis_path}" />
-        </techMD>
-    </amdSec>
-    <fileSec><fileGrp USE="Content"><file ID="BAG_0001"><FLocat LOCTYPE="URL" xlink:href="data/" /></file></fileGrp></fileSec>
-    <structMap TYPE="physical"><div TYPE="AIP" LABEL="{disk_id}"><div TYPE="VOLUME" DMDID="DMD_0001" ADMID="TMD_0001"><fptr FILEID="BAG_0001"/></div></div></structMap>
-</mets>'''
-        
-        mets_file_path = f5_lza / "mets.xml"
-        with open(mets_file_path, "w", encoding="utf-8") as f:
-            f.write(mets_content)
-        print(f"{Fore.GREEN} [OK] mets.xml im Bag-Root erstellt.")
-
-        # --- SCHRITT 4: BAGIT AKTUALISIEREN ---
-        print(f"\n{Fore.CYAN}--- SCHRITT 4: BagIt Manifeste aktualisieren ---")
-        # BagIt berechnet nun die SHA-256 Prüfsummen für die .tar.gz Datei und die mets.xml
+        # --- SCHRITT 3: BAGIT AKTUALISIEREN ---
+        print(f"\n{Fore.CYAN}--- SCHRITT 3: BagIt Manifeste aktualisieren ---")
+        # BagIt berechnet nun die SHA-256 Prüfsummen für die neuen Dateien (z.B. .tar.gz)
         bag.save(manifests=True) 
         print(f"{Fore.GREEN} [OK] BagIt-Prüfsummen (SHA-256) aktualisiert.")
 
-        # --- SCHRITT 5: ABSCHLUSS-CHECK ---
-        print(f"\n{Fore.CYAN}--- SCHRITT 5: Abschluss-Check ---")
+        # --- SCHRITT 4: ABSCHLUSS-CHECK ---
+        print(f"\n{Fore.CYAN}--- SCHRITT 4: Abschluss-Check ---")
         print(f"{Fore.GREEN} [INFO] Der BagIt-Ordner ({f5_lza.name}) bleibt als fertiges Archiv (AIP) bestehen.")
 
-        # --- SCHRITT 6: ALTE STUFEN 0-3 LÖSCHEN (VL STUFE 4 BLEIBT) ---
-        print(f"\n{Fore.CYAN}--- SCHRITT 6: Alte Stufen 0-3 bereinigen ---")
+        # --- SCHRITT 5: ALTE STUFEN 0-3 LÖSCHEN (VL STUFE 4 BLEIBT) ---
+        print(f"\n{Fore.CYAN}--- SCHRITT 5: Alte Stufen 0-3 bereinigen ---")
         
         stages_to_delete = [
             f"0_{disk_id}_picture-carrier",

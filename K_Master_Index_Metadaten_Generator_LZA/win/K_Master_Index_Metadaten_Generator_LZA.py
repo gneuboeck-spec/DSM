@@ -157,7 +157,7 @@ def load_all_lza_reference_hashes(ac_number, disk_id):
 def setup_and_validate_paths(ac_number, disk_archive_id):
     """
     Erstellt und validiert die Projekt-Pfade für das Metadaten-Extraktionsskript.
-    JETZT ANGEPASST AUF DEN LZA-ORDNER (STUFE 5).
+    JETZT ANGEPASST AUF DEN LZA-ORDNER (STUFE 5) UND DEN LOGFILES-UNTERORDNER.
     """
     project_base_path = Path.home() / "Documents/data" / ac_number / disk_archive_id
     lza_folder = project_base_path / f"5_{disk_archive_id}_LZA"
@@ -165,14 +165,19 @@ def setup_and_validate_paths(ac_number, disk_archive_id):
     paths = {
         # 1. Hier wird gescannt (jetzt der gesamte Inhalt von Stufe 5)
         "base_dir": lza_folder,
-        # 2. Hier wird die Index-Datei gespeichert (jetzt direkt in Stufe 5)
-        "output_xml": lza_folder / f"5_{disk_archive_id}_LZA.index",
+        # 2. Hier wird die Index-Datei gespeichert (jetzt im bereits existierenden Unterordner logfiles)
+        "output_xml": lza_folder / "logfiles" / f"5_{disk_archive_id}_LZA.index",
     }
 
     # Validierung der Ordner
     if not paths["base_dir"].is_dir():
         print(f"\033[91mFehler: Der Eingabe-Ordner (BASE_DIR) wurde nicht gefunden:\n{paths['base_dir']}\033[0m")
         return None
+        
+    # Sicherstellen, dass der Zielordner (logfiles) existiert, um Schreibfehler zu vermeiden.
+    # exist_ok=True stellt sicher, dass ein bereits vorhandener Ordner NICHT verändert oder gelöscht wird.
+    paths["output_xml"].parent.mkdir(parents=True, exist_ok=True)
+    
     if not paths["output_xml"].parent.is_dir():
         print(f"\033[91mFehler: Der Ausgabe-Ordner für die XML-Datei existiert nicht:\n{paths['output_xml'].parent}\033[0m")
         return None
@@ -1524,15 +1529,12 @@ def main():
                 ET.SubElement(root, "file", {"path": relative_path.as_posix(), "name": relative_path.name, "error": str(e)})
 
     if processed_count > 0:
-        # 1. XML-Index speichern
+        # 1. XML-Index speichern (direkt im bestehenden logfiles-Ordner)
         write_xml_to_file(root, OUTPUT_XML)
 
-        # 2. Integritäts-Log erstellen (Speicherung im Unterordner 'logfiles' der Stufe 5)
+        # 2. Integritäts-Log erstellen (direkt im selben logfiles-Ordner wie die Index-Datei)
         integrity_log_name = f"5_{disk_archive_id_input}_LZA_integrity.log"
-        integrity_log_path = Path(OUTPUT_XML).parent / "logfiles" / integrity_log_name
-        
-        # Sicherstellen, dass der logfiles-Ordner existiert
-        integrity_log_path.parent.mkdir(parents=True, exist_ok=True)
+        integrity_log_path = Path(OUTPUT_XML).parent / integrity_log_name
         
         try:
             with open(integrity_log_path, 'w', encoding='utf-8') as f:

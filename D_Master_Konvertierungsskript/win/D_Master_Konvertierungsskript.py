@@ -113,6 +113,29 @@ def run_generic_command(command, cwd=None):
     except Exception as e: log(f"         [FEHLER] Ein unerwartetes Problem ist aufgetreten: {e}"); return False
 
 # ==============================================================================
+# --- NEU: PDF/A ERKENNUNG
+# ==============================================================================
+
+def is_already_pdfa(filepath):
+    """
+    Prüft heuristisch, ob eine PDF-Datei bereits PDF/A-konform ist.
+    Durchsucht die ersten 2 MB der Datei nach typischen XMP-Metadaten-Markern für PDF/A.
+    """
+    try:
+        with open(filepath, 'rb') as f:
+            # Lese einen großen Block vom Anfang (XMP steht oft im Header oder kurz danach)
+            chunk = f.read(2097152) # 2 MB
+            # Typische Marker für PDF/A im XMP Packet
+            if b'pdfaid:part' in chunk or b'pdfaid:conformance' in chunk:
+                return True
+            # Alternativer Marker
+            if b'PDF/A' in chunk:
+                return True
+    except Exception:
+        pass
+    return False
+
+# ==============================================================================
 # --- AUDIO-LOGIK
 # ==============================================================================
 
@@ -191,7 +214,7 @@ def process_image_file(filepath):
         conversion_errors.append((filename, f"Bild-Konvertierung ({tool_name}) fehlgeschlagen."))
 
 # ==============================================================================
-# --- TEXT/OFFICE-LOGIK (Inkl. Pfad-Fix)
+# --- TEXT/OFFICE-LOGIK (Inkl. Pfad-Fix und PDF/A-Check)
 # ==============================================================================
 
 def process_text_file(filepath):
@@ -199,17 +222,31 @@ def process_text_file(filepath):
     name, ext = os.path.splitext(filename)
     ext = ext.lower()
     target_odf_ext, pdf_export_filter = CONVERSION_MAP[ext]
+    
+    # ODF Name bleibt gleich
     odf_filename = f"{name}{ext}.{target_odf_ext}"
     odf_path_target = os.path.join(root, odf_filename)
-    pdf_filename = f"{name}{ext}.pdf"
+    
+    # NEU: Sauberer Name für PDF-Derivate (vermeidet .pdf.pdf)
+    if ext == ".pdf":
+        pdf_filename = f"{name}pdf.pdf"
+    else:
+        pdf_filename = f"{name}{ext}.pdf"
+        
     pdf_path = os.path.join(root, pdf_filename)
     
     if os.path.exists(odf_path_target): os.remove(odf_path_target)
     if os.path.exists(pdf_path): os.remove(pdf_path)
 
     source_for_pdf_export = ""
-    # SCHRITT 1: ODF
+    
+    # SCHRITT 1: ODF (oder PDF-Check)
     if ext == ".pdf": 
+        # NEU: Prüfen ob bereits PDF/A
+        if is_already_pdfa(filepath):
+            log(f"         [OK] Datei ist bereits PDF/A. Überspringe Konvertierung.")
+            return
+            
         source_for_pdf_export = filepath
     else:
         log(f"         -> Schritt 1: Konvertiere zu ODF ({odf_filename})")
