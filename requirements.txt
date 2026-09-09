@@ -1,0 +1,13 @@
+brunnhilde
+beautifulsoup4
+yara-python
+mutagen
+PyPDF2
+Pillow
+chardet
+colorama
+lxml
+requests
+urllib3
+bagit
+hachoir

@@ -275,9 +275,10 @@ def process_text_file(filepath):
             os.replace(best_match, odf_path_target)
             source_for_pdf_export = odf_path_target
         else: 
-            log(f"         [FEHLER] ODF-Erstellung fehlgeschlagen.")
-            conversion_errors.append((filename, "LibreOffice: ODF-Zwischenschritt fehlgeschlagen."))
-            return
+            # NEU: FALLBACK für Draw-Dateien und andere falsch benannte Formate
+            log(f"         [WARNUNG] ODF-Erstellung fehlgeschlagen (vermutlich Draw/Impress o.ä.).")
+            log(f"         [INFO] Versuche direkten PDF/A-Export aus Originaldatei (Fallback)...")
+            source_for_pdf_export = filepath  # Verwende die Originaldatei direkt
     
     # SCHRITT 2: PDF/A
     log(f"         -> Schritt 2: Konvertiere zu PDF/A ({pdf_filename})")
@@ -465,8 +466,8 @@ if __name__ == "__main__":
         except Exception as e:
             log(f"--- FEHLER beim manuellen Erstellen von '{tree_filename}': {e} ---")
         # ==============================================================================
-
         # JETZT erst wird die Log-Datei geschlossen, nachdem ALLE log()-Aufrufe erledigt sind
+        # ==============================================================================
         LOG_FILE_HANDLE.close()
 
         destination_folder = transfer_dir

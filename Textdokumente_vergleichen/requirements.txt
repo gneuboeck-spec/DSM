@@ -6,3 +6,4 @@ rapidfuzz
 tqdm
 matplotlib
 sentence-transformers
+brunnhilde

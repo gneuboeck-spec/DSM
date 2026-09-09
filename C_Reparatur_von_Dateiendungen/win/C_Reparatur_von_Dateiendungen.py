@@ -61,10 +61,15 @@ pronom_to_ext_map = {
     "fmt/846": ".cwk", "fmt/1439": ".pages", "fmt/397": ".mus",
     "fmt/279": ".flac", "fmt/569": ".mkv", "fmt/203": ".ogg", "fmt/384": ".mxf",
     "x-fmt/191": ".sam", "x-fmt/18": ".csv", "fmt/280": ".tex",
-    "fmt/596": ".m4a"
+    "fmt/596": ".m4a",
+    "fmt/838": ".dbx"
 }
 
 format_name_to_ext_map = {"AppleWorks Word Processing": ".cwk", "Ami Pro": ".sam"}
+
+# Windows-Systemdateien, die keinen archivischen Wert haben und gelöscht werden können
+SYSTEM_JUNK_FILES = ["IndexerVolumeGuid"]
+
 DRY_RUN = False
 
 # ==============================================================================
@@ -197,9 +202,23 @@ def main():
         log("\n✅ Keine Dateien ohne Dateiendung gefunden.")
     else:
         log(f"{len(files_to_check)} Datei(en) ohne Endung gefunden...\n" + "-" * 40)
-        renamed_count = 0; unidentified_count = 0
+        renamed_count = 0; unidentified_count = 0; deleted_count = 0
 
         for filepath in files_to_check:
+            # --- NEU: System-Müll erkennen und löschen ---
+            if filepath.name in SYSTEM_JUNK_FILES:
+                prefix = "[SIMULATION]" if DRY_RUN else "🗑️ Gelöscht"
+                log(f"{prefix}: '{filepath.name}' (Windows-Systemdatei ohne archivischen Wert)")
+                if not DRY_RUN:
+                    try: 
+                        filepath.unlink()
+                        deleted_count += 1
+                    except OSError as e: 
+                        log(f"    ❌ FEHLER beim Löschen: {e}")
+                else:
+                    deleted_count += 1
+                continue
+            
             # Nutzt den festen Siegfried-Pfad aus der config
             siegfried_result = run_command_with_json_output([config["siegfried_exec"], "-json", str(filepath)])
             new_ext, source = None, None
@@ -234,6 +253,7 @@ def main():
 
         log("-" * 40 + f"\nAnalyse abgeschlossen.")
         log(f"Dateien {'simuliert' if DRY_RUN else 'umbenannt'}: {renamed_count}")
+        log(f"System-Müll {'simuliert' if DRY_RUN else 'gelöscht'}: {deleted_count}")
         log(f"Nicht zugeordnet: {unidentified_count}")
 
     LOG_FILE_HANDLE.close()

@@ -12,6 +12,7 @@ import tempfile
 import shutil
 import csv
 import hashlib
+import ctypes
 from pathlib import Path
 
 # ==============================================================================
@@ -82,6 +83,62 @@ def setup_and_validate_analysis_paths(ac_number, disk_archive_id, siegfried_dir,
 # --- Skript-Logik (Angepasst für Echtzeit-Überwachung der ClamAV Warnung) ---
 # ==============================================================================
 
+def trigger_clamav_admin_update():
+    """
+    Öffnet ein separates CMD-Fenster mit Administratorrechten und führt
+    darin das ClamAV-Update (freshclam.exe) automatisch aus.
+    """
+    print("\n\033[93m" + "!" * 60)
+    print(" HINWEIS: Virendefinitionsdatei ist älter als 7 Tage!")
+    print(" Es öffnet sich jetzt ein eigenes Administrator-Fenster,")
+    print(" in dem das Update (freshclam.exe) automatisch gestartet wird.")
+    print("!" * 60 + "\033[0m\n")
+
+    # Kleine Batch-Datei für das erhöhte Fenster erstellen
+    bat_path = Path(tempfile.gettempdir()) / "freshclam_admin_update.bat"
+    bat_content = (
+        "@echo off\r\n"
+        "title ClamAV Update (Administrator)\r\n"
+        f'cd /d "{CLAMAV_DIR}"\r\n'
+        "echo.\r\n"
+        "echo ==================================================\r\n"
+        "echo  ClamAV Virendefinitionen werden aktualisiert ...\r\n"
+        "echo ==================================================\r\n"
+        "echo.\r\n"
+        "freshclam.exe\r\n"
+        "echo.\r\n"
+        "echo Update beendet. Dieses Fenster kann geschlossen werden.\r\n"
+        "pause\r\n"
+    )
+    try:
+        bat_path.write_text(bat_content, encoding="utf-8")
+    except Exception as e:
+        print(f"[FEHLER] Batch-Datei konnte nicht erstellt werden: {e}")
+        return False
+
+    # Batch-Datei erhöht starten ("runas" löst die UAC-Abfrage aus)
+    ret = ctypes.windll.shell32.ShellExecuteW(
+        None,           # Kein Elternfenster
+        "runas",        # Administratorrechte anfordern
+        str(bat_path),  # Auszuführende Datei
+        None,           # Keine Parameter
+        None,           # Standard-Arbeitsverzeichnis
+        1,              # Fenster normal anzeigen
+    )
+
+    if ret > 32:
+        print("✅ Administrator-Fenster für das ClamAV-Update wurde geöffnet.")
+        print("   Die laufende Analyse läuft mit den bisherigen Definitionen weiter,")
+        print("   das Update gilt ab dem nächsten Lauf.")
+        return True
+    else:
+        print(f"⚠️ Administrator-Fenster konnte nicht geöffnet werden (Code {ret}).")
+        print("   Mögliche Ursache: UAC-Abfrage abgelehnt oder keine Berechtigung.")
+        print("   Update bitte manuell durchführen:")
+        print(f'     cd "{CLAMAV_DIR}"')
+        print("     freshclam.exe")
+        return False
+
 def run_command(command, env=None, monitor_clamav=False):
     """
     Führt einen Shell-Befehl aus und gibt stdout, stderr und den Returncode zurück.
@@ -112,13 +169,7 @@ def run_command(command, env=None, monitor_clamav=False):
         # Prüfe live auf die ClamAV Warnung
         if monitor_clamav and not clamav_warning_triggered:
             if "older than 7 days" in line.lower():
-                print("\n\033[93m" + "!" * 60)
-                print(" HINWEIS: Virendefinitionsdatei updaten")
-                print(" Bitte CMD beim Start als Administrator ausführen")
-                print(" dann eingeben:")
-                print(f' cd "{CLAMAV_DIR}"')
-                print(" freshclam.exe")
-                print("!" * 60 + "\033[0m\n")
+                trigger_clamav_admin_update()
                 clamav_warning_triggered = True
 
     process.stdout.close()
