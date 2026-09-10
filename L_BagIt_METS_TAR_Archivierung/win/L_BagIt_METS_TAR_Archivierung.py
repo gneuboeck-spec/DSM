@@ -46,7 +46,7 @@ def run_final_archiving(ac_number, disk_id):
     1. Erstellt BagIt (verschiebt alles nach data/, inkl. der neuen .tar.gz Datei)
     2. Belässt Master-Index in data/logfiles/ (kein Verschieben ins Root mehr)
     3. Aktualisiert BagIt Manifeste (SHA-256 für die neuen Dateien)
-    4. Der Ordner 5_..._LZA bleibt als fertiges BagIt-Archiv (AIP) erhalten.
+    4. BENENNT den Ordner von 5_..._LZA in nur noch ... (disk_id) um.
     5. Löscht alte Stufen 0-3 (VL bleibt erhalten)
     """
     base_root = Path(r"C:\Users\digit\Documents\data")
@@ -107,9 +107,20 @@ def run_final_archiving(ac_number, disk_id):
         bag.save(manifests=True) 
         print(f"{Fore.GREEN} [OK] BagIt-Prüfsummen (SHA-256) aktualisiert.")
 
-        # --- SCHRITT 4: ABSCHLUSS-CHECK ---
-        print(f"\n{Fore.CYAN}--- SCHRITT 4: Abschluss-Check ---")
-        print(f"{Fore.GREEN} [INFO] Der BagIt-Ordner ({f5_lza.name}) bleibt als fertiges Archiv (AIP) bestehen.")
+        # --- SCHRITT 4: ORDNER UMBENENNEN (5_..._LZA -> disk_id) ---
+        print(f"\n{Fore.CYAN}--- SCHRITT 4: Archiv-Ordner final umbenennen ---")
+        final_archive_path = disk_path / disk_id
+        
+        if f5_lza.exists() and not final_archive_path.exists():
+            print(f"{Fore.YELLOW}    Benenne '{f5_lza.name}' um in '{disk_id}'...")
+            f5_lza.rename(final_archive_path)
+            print(f"{Fore.GREEN}    [OK] Ordner erfolgreich in '{disk_id}' umbenannt.")
+            # Variable aktualisieren, damit die folgenden Meldungen den neuen Namen verwenden
+            f5_lza = final_archive_path
+        elif final_archive_path.exists():
+            print(f"{Fore.YELLOW}    [WARNUNG] Zielordner '{final_archive_path.name}' existiert bereits. Umbenennung übersprungen.")
+        
+        print(f"{Fore.GREEN} [INFO] Der BagIt-Ordner ({f5_lza.name}) ist nun das fertige Archiv (AIP).")
 
         # --- SCHRITT 5: ALTE STUFEN 0-3 LÖSCHEN (VL STUFE 4 BLEIBT) ---
         print(f"\n{Fore.CYAN}--- SCHRITT 5: Alte Stufen 0-3 bereinigen ---")

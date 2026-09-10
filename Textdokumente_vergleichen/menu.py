@@ -113,7 +113,7 @@ def skript_ausfuehren(script_path, eingabe_pfad, ausgabe_pfad):
     try:
         result = subprocess.run(
             [
-                sys.executable,
+                r"C:\Users\digit\AppData\Local\Programs\Python\Python313\python.exe",
                 str(script_path),
                 eingabe_pfad,
                 ausgabe_pfad

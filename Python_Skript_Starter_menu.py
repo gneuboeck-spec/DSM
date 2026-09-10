@@ -26,20 +26,25 @@ IGNORED_FILES = {
     MENU_FILE.name
 }
 
+# Ordner, die als eigene Menüeinträge angezeigt werden (mit Untermenü)
+SUBMENU_DIRS = {
+    "Textdokumente_vergleichen"
+}
+
 
 # =====================================================
 # Hilfsfunktionen
 # =====================================================
 
-def print_header(ac_number, disk_id):
+def print_header(ac_number, disk_id, current_path):
     """Zeigt den Header mit den aktuellen Werten an."""
     print("===================================================")
-    print(" PYTHON SKRIPT STARTER (Umgebung: .venv ist aktiv)")
+    print("           PYTHON SKRIPT STARTER")
     print("===================================================")
     print(f" Aktuelle AC-Nummer:      {ac_number}")
     print(f" Aktuelle Datenträger-ID: {disk_id}")
+    print(f" Aktueller Ordner:        {current_path}")
     print("---------------------------------------------------")
-    print("\n Verfügbare Skripte:\n")
 
 
 def is_excluded_folder(script_path: Path) -> bool:
@@ -51,21 +56,69 @@ def is_excluded_folder(script_path: Path) -> bool:
     except ValueError:
         return True
 
-    # Der letzte Teil ist der Dateiname.
-    # Wir prüfen nur die darüberliegenden Ordner.
     folders = rel_path.parts[:-1]
-
     return any(folder in EXCLUDED_DIRS for folder in folders)
 
 
-def get_scripts():
+def is_in_submenu_dir(script_path: Path) -> bool:
     """
-    Sucht alle Python-Skripte im Hauptordner und in allen Unterordnern.
-    Ausgeschlossene Ordner und die menu.py selbst werden ignoriert.
+    Prüft, ob die Datei in einem der SUBMENU_DIRS liegt.
+    """
+    try:
+        rel_path = script_path.relative_to(SCRIPT_DIR)
+    except ValueError:
+        return False
+
+    if len(rel_path.parts) < 2:
+        return False
+
+    return rel_path.parts[0] in SUBMENU_DIRS
+
+
+def get_main_menu_scripts():
+    """
+    Sucht alle Python-Skripte rekursiv, außer in SUBMENU_DIRS.
     """
     scripts = []
+    submenu_entries = []
 
+    # Füge SUBMENU_DIRS als Einträge hinzu
+    for subdir_name in sorted(SUBMENU_DIRS):
+        subdir_path = SCRIPT_DIR / subdir_name
+        if subdir_path.is_dir():
+            submenu_entries.append(subdir_name)
+
+    # Suche alle Skripte rekursiv
     for path in SCRIPT_DIR.rglob("*.py"):
+        if path.name in IGNORED_FILES:
+            continue
+
+        if is_excluded_folder(path):
+            continue
+
+        # Überspringe Skripte in SUBMENU_DIRS
+        if is_in_submenu_dir(path):
+            continue
+
+        scripts.append(path)
+
+    # Sortierung nach relativem Pfad
+    scripts = sorted(
+        scripts,
+        key=lambda p: str(p.relative_to(SCRIPT_DIR)).lower()
+    )
+
+    return submenu_entries, scripts
+
+
+def get_submenu_scripts(submenu_dir_name: str):
+    """
+    Sucht alle Python-Skripte in einem spezifischen Untermenü-Ordner.
+    """
+    scripts = []
+    submenu_path = SCRIPT_DIR / submenu_dir_name
+
+    for path in submenu_path.rglob("*.py"):
         if path.name in IGNORED_FILES:
             continue
 
@@ -74,11 +127,44 @@ def get_scripts():
 
         scripts.append(path)
 
-    # Sortierung nach relativem Pfad, unabhängig von Groß-/Kleinschreibung
-    return sorted(
-        scripts,
-        key=lambda p: str(p.relative_to(SCRIPT_DIR)).lower()
+    # Sortierung nach Dateiname
+    scripts = sorted(scripts, key=lambda p: p.name.lower())
+
+    return scripts
+
+
+def get_folder_shortcut(folder_name: str) -> str:
+    """
+    Gibt den ersten Buchstaben des Ordnernamens als Shortcut zurück.
+    """
+    return folder_name[0].upper() if folder_name else ""
+
+
+def start_submenu(folder_name: str):
+    """
+    Startet die start.bat eines Unterordners als separaten Prozess.
+    """
+    submenu_path = SCRIPT_DIR / folder_name
+    start_bat = submenu_path / "start.bat"
+    
+    if not start_bat.exists():
+        print(f"\n[FEHLER] start.bat nicht gefunden in: {submenu_path}")
+        input("Drücken Sie Enter, um fortzufahren.")
+        return
+    
+    print(f"\n--- Starte Unterordner: {folder_name} ---")
+    print(f"Die start.bat wird als separater Prozess gestartet.")
+    print(f"Nach dem Beenden kehren Sie automatisch zum Hauptmenü zurück.\n")
+    
+    # Starte die start.bat als separaten Prozess
+    subprocess.run(
+        [str(start_bat)],
+        cwd=str(submenu_path),
+        shell=True
     )
+    
+    print(f"\n--- Unterordner {folder_name} wurde beendet. ---")
+    input("Drücken Sie Enter, um zum Hauptmenü zurückzukehren.")
 
 
 # =====================================================
@@ -97,26 +183,54 @@ def main():
         ac_number = "NICHT GESETZT"
         disk_id = "NICHT GESETZT"
 
+    current_submenu = None  # None = Hauptmenü
+
     while True:
-        print_header(ac_number, disk_id)
+        current_path = current_submenu if current_submenu else "Hauptmenü"
+        print_header(ac_number, disk_id, current_path)
 
-        scripts = get_scripts()
-
-        if not scripts:
-            print("   Keine Python-Skripte gefunden.")
+        if current_submenu is None:
+            # Hauptmenü
+            submenu_entries, scripts = get_main_menu_scripts()
         else:
-            for i, script_path in enumerate(scripts, 1):
-                rel_path = script_path.relative_to(SCRIPT_DIR)
-                print(f"   {i:3} - {rel_path}")
+            # Untermenü
+            submenu_entries = []
+            scripts = get_submenu_scripts(current_submenu)
 
-        print("\n   N - Neue Nummern eingeben")
-        print("   Q - Beenden\n")
+        entry_num = 1
+
+        # === Normale Skripte (zuerst) ===
+        if scripts:
+            print("\n   --- Skripte ---")
+            for script_path in scripts:
+                print(f"   {entry_num:3} - {script_path.name}")
+                entry_num += 1
+
+        # === Untermenü-Ordner (danach, mit Buchstaben-Shortcut) ===
+        if submenu_entries:
+            print("\n   --- Ordner ---")
+            for folder_name in submenu_entries:
+                shortcut = get_folder_shortcut(folder_name)
+                print(f"   {shortcut}   - [ORDNER] {folder_name}")
+
+        if not submenu_entries and not scripts:
+            print("\n   Keine Einträge gefunden.")
+
+        print("\n---------------------------------------------------")
+        print("   N - Neue Nummern eingeben")
+        if current_submenu is not None:
+            print("   B - Zurück zum Hauptmenü")
+        print("   Q - Beenden")
         print("===================================================")
 
-        choice = input("Bitte Nummer des Skripts eingeben (oder N / Q): ").strip().lower()
+        choice = input("\nBitte Nummer oder Buchstaben eingeben: ").strip().lower()
 
         if choice == "q":
             break
+
+        elif choice == "b" and current_submenu is not None:
+            current_submenu = None
+            continue
 
         elif choice == "n":
             print("\n--- Bitte neue Werte eingeben ---")
@@ -136,21 +250,34 @@ def main():
             input("\nDrücken Sie Enter, um fortzufahren.")
             continue
 
+        # Prüfe ob es ein Buchstaben-Shortcut für einen Ordner ist
+        if current_submenu is None and choice.isalpha():
+            choice_upper = choice.upper()
+            for folder_name in submenu_entries:
+                if get_folder_shortcut(folder_name) == choice_upper:
+                    # NEU: Starte die start.bat des Unterordners als separaten Prozess
+                    start_submenu(folder_name)
+                    break
+            else:
+                # Buchstabe passt zu keinem Ordner
+                print("\nUngueltige Eingabe.")
+                input("Druecken Sie Enter, um fortzufahren.")
+            continue
+
+        # Ansonsten versuche als Nummer zu interpretieren
         try:
             choice_index = int(choice) - 1
 
             if 0 <= choice_index < len(scripts):
                 script_to_run = scripts[choice_index]
 
-                print(f"\n--- Starte Skript: {script_to_run.relative_to(SCRIPT_DIR)} ---")
+                print(f"\n--- Starte Skript: {script_to_run.name} ---")
                 print(f"Uebergebe AC-Nummer: {ac_number}")
                 print(f"Uebergebe Datenträger-ID: {disk_id}\n")
 
-                # Übergibt die Werte als Kommandozeilen-Argumente an das Zielskript.
-                # Arbeitsverzeichnis ist der Ordner des jeweiligen Skripts.
                 subprocess.run(
                     [
-                        sys.executable,
+                        r"C:\Users\digit\AppData\Local\Programs\Python\Python313\python.exe",
                         str(script_to_run),
                         ac_number,
                         disk_id
@@ -166,7 +293,7 @@ def main():
                 input("Druecken Sie Enter, um fortzufahren.")
 
         except ValueError:
-            print("\nUngueltige Eingabe. Bitte eine Nummer, 'N' oder 'Q' eingeben.")
+            print("\nUngueltige Eingabe. Bitte eine Nummer, einen Buchstaben oder N/B/Q eingeben.")
             input("Druecken Sie Enter, um fortzufahren.")
 
         except Exception as e:
