@@ -1,186 +1,219 @@
-# C - Reparatur von Dateiendungen (Stufe 2 zu Stufe 3)
+# C_Reparatur_von_Dateiendungen.py
 
-Dieses Skript ist ein spezialisiertes Werkzeug zur Wiederherstellung von Dateiendungen. Es analysiert den Inhalt jeder endungslosen Datei, um den korrekten Typ zu ermitteln, und benennt die Dateien entsprechend um. Ein besonderes Merkmal ist der automatisierte Workflow, der Daten von der Extraktionsstufe (Stufe 2) in die Transferstufe (Stufe 3) überführt.
+## 📋 Beschreibung
 
----
+Dieses Python-Skript repariert verlorene oder fehlende Dateiendungen in einem Verzeichnis. Es analysiert die Magic Bytes (binäre Signatur) jeder Datei mithilfe von Siegfried (PRONOM-Register) und weist ihr die korrekte Dateiendung zu. Falls Siegfried keine eindeutige Zuordnung liefern kann, greifen verschiedene Fallback-Methoden (Magic-Bytes-Erkennung, ZIP-Struktur-Analyse, MusicXML-Signatur, Flat-XML-Erkennung, CSV-Strukturprüfung, Markdown-Syntax-Erkennung).
 
-## Hauptfunktionen
+Das Skript ist in eine Arbeitsumgebung integriert und wird über ein Menü gestartet. Es erwartet eine AC-Nummer und eine Datenträger-ID als Eingabe und arbeitet mit einer fest definierten Ordnerstruktur:
+- Stufe 2: 2_{ID}_extracted-files/files (Quelldaten)
+- Stufe 3: 3_{ID}_for-transfer/files (Zieldaten, die bearbeitet werden)
 
-* **Automatischer Datentransfer:** Wenn das Zielverzeichnis in Stufe 3 noch nicht existiert, kopiert das Skript automatisch alle Daten von Stufe 2 (`2_[ID]_extracted-files/files`) nach Stufe 3 (`3_[ID]_for-transfer/files`).
-* **Siegfried-Integration:** Nutzt Siegfried (`sf.exe`) unter dem fest hinterlegten Pfad `C:\Program Files\Siegfried\sf.exe` zur Identifizierung von Dateiformaten via PRONOM und MIME.
-* **Multimedia-Unterscheidung:** Verwendet `ffprobe.exe`, um bei MPEG-4-Dateien (`fmt/199`) zwischen Video (`.mp4`) und reinem Audio (`.m4a`) zu unterscheiden.
-* **Erweiterte Fallback-Logik:**
-  * **ZIP-Analyse:** Erkennt OpenDocument-Formate (`.odt`, `.ods`) innerhalb von ZIP-Containern.
-  * **XML-Prüfung:** Identifiziert "Flat XML" Dokumente.
-  * **Tabellen-Erkennung:** Erkennt CSV-Strukturen und SYLK-Dateien (`.slk`) anhand von Delimitern und Signaturen.
-  * **Text-Validierung:** Klassifiziert unbekannte Dateien als `.txt`, wenn der Inhalt überwiegend aus druckbaren Zeichen besteht (UTF-8/Latin-1).
-* **Protokollierung:** Erstellt ein detailliertes Log-File direkt im Stufe-3-Ordner zur vollständigen Nachvollziehbarkeit.
+Das Skript kopiert automatisch die Dateien von Stufe 2 nach Stufe 3 und führt dort die Reparatur durch.
 
 ---
 
-## TREE-Struktur & Dateipfade
+## ✨ Funktionen
 
-Das Skript bildet die Brücke zwischen der Extraktion und der aktiven Bearbeitung:
-
-```text
-[AC-Nummer]/[Datenträger-ID]/
-├── 2_[ID]_extracted-files/
-│   └── files/                              <-- QUELLE (Daten aus der Extraktion)
-└── 3_[ID]_for-transfer/                    <-- ZIEL (Arbeitsbereich für Stufe 3)
-    ├── files/                              <-- Hier werden Endungen repariert
-    └── 3_[ID]_for-transfer_repair-file-extension.log <-- LOG-DATEI
-```
-
----
-
-## Technische Voraussetzungen
-
-1. **Python:** Version 3.10 oder neuer empfohlen.
-2. **Siegfried:** Muss zwingend unter `C:\Program Files\Siegfried\sf.exe` installiert sein.
-3. **FFmpeg:** Die `ffprobe.exe` muss im System-PATH verfügbar sein.
+- 🔍 Rekursive Suche nach Dateien ohne Dateiendung im Analyse-Ordner
+- 🧬 Magic-Bytes-Analyse via Siegfried (PRONOM-Register)
+- 🖼️ Magic-Bytes-Erkennung für PSD (Adobe Photoshop) und FLV (Flash Video)
+- 🎼 MusicXML-Erkennung durch Signatur-Prüfung (score-partwise / score-timewise)
+- 📦 ZIP-Struktur-Analyse zur Unterscheidung von ODT/ODS/ODP und DOCX/XLSX/PPTX
+- 📄 Flat-XML-Erkennung (FODT, FODS, FODP)
+- 📝 Markdown-Erkennung durch Analyse typischer Syntax-Elemente (nur für Textdateien)
+- 📊 Strenge CSV-Erkennung (nur für Textdateien, verhindert Falscherkennung von Binärdateien)
+- 🎬 Video/Audio-Unterscheidung bei MPEG-4-Dateien via ffprobe
+- 🗑️ Automatische Löschung von Windows-Systemdateien ohne archivischen Wert (z. B. IndexerVolumeGuid)
+- 🎨 Farbige Konsolenausgabe mit gleichzeitig sauberer Log-Datei
+- 🧪 Dry-Run-Modus zum gefahrlosen Testen
+- 📋 Automatischer Transfer von Stufe 2 nach Stufe 3
+- 📊 Debug-Ausgaben zur Analyse der gefundenen Dateien
 
 ---
 
-## Ausführung
+## 🛠️ Voraussetzungen
 
-Das Skript wird im normalen Arbeitsablauf über den zentralen **Workflow Launcher** (`Workflow_Launcher_start.bat`) und das darauf folgende **Auswahlmenü** gestartet. Die benötigten Parameter (AC-Nummer und Datenträger-ID) werden dabei automatisch vom Menü an das Skript übergeben.
+### Software
+- Python 3.10+ (getestet mit Python 3.13)
+- Siegfried (sf.exe) – installiert unter C:\Program Files\Siegfried\sf.exe
+  Download: https://github.com/richardlehane/siegfried
+- FFmpeg / ffprobe – muss im System-PATH verfügbar sein
+  Download: https://ffmpeg.org/download.html
 
-Für manuelle Tests oder Debugging kann das Skript auch direkt über die Kommandozeile aufgerufen werden. Es erwartet zwei Argumente: die AC-Nummer und die Datenträger-ID.
+### Python-Module
+Das Skript verwendet ausschließlich Standardbibliotheken – es sind keine zusätzlichen pip install-Befehle erforderlich:
+os, subprocess, json, sys, mimetypes, shutil, logging, argparse, zipfile, re, pathlib, datetime
 
-**Beispiel für einen manuellen Aufruf:**
+### Ordnerstruktur
+Das Skript erwartet folgende Struktur im Benutzerverzeichnis:
 
-```bat
-@echo off
-set AC_NUMBER=AC_0001
-set DISK_ID=CD_01
-python "C_Reparatur_Dateiendungen.py" %AC_NUMBER% %DISK_ID%
-pause
-```
-
-### Ablauf der Ausführung
-
-1. **Vorbereitung:** Falls der Ordner in Stufe 3 fehlt, wird der Inhalt von Stufe 2 komplett dorthin kopiert.
-2. **Validierung:** Prüfung der Pfade zu Siegfried und FFprobe.
-3. **Suche:** Rekursive Suche nach Dateien ohne Suffix im Ordner `Stage 3/files`.
-4. **Analyse & Rename:** Durchführung der Identifizierung. Falls die Zieldatei bereits existiert, erfolgt eine automatische Nummerierung (z.B. `datei_1.jpg`).
-5. **Logging:** Jede Aktion wird mit Zeitstempel und Quelle (z.B. "via PRONOM ID (Manuell)") im Log protokolliert.
-6. **Abschluss:** Ausgabe einer Zusammenfassung und optionale Abfrage zum Öffnen des Zielordners im Explorer.
+    C:\Users\<Benutzer>\Documents\data\<AC-Nummer>\<Datenträger-ID>\
+        2_<ID>_extracted-files\files\    (Quelldaten)
+        3_<ID>_for-transfer\files\       (Zieldaten, wird automatisch erstellt)
 
 ---
 
-## Detaillierte Hinweise zum Skriptverhalten
+## 📦 Installation
 
-### Vollständiges PRONOM-Mapping
+1. Siegfried installieren
+   sf.exe nach C:\Program Files\Siegfried\sf.exe kopieren
 
-Das Skript enthält folgende direkte Zuordnungen von PRONOM-IDs zu Dateiendungen:
+2. FFmpeg installieren
+   ffprobe.exe in einen Ordner legen, der im System-PATH liegt (z. B. C:\Program Files\FFmpeg\bin)
 
-| PRONOM ID | Dateiendung |
-|-----------|-------------|
-| fmt/189, fmt/190, fmt/191, fmt/276 | `.pdf` |
-| fmt/40, x-fmt/65 | `.doc` |
-| fmt/612 | `.docx` |
-| fmt/214 | `.xls` |
-| fmt/595 | `.xlsx` |
-| fmt/291 | `.odt` |
-| fmt/290 | `.ods` |
-| fmt/292 | `.odp` |
-| fmt/353, fmt/354 | `.tif` |
-| fmt/14, fmt/15 | `.jpg` |
-| fmt/11 | `.png` |
-| fmt/846 | `.cwk` |
-| fmt/1439 | `.pages` |
-| fmt/397 | `.mus` |
-| fmt/279 | `.flac` |
-| fmt/569 | `.mkv` |
-| fmt/203 | `.ogg` |
-| fmt/384 | `.mxf` |
-| x-fmt/191 | `.sam` |
-| x-fmt/18 | `.csv` |
-| fmt/280 | `.tex` |
-| fmt/596 | `.m4a` |
+3. Skript ablegen
+   C_Reparatur_von_Dateiendungen.py in den Arbeitsordner legen
 
-Zusätzlich gibt es eine manuelle Mapping-Tabelle für Formatnamen:
-- `AppleWorks Word Processing` → `.cwk`
-- `Ami Pro` → `.sam`
-
-### Sonderbehandlung MPEG-4 (fmt/199)
-
-Bei PRONOM-ID `fmt/199` prüft das Skript mit `ffprobe.exe`, ob ein Videostream vorhanden ist:
-- **mit Videostream** → `.mp4`
-- **ohne Videostream** → `.m4a`
-
-### Erkennungsreihenfolge
-
-Das Skript versucht in folgender Reihenfolge, eine Dateiendung zu bestimmen:
-
-1. **Siegfried-basierte Erkennung** (aus `sf.exe -json`):
-   - PRONOM-ID in der Mapping-Tabelle → Endung (Quelle: "PRONOM ID (Manuell)")
-   - Sonderfall `fmt/199` → `.mp4` oder `.m4a` (Quelle: "MPEG-4 (mit/nur Audio)")
-   - MIME-Typ (außer `text/plain`, `application/octet-stream`) → Endung via `mimetypes.guess_extension()` (Quelle: "MIME-Typ (Automatisch)")
-   - Formatname in `format_name_to_ext_map` → Endung (Quelle: "Formatname (Manuell)")
-
-2. **Fallback-Erkennung** (falls Siegfried nichts liefert):
-   - ZIP-Prüfung mit `zipfile.is_zipfile()` und `mimetype`-Datei → `.odt` oder `.ods` (Quelle: "Fallback (ZIP-Mimetype)")
-   - Flat XML-Prüfung auf `<office:document-content` oder `<office:document-spreadsheet` → `.odt` oder `.ods` (Quelle: "Fallback (Flat XML)")
-   - Tabellenerkennung via `determine_text_table_extension()` → `.slk` (SYLK-Signatur) oder `.csv` (Delimiter `;`, `,`, `\t`, `|` mit Konsistenzprüfung)
-   - Text-Erkennung via `is_likely_text_file()` (ASCII-Zeichen > 90%) → `.txt` (Quelle: "Fallback (Plain Text)")
-
-3. **Keine Zuordnung möglich** → Logeintrag mit Siegfried-Informationen (Formatname, PRONOM-ID)
-
-### Simulationsmodus
-
-Im Skript existiert die globale Variable `DRY_RUN = False`. Bei `DRY_RUN = True` werden keine tatsächlichen Umbenennungen durchgeführt; alle Aktionen werden nur simuliert und mit `[SIMULATION]` im Log gekennzeichnet.
-
-### Log-Datei
-
-Die Log-Datei wird unter `3_[ID]_for-transfer/3_[ID]_for-transfer_repair-file-extension.log` erstellt. Jeder Eintrag enthält einen Zeitstempel `[YYYY-MM-DD HH:MM:SS]`. Folgende Ereignisse werden protokolliert:
-- Skriptstart
-- Gefundene Dateien ohne Endung
-- Umbenennungen (mit Quellenangabe)
-- Fehler beim Umbenennen
-- Nicht zugeordnete Dateien (mit Siegfried-Ergebnis)
-- Abschlussstatistik
-
-### Namenskonflikte
-
-Wenn eine Datei umbenannt wird und der Zielname bereits existiert, hängt das Skript automatisch `_1`, `_2`, usw. an den Dateinamen an (vor der Endung).
-
-### Dateien, die ignoriert werden
-
-Das Skript untersucht **nur Dateien ohne Dateiendung** (`file.suffix == ""`). Folgende Dateien werden übersprungen:
-- Dateien mit einer vorhandenen Endung (z.B. `.txt`, `.jpg`)
-- Versteckte Dateien (Name beginnt mit `.`)
-- Verzeichnisse
-
-### Fehlerfälle und Abbruchbedingungen
-
-| Fehlerfall | Verhalten |
-|------------|-----------|
-| Siegfried nicht unter `C:\Program Files\Siegfried\sf.exe` | rote Fehlermeldung + `sys.exit(1)` |
-| `ffprobe.exe` nicht im PATH | rote Fehlermeldung + `sys.exit(1)` |
-| Quell-Ordner Stufe 2 existiert nicht | rote Fehlermeldung + `sys.exit(1)` |
-| Kopiervorgang von Stufe 2 nach Stufe 3 schlägt fehl | rote Fehlermeldung + `sys.exit(1)` |
-| Log-Ordner existiert nicht | rote Fehlermeldung + `sys.exit(1)` |
-| Analyse-Ordner in Stufe 3 existiert nicht | rote Fehlermeldung + `sys.exit(1)` |
-
-### Plattformabhängiges Öffnen des Zielordners
-
-Nach Abschluss fragt das Skript: `Analyse beendet. Zielordner öffnen? (j/n):`. Bei `j`:
-- **Windows** → `os.startfile(config["analysis_folder"])`
-- **macOS/Linux** → nicht implementiert (da `os.startfile` nur auf Windows funktioniert)
-
-### Abhängigkeiten (zusätzlich)
-
-Neben den in der README genannten Tools benötigt das Skript keine externen Python-Bibliotheken. Verwendet werden ausschließlich Module der Python-Standardbibliothek: `os`, `subprocess`, `json`, `sys`, `mimetypes`, `pathlib`, `shutil`, `datetime`, `zipfile`, `csv`.
+4. Arbeitsumgebung starten
+   start.bat ausführen → Menü startet automatisch
 
 ---
 
-## Lizenz
+## 🚀 Verwendung
 
-Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
+### Über das Menü (empfohlen)
+1. start.bat ausführen
+2. Im Menü das Skript C_Reparatur_von_Dateiendungen.py auswählen
+3. AC-Nummer eingeben (z. B. AC12345678)
+4. Datenträger-ID eingeben (z. B. ZPH350-110_3-5-12)
+5. Das Skript kopiert automatisch Dateien von Stufe 2 nach Stufe 3 und führt die Reparatur durch
 
-Dieses Skript ist unter der MIT-Lizenz lizenziert.
+### Direkt über die Kommandozeile
+
+    python C_Reparatur_von_Dateiendungen.py <AC-Nummer> <Datenträger-ID> [--dryrun]
+
+Beispiel:
+
+    python C_Reparatur_von_Dateiendungen.py AC12345678 ZPH350-110_3-5-12
+
+### Dry-Run-Modus
+Mit dem Flag --dryrun werden alle Änderungen nur simuliert – es werden keine Dateien umbenannt oder gelöscht:
+
+    python C_Reparatur_von_Dateiendungen.py AC12345678 ZPH350-110_3-5-12 --dryrun
 
 ---
-SPDX-FileCopyrightText: 2025 Gregor Neuboeck
+
+## 🔬 Wie es funktioniert
+
+Das Skript durchläuft für jede Datei ohne Endung folgende Entscheidungshierarchie:
+
+### 1. Siegfried-Analyse (PRONOM)
+- Aufruf von sf.exe -json <datei>
+- Auswertung der PRONOM-ID, des MIME-Typs und des Formatnamens
+- Anwendung der manuellen pronom_to_ext_map-Zuordnung
+
+### 2. Spezielle Korrekturen
+- ODT vs. ODS vs. ODP: Bei PRONOM-IDs fmt/290, fmt/291, fmt/292 wird die ZIP-Struktur geprüft (Inhalt der mimetype-Datei im ZIP-Archiv)
+- MPEG-4: Bei fmt/199 wird mit ffprobe geprüft, ob ein Video-Stream vorhanden ist → .mp4 oder .m4a
+- XML-Dateien: Bei MIME-Typ application/xml wird zuerst auf Flat-OpenDocument-Struktur (FODT/FODS/FODP) geprüft
+- Text-Dateien: Bei MIME-Typ text/plain wird zuerst auf Markdown-Syntax geprüft
+
+### 3. Fallback-Methoden (falls Siegfried keine Zuordnung liefert)
+1. Magic Bytes: Prüfung auf PSD (8BPS), FLV (FLV) und andere binäre Signaturen
+2. ZIP-Struktur: Prüfung auf mimetype-Datei (OpenDocument) oder Ordner wie word/, xl/, ppt/ (Office Open XML)
+3. MusicXML: Prüfung auf score-partwise oder score-timewise Tags
+4. Flat XML: Analyse des XML-Headers auf office:mimetype-Attribut
+5. CSV-Struktur: Mindestens 5 Zeilen mit jeweils ≥2 konsistenten Trennzeichen (;, ,, \t, |) – nur für Textdateien
+6. Markdown-Syntax: Erkennung von Überschriften, Links, Listen, Code-Blöcken etc. (mind. 2 Indikatoren) – nur für Textdateien
+7. Plain Text: Fallback auf .txt, wenn die Datei überwiegend druckbare Zeichen enthält
+
+---
+
+## ⚙️ Konfiguration
+
+Alle wichtigen Zuordnungen sind am Anfang des Skripts als Konstanten definiert und können leicht angepasst werden:
+
+### pronom_to_ext_map
+Manuelle Zuordnung von PRONOM-IDs zu Dateiendungen. Beispiele:
+    "fmt/612": ".docx",   # Office Open XML Document
+    "fmt/291": ".odt",    # OpenDocument Text
+    "fmt/279": ".flac",   # FLAC Audio
+
+### mime_to_ext_map
+Korrigierte MIME-Typ-Zuordnungen für problematische Fälle (z. B. application/xml → .xml statt .xsl).
+
+### SYSTEM_JUNK_FILES
+Liste von Dateinamen, die als Windows-Systemdateien ohne archivischen Wert erkannt und gelöscht werden:
+    SYSTEM_JUNK_FILES = ["IndexerVolumeGuid"]
+
+---
+
+## 📄 Log-Datei
+
+Das Skript erstellt im Stufe-3-Ordner eine Log-Datei:
+    3_<ID>_for-transfer/files/3_<ID>_for-transfer_repair-file-extension.log
+
+Inhalt:
+- Zeitstempel aller Aktionen
+- Debug-Ausgaben zur Anzahl der gefundenen Dateien
+- Umbenannte Dateien mit Quelle der Erkennung (z. B. PRONOM ID (Manuell), Magic Bytes (PSD), MusicXML (Signatur))
+- Gelöschte Systemdateien
+- Nicht zuordenbare Dateien mit Siegfried-Info
+- Zusammenfassung am Ende (Anzahl umbenannt/gelöscht/nicht zugeordnet)
+
+Die Konsolenausgabe ist farbig formatiert (grün = INFO, gelb = WARNING, rot = ERROR), die Log-Datei enthält keine ANSI-Codes und ist sauber lesbar.
+
+---
+
+## 📊 Unterstützte Formate (Auszug)
+
+| Kategorie         | Formate                                                              |
+|-------------------|----------------------------------------------------------------------|
+| Dokumente         | PDF, DOC, DOCX, ODT, RTF, FODT, TXT, MD                              |
+| Tabellen          | XLS, XLSX, ODS, FODS, CSV, SLK                                       |
+| Präsentationen    | ODP, FODP, PPTX                                                      |
+| Bilder            | JPG, PNG, TIF, BMP, PSD (Magic Bytes)                                 |
+| Audio             | FLAC, M4A, OGG                                                       |
+| Video             | MP4, MKV, MXF, FLV (Magic Bytes)                                     |
+| Musik/Noten       | MUS, MusicXML (Signatur)                                              |
+| Spezialformate    | AppleWorks (.cwk), Apple Pages (.pages), Finale (.mus), Ami Pro (.sam), Outlook Express (.dbx), TeX (.tex) |
+
+---
+
+## ⚠️ Wichtige Hinweise
+
+- Das Skript kopiert automatisch Dateien von Stufe 2 nach Stufe 3! Falls Stufe 3 bereits existiert, wird dieser Ordner verwendet.
+- Das Skript verändert Dateien direkt im Stufe-3-Ordner! Vor der ersten Ausführung sollte ein Backup erstellt werden.
+- Dry-Run-Modus (--dryrun) wird für den ersten Test dringend empfohlen.
+- Dateien, die nicht zugeordnet werden können, werden nicht umbenannt und im Log als ❓ Nicht zugeordnet markiert.
+- Bei mehreren Dateien gleichen Namens nach der Umbenennung wird automatisch ein Zähler angehängt (z. B. datei_1.pdf, datei_2.pdf).
+- Die CSV-Erkennung funktioniert nur für Textdateien – binäre Dateien (wie FLV, PSD) werden nicht als CSV erkannt.
+- Die Markdown-Erkennung funktioniert nur für Textdateien – binäre Dateien werden nicht als Markdown erkannt.
+
+---
+
+## 🐛 Fehlerbehebung
+
+| Problem                              | Lösung                                                              |
+|--------------------------------------|---------------------------------------------------------------------|
+| Siegfried nicht gefunden             | Prüfen, ob C:\Program Files\Siegfried\sf.exe existiert              |
+| ffprobe nicht im PATH                | FFmpeg installieren und bin-Ordner zum System-PATH hinzufügen       |
+| Analyse-Ordner nicht gefunden        | Prüfen, ob die Ordnerstruktur korrekt ist: Documents/data/AC/ID/    |
+| Keine Dateien ohne Endung gefunden   | Debug-Ausgabe prüfen – zeigt Anzahl der Dateien mit/ohne Endung     |
+| Markdown-Datei wird als .txt erkannt | Markdown-Syntax prüfen – es müssen mind. 2 Indikatoren vorhanden sein |
+| PSD-Datei wird als .md erkannt       | Magic-Bytes-Erkennung prüft PSD-Signatur (8BPS) zuerst              |
+| FLV-Datei wird als .csv erkannt      | CSV-Erkennung prüft zuerst, ob es sich um eine Textdatei handelt    |
+| MusicXML wird als .txt erkannt       | MusicXML-Signatur prüft auf score-partwise / score-timewise Tags    |
+
+---
+
+## 📝 Autor & Lizenz
+
+- Autor: Gregor Neuboeck (g.neuboeck@gmail.com)
+- Jahr: 2025
+- Lizenz: MIT License
+
+SPDX-FileCopyrightText: 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
 SPDX-License-Identifier: MIT
+
+---
+
+## 🔄 Versionshistorie
+
+- v1.0 – Erste Version mit PRONOM- und Fallback-Erkennung
+- v1.1 – Integration in Menü-Arbeitsumgebung (AC-Nummer / Datenträger-ID)
+- v1.2 – Korrektur der MIME-Typ-Zuordnungen (XML/XSL, Flat XML)
+- v1.3 – Strengere CSV-Erkennung, ZIP-Struktur-Analyse für ODT/ODS
+- v1.4 – Markdown-Erkennung, Flat-XML-Erkennung (FODT/FODS/FODP)
+- v1.5 – Magic-Bytes-Erkennung für PSD und FLV, MusicXML-Signatur, Debug-Ausgaben
+- v1.6 – CSV- und Markdown-Erkennung nur für Textdateien (verhindert Falscherkennung binärer Dateien)

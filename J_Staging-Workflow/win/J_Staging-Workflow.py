@@ -134,7 +134,7 @@ def run_staging_workflow(ac_number, disk_id):
             if item.is_file():
                 ext = item.suffix.lower()
                 # GEÄNDERT: Images gehen in den 'image'-Unterordner (Singular)
-                if ext in [".img", ".raw"]:
+                if ext in [".img", ".raw", ".dmg", ".iso", ".e01", ".aff", ".dd", ".001"]:
                     shutil.move(str(item), str(lza_images_dir / item.name))
                     print(f"{Fore.GREEN} [Move] -> Image {item.name} nach image/ verschoben.")
                 # NEU: Logs (csv, log) gehen in den 'logfiles'-Unterordner

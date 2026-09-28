@@ -273,23 +273,23 @@ def show_process_help(parent_dialog):
     insert_text("Wie das Skript arbeitet - von der Textextraktion bis zur Ergebnis-Tabelle\n")
     
     insert_content("Das Skript durchläuft insgesamt 6 Hauptphasen. Jede Phase baut auf der vorherigen auf.")
-    insert_content("Am Ende erhältst du eine farbig formatierte Excel-Tabelle mit allen Erkenntnissen.")
+    insert_content("Am Ende erhältst du eine farbig formatierte Excel-Tabelle mit allen Ergebnissen.")
     
     # ============================================================================
-    # === PHASE 1: TEXT-EXTRAKTION ================================================
+    # === PHASE 1: TEXT-EXTRAKTION ===============================================
     # ============================================================================
     insert_section("PHASE 1: TEXT-EXTRAKTION")
     insert_content("Das Skript durchsucht den gewählten Ordner rekursiv nach allen unterstützten Dateitypen")
-    insert_content("(.docx, .pdf, .txt, .odt, .rtf, .html, .xml und viele mehr).")
+    insert_content("(.docx, .pdf, .txt, .odt, .rtf, .html, .xml,...).")
     insert_content("")
-    insert_content("Für jedes gefundene Dokument wird der reine Textinhalt extrahiert:")
+    insert_content("Für jedes gefundene Dokument wird derTextinhalt extrahiert:")
     insert_content("  • .docx / .doc: Über python-docx oder LibreOffice-Konvertierung")
     insert_content("  • .pdf: Über PyMuPDF (sehr schnell) oder pdfplumber (Fallback)")
     insert_content("  • .odt / .ods: Direktes Auslesen aus dem ZIP-Archiv")
     insert_content("  • .rtf: Regex-basierte Bereinigung der Steuerzeichen")
     insert_content("  • .txt / .md / .csv: Direktes Einlesen")
     insert_content("")
-    insert_content("Zusätzlich werden Metadaten erfasst: Dateigröße, letztes Änderungsdatum, relativer Pfad.")
+    insert_content("Zusätzlich werden Metadaten erfasst: Dateigröße, letztes Änderungsdatum und relativer Pfad.")
     insert_content("")
     insert_subsection("Cache-System:")
     insert_content("Konvertierte Dokumente (z.B. .doc → .txt) werden in einem versteckten Ordner")
@@ -298,8 +298,8 @@ def show_process_help(parent_dialog):
     insert_example("Ein 10 MB .doc wird beim ersten Lauf zu .txt konvertiert (dauert ca. 5 Sek.).")
     insert_example("Beim zweiten Lauf wird die fertige .txt in Millisekunden geladen.")
     
-        # ============================================================================
-    # === PHASE 2: TEXT-FINGERABDRÜCKE ============================================
+    # ============================================================================
+    # === PHASE 2: TEXT-FINGERABDRÜCKE ===========================================
     # ============================================================================
     insert_section("PHASE 2: TEXT-FINGERABDRÜCKE BERECHNEN")
     insert_content("Bevor das Skript Dokumente paarweise vergleicht, erstellt es für jedes Dokument")
@@ -385,7 +385,7 @@ def show_process_help(parent_dialog):
     insert_content("Dokumentenpaare bereits in Schritt 1 (Millisekunden) aussortiert werden.")
     
     # ============================================================================
-    # === PHASE 3: LÄNGEN-BUCKETING ===============================================
+    # === PHASE 3: LÄNGEN-BUCKETING ==============================================
     # ============================================================================
     insert_section("PHASE 3: LÄNGEN-BUCKETING (INTELLIGENTE PAAR-FILTERUNG)")
     insert_content("Dies ist eine der wichtigsten Performance-Optimierungen des Skripts.")
@@ -412,7 +412,7 @@ def show_process_help(parent_dialog):
     insert_example("Gesamt: 253 Paare statt 4.950 → 95% weniger Vergleiche!")
     
     # ============================================================================
-    # === PHASE 4: PARALLELER VERGLEICH ===========================================
+    # === PHASE 4: PARALLELER VERGLEICH ==========================================
     # ============================================================================
     insert_section("PHASE 4: PARALLELER VERGLEICH (MULTIPROCESSING)")
     insert_content("Die gefilterten Dokumentenpaare werden jetzt auf ALLE CPU-Kerne verteilt.")
@@ -439,15 +439,11 @@ def show_process_help(parent_dialog):
     insert_example("→ ERGEBNIS: Beide gehören zusammen!")
     
     # ============================================================================
-    # === PHASE 5: UNION-FIND (GRUPPENBILDUNG) ====================================
+    # === PHASE 5: UNION-FIND (GRUPPENBILDUNG) ===================================
     # ============================================================================
     insert_section("PHASE 5: UNION-FIND ALGORITHMUS (GRUPPENBILDUNG)")
     insert_content("Nach dem Vergleich hat das Skript viele 'A gehört mit B zusammen'-Erkenntnisse.")
     insert_content("Jetzt müssen daraus sinnvolle Gruppen gebildet werden.")
-    insert_content("")
-    insert_subsection("Das Prinzip:")
-    insert_content("Stell dir vor, jedes Dokument ist eine Insel. Wenn zwei Dokumente zusammengehören,")
-    insert_content("wird eine Brücke zwischen ihnen gebaut. Am Ende entstehen Insel-Archipel = Gruppen.")
     insert_content("")
     insert_subsection("Beispiel:")
     insert_content("  A ≈ B (A ist ähnlich zu B) → Brücke A-B")
@@ -455,9 +451,9 @@ def show_process_help(parent_dialog):
     insert_content("  D ≈ E (D ist ähnlich zu E) → Brücke D-E")
     insert_content("")
     insert_content("Ergebnis:")
-    insert_content("  GRUPPE 1: {A, B, C}  (alle über Brücken verbunden)")
+    insert_content("  GRUPPE 1: {A, B, C}")
     insert_content("  GRUPPE 2: {D, E}")
-    insert_content("  GRUPPE 3: {F}         (F hat keine Brücken → Einzelgänger)")
+    insert_content("  GRUPPE 3: {F}")
     insert_content("")
     insert_content("Dieser Algorithmus ist extrem effizient und kann tausende Dokumente in Sekunden")
     insert_content("in Gruppen einteilen. Er garantiert, dass jedes Dokument in genau einer Gruppe ist.")
@@ -467,14 +463,14 @@ def show_process_help(parent_dialog):
     insert_content("Einzelgänger-Dokumente erscheinen zwar in der Tabelle, aber ohne Gruppenzuordnung.")
     
     # ============================================================================
-    # === PHASE 6: METRIK-BERECHNUNG ==============================================
+    # === PHASE 6: METRIK-BERECHNUNG =============================================
     # ============================================================================
     insert_section("PHASE 6: METRIK-BERECHNUNG INNERHALB DER GRUPPEN")
     insert_content("Für jede Gruppe wird jetzt ein 'Basisdokument' bestimmt. Das ist das Referenzdokument,")
     insert_content("gegen das alle anderen Dokumente der Gruppe verglichen werden.")
     insert_content("")
     insert_subsection("Auswahl des Basisdokuments (BASE_CRITERION):")
-    insert_content("  • oldest: Das älteste Dokument (Standard) - sinnvoll für Versionsverläufe")
+    insert_content("  • oldest: Das älteste Dokument (Standard)")
     insert_content("  • newest: Das neueste Dokument")
     insert_content("  • longest: Der längste Text")
     insert_content("  • shortest: Der kürzeste Text")
@@ -494,7 +490,7 @@ def show_process_help(parent_dialog):
     insert_content("aus Phase 4 wiederverwendet - keine Neuberechnung nötig!")
     
     # ============================================================================
-    # === PHASE 7: EXPORT =========================================================
+    # === PHASE 7: EXPORT ========================================================
     # ============================================================================
     insert_section("PHASE 7: EXPORT IN CSV UND EXCEL")
     insert_content("Am Ende werden alle Ergebnisse in zwei Formate exportiert:")
@@ -505,7 +501,7 @@ def show_process_help(parent_dialog):
     insert_content("   • UTF-8 mit BOM (für korrekte Darstellung von Umlauten in Excel)")
     insert_content("")
     insert_subsection("2. Excel-Datei (versionen_analyse_farbig.xlsx):")
-    insert_content("   • Farbige Hintergrundfarben pro Gruppe (Pastellfarben)")
+    insert_content("   • Farbige Hintergrundfarben pro Gruppe")
     insert_content("   • Kurztexte gelb hervorgehoben")
     insert_content("   • Nicht gruppierte Dokumente grau")
     insert_content("   • Auto-Filter aktivierbar")
@@ -515,7 +511,7 @@ def show_process_help(parent_dialog):
     insert_content("Die Dateien werden im Ausgabe-Ordner gespeichert, den du zu Beginn gewählt hast.")
     
     # ============================================================================
-    # === ZUSAMMENFASSUNG =========================================================
+    # === ZUSAMMENFASSUNG ========================================================
     # ============================================================================
     insert_section("ZUSAMMENFASSUNG: WIE DIE PHASEN ZUSAMMENHÄNGEN")
     insert_content("")
@@ -555,7 +551,7 @@ def show_process_help(parent_dialog):
     insert_content("  └─────────────────────────────────────────────────────────┘")
     insert_content("")
     insert_content("Die gesamte Verarbeitung ist darauf optimiert, auch bei tausenden Dokumenten")
-    insert_content("in akzeptabler Zeit zu laufen. Die Kombination aus Bucketing, Multiprocessing")
+    insert_content("in akzeptabler Zeit durchzulaufen. Die Kombination aus Bucketing, Multiprocessing")
     insert_content("und dem Union-Find-Algorithmus macht das Skript besonders effizient.")
     
     btn_frame = tk.Frame(help_root)
@@ -653,13 +649,13 @@ def show_main_help(parent_dialog):
     
     # 7. TEXT-SAMPLING-MODUS (wie im Dialog: Radio-Buttons darunter)
     insert_section("TEXT-SAMPLING-MODUS - Art der Textkürzung")
-    insert_content("Bestimmt, WIE ein Text gekürzt wird, wenn er länger als MAX_COMPARE_LENGTH ist.")
+    insert_content("Bestimmt, wie ein Text gekürzt wird, wenn er länger als MAX_COMPARE_LENGTH ist.")
     insert_subsection("Standard-Modus (Nur Anfang):")
     insert_content("Es werden nur die ERSTEN MAX_COMPARE_LENGTH Zeichen verwendet.")
     insert_content("Vorteil: Sehr schnell, da nur ein zusammenhängender Textblock verarbeitet wird.")
     insert_content("Nachteil: Änderungen am Ende des Dokuments werden nicht erkannt.")
     insert_subsection("Smart-Modus (Anfang + Ende):")
-    insert_content("Es werden die ERSTEN 50% UND die LETZTEN 50% von MAX_COMPARE_LENGTH verwendet.")
+    insert_content("Es werden die ERSTEN 50% und die LETZTEN 50% von MAX_COMPARE_LENGTH verwendet.")
     insert_content("Beispiel bei 2.000.000: erste 1.000.000 + letzte 1.000.000 Zeichen.")
     insert_content("Vorteil: Erkennt auch Änderungen am Ende von Dokumenten (z.B. Nachträge, neue Kapitel).")
     insert_content("Nachteil: Die Mitte des Textes wird nicht berücksichtigt.")

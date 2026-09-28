@@ -7,48 +7,20 @@ import subprocess
 import json
 import sys
 import mimetypes
-from pathlib import Path
 import shutil
-from datetime import datetime
+import logging
+import argparse
 import zipfile
-import csv
+import re
+from pathlib import Path
+from datetime import datetime
 
 # ==============================================================================
-# 🔧 KONFIGURATION
+# 🔧 KONFIGURATION & MAPPINGS
 # ==============================================================================
 
-def setup_and_validate_repair_paths(ac_number, disk_archive_id):
-    project_base_path = Path.home() / "Documents/data" / ac_number / disk_archive_id
-    transfer_folder = project_base_path / f"3_{disk_archive_id}_for-transfer"
-    
-    # Pfad zu Siegfried fest hinterlegen
-    SIEGFRIED_EXE = r"C:\Program Files\Siegfried\sf.exe"
-    
-    paths = {
-        "analysis_folder": transfer_folder / "files",
-        "log_file": transfer_folder / f"3_{disk_archive_id}_for-transfer_repair-file-extension.log",
-        "ffprobe_exec": "ffprobe.exe",
-        "siegfried_exec": SIEGFRIED_EXE
-    }
-    
-    if not paths["analysis_folder"].is_dir(): 
-        print(f"\033[91mFehler: Analyse-Ordner nicht gefunden: {paths['analysis_folder']}\033[0m")
-        return None
-    if not paths["log_file"].parent.is_dir(): 
-        print(f"\033[91mFehler: Log-Ordner nicht gefunden: {paths['log_file'].parent}\033[0m")
-        return None
-    
-    # Siegfried-Pfad Prüfung
-    if not Path(paths["siegfried_exec"]).exists(): 
-        print(f"\033[91mFehler: Siegfried nicht gefunden unter: {paths['siegfried_exec']}\033[0m")
-        return None
-    
-    if not shutil.which(paths["ffprobe_exec"]): 
-        print(f"\033[91mFehler: '{paths['ffprobe_exec']}' nicht im PATH gefunden.\033[0m")
-        return None
-    
-    print("\033[92mAlle Pfade und Programme wurden erfolgreich gefunden und validiert.\033[0m")
-    return paths
+# Windows-Systemdateien, die keinen archivischen Wert haben und gelöscht werden können
+SYSTEM_JUNK_FILES = ["IndexerVolumeGuid"]
 
 # PRONOM-Mapping
 pronom_to_ext_map = {
@@ -65,113 +37,457 @@ pronom_to_ext_map = {
     "fmt/838": ".dbx"
 }
 
-format_name_to_ext_map = {"AppleWorks Word Processing": ".cwk", "Ami Pro": ".sam"}
+format_name_to_ext_map = {
+    "AppleWorks Word Processing": ".cwk", 
+    "Ami Pro": ".sam"
+}
 
-# Windows-Systemdateien, die keinen archivischen Wert haben und gelöscht werden können
-SYSTEM_JUNK_FILES = ["IndexerVolumeGuid"]
-
-DRY_RUN = False
+# MIME-Typ-Mapping für problematische Fälle
+mime_to_ext_map = {
+    'application/xml': '.xml',
+    'text/xml': '.xml',
+    'application/rtf': '.rtf',
+    'text/rtf': '.rtf',
+    'application/vnd.oasis.opendocument.text': '.odt',
+    'application/vnd.oasis.opendocument.spreadsheet': '.ods',
+    'application/vnd.oasis.opendocument.presentation': '.odp',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+    'text/markdown': '.md',
+    'text/x-markdown': '.md',
+    'text/plain': '.txt',
+}
 
 # ==============================================================================
-# --- Skript-Logik ---
+# 🔧 LOGGING SETUP (Mit Farberhalt für die Konsole)
 # ==============================================================================
 
-ffprobe_path_executable = ""
-LOG_FILE_HANDLE = None
-mimetypes.add_type('message/rfc822', '.eml', strict=False); mimetypes.init()
+class ColoredFormatter(logging.Formatter):
+    """Formatter, der Log-Level in der Konsole einfärbt, aber die Nachricht (mit Emojis) intakt lässt."""
+    COLORS = {
+        'DEBUG': '\033[94m',      # Blau
+        'INFO': '\033[92m',       # Grün
+        'WARNING': '\033[93m',    # Gelb
+        'ERROR': '\033[91m',      # Rot
+        'CRITICAL': '\033[91m\033[1m', # Fett Rot
+        'RESET': '\033[0m'
+    }
 
-def log(message):
-    print(message)
-    if LOG_FILE_HANDLE: LOG_FILE_HANDLE.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {message}\n")
+    def format(self, record):
+        log_msg = super().format(record)
+        color = self.COLORS.get(record.levelname, self.COLORS['RESET'])
+        return f"{color}{log_msg}{self.COLORS['RESET']}"
 
-def run_command_with_json_output(command):
-    try:
-        process = subprocess.run(command, capture_output=True, text=True, encoding='utf-8')
-        return json.loads(process.stdout) if process.returncode == 0 and process.stdout else None
-    except: return None
-
-def has_video_stream(filepath):
-    if not ffprobe_path_executable: return None
-    command = [ffprobe_path_executable, "-v", "error", "-show_entries", "stream=codec_type", "-select_streams", "v", "-of", "json", str(filepath)]
-    return bool(run_command_with_json_output(command))
-
-def determine_extension_siegfried(filepath, match):
-    pronom_id, mime_type, format_name = match.get("id"), match.get("mime"), match.get("format")
-    if pronom_id in pronom_to_ext_map: return pronom_to_ext_map[pronom_id], "PRONOM ID (Manuell)"
-    if pronom_id == 'fmt/199': return (".mp4", "MPEG-4 (mit Video)") if has_video_stream(filepath) else (".m4a", "MPEG-4 (nur Audio)")
+def setup_logging(log_file_path):
+    """Konfiguriert Logging für Datei (sauber) und Konsole (farbig)."""
+    logger = logging.getLogger("ExtensionRepair")
+    logger.setLevel(logging.INFO)
     
-    if mime_type and mime_type not in ['text/plain', 'application/octet-stream']:
-        ext = mimetypes.guess_extension(mime_type)
-        if ext: return ext, "MIME-Typ (Automatisch)"
+    # File Handler (sauberer Text, kein ANSI-Code)
+    file_handler = logging.FileHandler(log_file_path, encoding='utf-8')
+    file_handler.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s", datefmt='%Y-%m-%d %H:%M:%S'))
+    
+    # Stream Handler (farbig für die Konsole)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(ColoredFormatter("[%(asctime)s] %(levelname)s: %(message)s", datefmt='%H:%M:%S'))
+    
+    # Verhindert doppelte Logs, falls die Funktion mehrfach aufgerufen wird
+    if not logger.handlers:
+        logger.addHandler(file_handler)
+        logger.addHandler(console_handler)
+        
+    return logger
+
+# ==============================================================================
+# 🔧 HILFSFUNKTIONEN
+# ==============================================================================
+
+def setup_and_validate_repair_paths(ac_number, disk_archive_id, logger):
+    project_base_path = Path.home() / "Documents/data" / ac_number / disk_archive_id
+    transfer_folder = project_base_path / f"3_{disk_archive_id}_for-transfer"
+    
+    # Pfad zu Siegfried fest hinterlegen
+    SIEGFRIED_EXE = r"C:\Program Files\Siegfried\sf.exe"
+    
+    paths = {
+        "analysis_folder": transfer_folder / "files",
+        "log_file": transfer_folder / f"3_{disk_archive_id}_for-transfer_repair-file-extension.log",
+        "ffprobe_exec": "ffprobe.exe",
+        "siegfried_exec": SIEGFRIED_EXE
+    }
+    
+    if not paths["analysis_folder"].is_dir(): 
+        logger.error(f"Analyse-Ordner nicht gefunden: {paths['analysis_folder']}")
+        return None
+    if not paths["log_file"].parent.is_dir(): 
+        try:
+            paths["log_file"].parent.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            logger.error(f"Log-Ordner kann nicht erstellt werden: {paths['log_file'].parent}")
+            return None
+    
+    if not Path(paths["siegfried_exec"]).exists(): 
+        logger.error(f"Siegfried nicht gefunden unter: {paths['siegfried_exec']}")
+        return None
+    
+    if not shutil.which(paths["ffprobe_exec"]): 
+        logger.error(f"'{paths['ffprobe_exec']}' nicht im PATH gefunden.")
+        return None
+    
+    logger.info("✅ Alle Pfade und Programme wurden erfolgreich gefunden und validiert.")
+    logger.info(f"📂 Analyse-Ordner: {paths['analysis_folder']}")
+    return paths
+
+def run_command_with_json_output(command, logger):
+    """Führt einen Befehl aus und gibt JSON zurück. Fängt spezifische Fehler ab."""
+    try:
+        process = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', check=True)
+        return json.loads(process.stdout) if process.stdout else None
+    except FileNotFoundError:
+        logger.error(f"Programm nicht gefunden: {command[0]}")
+        return None
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Befehl fehlgeschlagen: {' '.join(command)}. Fehler: {e.stderr.strip()}")
+        return None
+    except json.JSONDecodeError:
+        logger.error(f"Ungültige JSON-Ausgabe von: {' '.join(command)}")
+        return None
+    except Exception as e:
+        logger.error(f"Unerwarteter Fehler bei {' '.join(command)}: {e}")
+        return None
+
+def has_video_stream(filepath, ffprobe_path):
+    if not ffprobe_path: 
+        return None
+    command = [ffprobe_path, "-v", "error", "-show_entries", "stream=codec_type", "-select_streams", "v", "-of", "json", str(filepath)]
+    result = run_command_with_json_output(command, logging.getLogger("ExtensionRepair"))
+    return bool(result)
+
+def check_opendocument_type(filepath):
+    """Prüft den MIME-Typ in OpenDocument-Dateien (ZIP-Struktur)."""
+    if not zipfile.is_zipfile(filepath):
+        return None
+    try:
+        with zipfile.ZipFile(filepath, 'r') as zf:
+            if 'mimetype' in zf.namelist():
+                m = zf.read('mimetype').decode('utf-8').strip()
+                if 'opendocument.text' in m:
+                    return '.odt'
+                if 'opendocument.spreadsheet' in m:
+                    return '.ods'
+                if 'opendocument.presentation' in m:
+                    return '.odp'
+    except Exception:
+        pass
+    return None
+
+def check_flat_opendocument_type(filepath):
+    """Prüft den MIME-Typ in Flat OpenDocument-Dateien (FODT, FODS, FODP)."""
+    try:
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            header = f.read(8192)
+            if '<office:document' in header:
+                if 'office:mimetype="application/vnd.oasis.opendocument.text"' in header:
+                    return '.fodt'
+                if 'office:mimetype="application/vnd.oasis.opendocument.spreadsheet"' in header:
+                    return '.fods'
+                if 'office:mimetype="application/vnd.oasis.opendocument.presentation"' in header:
+                    return '.fodp'
+    except Exception:
+        pass
+    return None
+
+def is_markdown_file(filepath):
+    """Prüft, ob eine Datei Markdown-Syntax enthält."""
+    try:
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read(16384)
             
-    if format_name in format_name_to_ext_map: return format_name_to_ext_map[format_name], "Formatname (Manuell)"
+            # Markdown-Indikatoren
+            indicators = 0
+            
+            # Überschriften mit # (#, ##, ###, etc.)
+            if re.search(r'^#{1,6}\s+\S+', content, re.MULTILINE):
+                indicators += 2
+            
+            # Überschriften mit Unterstreichung (=== oder ---)
+            if re.search(r'^.+\n[=\-]{3,}\s*$', content, re.MULTILINE):
+                indicators += 2
+            
+            # Fett (**text** oder __text__)
+            if re.search(r'\*\*[^*\n]+\*\*', content):
+                indicators += 1
+            if re.search(r'__[^_\n]+__', content):
+                indicators += 1
+            
+            # Kursiv (*text* oder _text_)
+            if re.search(r'(?<!\*)\*(?!\*)([^*\n]+)(?<!\*)\*(?!\*)', content):
+                indicators += 1
+            
+            # Links [text](url)
+            if re.search(r'\[[^\]]+\]\([^)]+\)', content):
+                indicators += 2
+            
+            # Bilder ![alt](url)
+            if re.search(r'!\[[^\]]*\]\([^)]+\)', content):
+                indicators += 2
+            
+            # Ungeordnete Listen (- oder * oder + am Zeilenanfang)
+            if re.search(r'^[\-\*\+]\s+\S+', content, re.MULTILINE):
+                indicators += 1
+            
+            # Geordnete Listen (1. 2. etc.)
+            if re.search(r'^\d+\.\s+\S+', content, re.MULTILINE):
+                indicators += 1
+            
+            # Code-Blöcke (```)
+            if '```' in content:
+                indicators += 2
+            
+            # Inline-Code (`code`)
+            if re.search(r'`[^`\n]+`', content):
+                indicators += 1
+            
+            # Blockquotes (> text)
+            if re.search(r'^>\s+\S+', content, re.MULTILINE):
+                indicators += 1
+            
+            # Horizontale Linien (---, ***, ___)
+            if re.search(r'^[\-\*\_]{3,}\s*$', content, re.MULTILINE):
+                indicators += 1
+            
+            # Tabellen (| Spalte | Spalte |)
+            if re.search(r'^\|.+\|$', content, re.MULTILINE):
+                indicators += 2
+            
+            # HTML-Tags die in Markdown üblich sind
+            if re.search(r'<(br|hr|img|a|em|strong|code|pre)\b', content, re.IGNORECASE):
+                indicators += 1
+            
+            # Mindestens 2 Indikatoren für Markdown
+            return indicators >= 2
+            
+    except Exception:
+        return False
+
+def check_magic_bytes(filepath):
+    """Prüft Magic Bytes für spezifische Dateiformate."""
+    try:
+        with open(filepath, 'rb') as f:
+            header = f.read(16)
+            
+            # PSD (Adobe Photoshop) - Magic Bytes: 8BPS
+            if header.startswith(b'8BPS'):
+                return '.psd', 'Magic Bytes (PSD)'
+            
+            # FLV (Flash Video) - Magic Bytes: FLV
+            if header.startswith(b'FLV'):
+                return '.flv', 'Magic Bytes (FLV)'
+            
+    except Exception:
+        pass
+    return None, None
+
+def check_musicxml(filepath):
+    """Prüft, ob eine Datei MusicXML ist."""
+    try:
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            header = f.read(8192)
+            # MusicXML hat spezifische Root-Tags
+            if '<score-partwise' in header or '<score-timewise' in header:
+                return '.musicxml', 'MusicXML (Signatur)'
+    except Exception:
+        pass
+    return None, None
+
+def determine_extension_siegfried(filepath, match, ffprobe_path, logger):
+    pronom_id = match.get("id")
+    mime_type = match.get("mime")
+    format_name = match.get("format")
+    
+    # 1. PRONOM ID (Manuell)
+    if pronom_id in pronom_to_ext_map:
+        ext = pronom_to_ext_map[pronom_id]
+        # Spezielle Behandlung für ODT/ODS/ODP: Prüfe ZIP-Struktur
+        if pronom_id in ['fmt/290', 'fmt/291', 'fmt/292']:
+            zip_ext = check_opendocument_type(filepath)
+            if zip_ext and zip_ext != ext:
+                return zip_ext, f'PRONOM ID (korrigiert durch ZIP-Mimetype: {pronom_id} -> {zip_ext})'
+        return ext, "PRONOM ID (Manuell)"
+    
+    # 2. MPEG-4 Sonderbehandlung
+    if pronom_id == 'fmt/199':
+        is_video = has_video_stream(filepath, ffprobe_path)
+        if is_video:
+            return ".mp4", "MPEG-4 (mit Video)"
+        else:
+            return ".m4a", "MPEG-4 (nur Audio)"
+    
+    # 3. MIME-Typ mit Korrekturen
+    if mime_type and mime_type not in ['application/octet-stream']:
+        # Bei XML-MIME-Typen: Erst Flat XML prüfen
+        if mime_type in ['application/xml', 'text/xml']:
+            flat_ext = check_flat_opendocument_type(filepath)
+            if flat_ext:
+                return flat_ext, f'MIME-Typ (korrigiert durch Flat XML: {mime_type} -> {flat_ext})'
+        
+        # Bei text/plain: Erst Markdown prüfen
+        if mime_type == 'text/plain':
+            if is_markdown_file(filepath):
+                return '.md', 'MIME-Typ (korrigiert durch Markdown-Erkennung: text/plain -> .md)'
+        
+        # Erst unser eigenes Mapping prüfen
+        if mime_type in mime_to_ext_map:
+            return mime_to_ext_map[mime_type], "MIME-Typ (Manuell)"
+        # Dann Standard-Mapping
+        ext = mimetypes.guess_extension(mime_type)
+        if ext:
+            return ext, "MIME-Typ (Automatisch)"
+    
+    # 4. Formatname
+    if format_name in format_name_to_ext_map:
+        return format_name_to_ext_map[format_name], "Formatname (Manuell)"
+    
     return None, None
 
 def is_likely_text_file(filepath, threshold=0.9):
     try:
         with open(filepath, 'rb') as f:
             chunk = f.read(1024)
-            if not chunk: return True
+            if not chunk: 
+                return True
             text_characters = bytes(range(32, 127)) + b'\n\r\t'
             text_count = sum(1 for byte in chunk if byte in text_characters)
             return (text_count / len(chunk)) >= threshold
-    except: return False
+    except Exception: 
+        return False
 
 def determine_text_table_extension(filepath):
+    # Nur für Textdateien prüfen - binäre Dateien können kein CSV sein
+    if not is_likely_text_file(filepath, threshold=0.85):
+        return None, None
+        
     try:
         with open(filepath, 'r', encoding='latin-1') as f:
-            if f.readline(10).strip().startswith("ID;"): return '.slk', 'Fallback (SYLK-Signatur)'
-    except: pass
+            if f.readline(10).strip().startswith("ID;"): 
+                return '.slk', 'Fallback (SYLK-Signatur)'
+    except Exception: 
+        pass
     
     delimiters = [';', ',', '\t', '|']
     try:
         with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
             lines = [line.strip() for line in f.readlines(4096) if line.strip()]
-            if len(lines) >= 3:
+            if len(lines) >= 5:  # Mindestens 5 Zeilen
                 for d in delimiters:
                     counts = [line.count(d) for line in lines]
-                    non_zero = [c for c in counts if c > 0]
-                    if non_zero and non_zero.count(max(set(non_zero), key=non_zero.count)) >= 3:
-                        return '.csv', f'Fallback (CSV-Struktur "{d}")'
-    except: pass
+                    # Nur Zeilen mit mindestens 2 Trennzeichen zählen
+                    valid_counts = [c for c in counts if c >= 2]
+                    if len(valid_counts) >= 5:  # Mindestens 5 Zeilen mit >=2 Trennzeichen
+                        # Prüfen, ob die Anzahl konsistent ist (alle innerhalb ±2)
+                        if max(valid_counts) - min(valid_counts) <= 2:
+                            return '.csv', f'Fallback (CSV-Struktur "{d}")'
+    except Exception: 
+        pass
     return None, None
 
-def determine_extension_fallback(filepath):
+def determine_extension_fallback(filepath, logger):
+    # 1. Magic Bytes prüfen (PSD, FLV, etc.)
+    magic_ext, magic_source = check_magic_bytes(filepath)
+    if magic_ext:
+        return magic_ext, magic_source
+    
+    # 2. ZIP-basierte Erkennung (OpenDocument, Office Open XML)
     if zipfile.is_zipfile(filepath):
         try:
             with zipfile.ZipFile(filepath, 'r') as zf:
+                # OpenDocument MIME-Typ
                 if 'mimetype' in zf.namelist():
                     m = zf.read('mimetype').decode('utf-8').strip()
-                    if 'opendocument.text' in m: return '.odt', 'Fallback (ZIP-Mimetype)'
-                    if 'opendocument.spreadsheet' in m: return '.ods', 'Fallback (ZIP-Mimetype)'
-        except: pass
+                    if 'opendocument.text' in m: 
+                        return '.odt', 'Fallback (ZIP-Mimetype)'
+                    if 'opendocument.spreadsheet' in m: 
+                        return '.ods', 'Fallback (ZIP-Mimetype)'
+                    if 'opendocument.presentation' in m:
+                        return '.odp', 'Fallback (ZIP-Mimetype)'
+                
+                # Office Open XML (docx, xlsx, pptx)
+                namelist = zf.namelist()
+                if any('word/' in n for n in namelist):
+                    return '.docx', 'Fallback (ZIP-Struktur: word/)'
+                if any('xl/' in n for n in namelist):
+                    return '.xlsx', 'Fallback (ZIP-Struktur: xl/)'
+                if any('ppt/' in n for n in namelist):
+                    return '.pptx', 'Fallback (ZIP-Struktur: ppt/)'
+        except Exception: 
+            pass
+
+    # 3. MusicXML prüfen
+    musicxml_ext, musicxml_source = check_musicxml(filepath)
+    if musicxml_ext:
+        return musicxml_ext, musicxml_source
+
+    # 4. Flat XML (FODT, FODS, FODP)
+    flat_ext = check_flat_opendocument_type(filepath)
+    if flat_ext:
+        return flat_ext, f'Fallback (Flat XML: {flat_ext})'
 
     try:
         with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-            header = f.read(2048)
-            if '<office:document-content' in header: return '.odt', 'Fallback (Flat XML)'
-            if '<office:document-spreadsheet' in header: return '.ods', 'Fallback (Flat XML)'
-    except: pass
+            header = f.read(8192)
+            if '<office:document' in header:
+                # Generisches Office XML
+                if '<office:document-content' in header:
+                    return '.xml', 'Fallback (Flat XML - Content)'
+                if '<office:document-spreadsheet' in header:
+                    return '.xml', 'Fallback (Flat XML - Spreadsheet)'
+    except Exception: 
+        pass
     
+    # 5. CSV-Erkennung (streng, nur für Textdateien)
     ext, source = determine_text_table_extension(filepath)
-    if ext: return ext, source
-    if is_likely_text_file(filepath): return '.txt', 'Fallback (Plain Text)'
+    if ext: 
+        return ext, source
+    
+    # 6. Markdown-Erkennung (nur für Textdateien)
+    if is_likely_text_file(filepath, threshold=0.85):
+        if is_markdown_file(filepath):
+            return '.md', 'Fallback (Markdown-Syntax)'
+    
+    # 7. Plain Text
+    if is_likely_text_file(filepath): 
+        return '.txt', 'Fallback (Plain Text)'
+        
     return None, None
 
-def main():
-    # WICHTIG: global MUSS die erste Zeile in der Funktion sein
-    global ffprobe_path_executable, LOG_FILE_HANDLE
-    
-    try:
-        ac_in, id_in = sys.argv[1], sys.argv[2]
-    except IndexError:
-        ac_in, id_in = input("AC: "), input("ID: ")
+# ==============================================================================
+# 🚀 HAUPTLOGIK
+# ==============================================================================
 
-    # --- AUTOMATISCHER TRANSFER VON STUFE 2 NACH STUFE 3 ---
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Repariert verlorene Dateiendungen basierend auf PRONOM und Fallbacks.")
+    
+    # KORREKTUR: nargs="?" macht die Argumente optional, erlaubt aber die Übergabe OHNE --ac / --id Flags
+    parser.add_argument("ac", nargs="?", default=None, help="AC Nummer (z.B. AC123). Falls nicht angegeben, wird interaktiv gefragt.")
+    parser.add_argument("id", nargs="?", default=None, help="Disk Archive ID (z.B. DISK01). Falls nicht angegeben, wird interaktiv gefragt.")
+    parser.add_argument("--dryrun", action="store_true", help="Nur simulieren, keine Änderungen an Dateien vornehmen.")
+    
+    return parser.parse_args()
+
+def main():
+    args = parse_arguments()
+    
+    # Interaktiver Fallback, falls keine Argumente übergeben wurden
+    ac_in = args.ac or input("AC: ").strip()
+    id_in = args.id or input("ID: ").strip()
+    DRY_RUN = args.dryrun
+
     project_root = Path.home() / "Documents/data" / ac_in / id_in
     source_stage2 = project_root / f"2_{id_in}_extracted-files" / "files"
     target_stage3 = project_root / f"3_{id_in}_for-transfer" / "files"
 
+    # Automatischer Transfer von Stufe 2 nach Stufe 3
     if not target_stage3.exists():
         if source_stage2.exists():
             print(f"\033[94mVorbereitung: Kopiere Dateien von Stufe 2 nach Stufe 3...\033[0m")
@@ -185,49 +501,78 @@ def main():
             print(f"\033[91mFehler: Quell-Daten in Stufe 2 nicht gefunden ({source_stage2})\033[0m")
             sys.exit(1)
     
-    # Validierung der Pfade (Siegfried, FFprobe etc.)
-    config = setup_and_validate_repair_paths(ac_in, id_in)
-    if not config: sys.exit(1)
-    
-    LOG_FILE_HANDLE = open(config["log_file"], 'w', encoding='utf-8')
-    ffprobe_path_executable = shutil.which(config["ffprobe_exec"])
+    # Logger initialisieren
+    temp_log_path = target_stage3 / f"3_{id_in}_for-transfer_repair-file-extension.log"
+    logger = setup_logging(temp_log_path)
 
-    log(f"Skript gestartet am {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n" + "-" * 40)
-    if DRY_RUN: log("🚨 SIMULATIONSMODUS AKTIV.")
+    logger.info(f"Skript gestartet am {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info("-" * 40)
+    if DRY_RUN: 
+        logger.warning("🚨 SIMULATIONSMODUS AKTIV. Es werden keine Dateien verändert.")
+
+    # Validierung der Pfade
+    config = setup_and_validate_repair_paths(ac_in, id_in, logger)
+    if not config: 
+        logger.error("Konfiguration fehlgeschlagen. Skript wird beendet.")
+        sys.exit(1)
+    
+    ffprobe_path = shutil.which(config["ffprobe_exec"])
 
     path_obj = Path(config["analysis_folder"])
-    files_to_check = [p for p in path_obj.rglob('*') if p.is_file() and not p.name.startswith('.') and not p.suffix]
+    
+    # DEBUG: Zeige alle Dateien im Verzeichnis
+    all_files = [p for p in path_obj.rglob('*') if p.is_file()]
+    files_with_ext = [p for p in all_files if p.suffix]
+    files_without_ext = [p for p in all_files if not p.name.startswith('.') and not p.suffix]
+    
+    logger.info(f"📊 DEBUG: {len(all_files)} Dateien insgesamt gefunden")
+    logger.info(f"📊 DEBUG: {len(files_with_ext)} Dateien MIT Endung")
+    logger.info(f"📊 DEBUG: {len(files_without_ext)} Dateien OHNE Endung")
+    
+    if files_with_ext and len(files_with_ext) <= 5:
+        for f in files_with_ext[:5]:
+            logger.info(f"   📄 Mit Endung: {f.name} (suffix: '{f.suffix}')")
+    
+    if files_without_ext and len(files_without_ext) <= 5:
+        for f in files_without_ext[:5]:
+            logger.info(f"   📄 Ohne Endung: {f.name}")
+    
+    files_to_check = files_without_ext
     
     if not files_to_check:
-        log("\n✅ Keine Dateien ohne Dateiendung gefunden.")
+        logger.info("\n✅ Keine Dateien ohne Dateiendung gefunden.")
     else:
-        log(f"{len(files_to_check)} Datei(en) ohne Endung gefunden...\n" + "-" * 40)
-        renamed_count = 0; unidentified_count = 0; deleted_count = 0
+        logger.info(f"{len(files_to_check)} Datei(en) ohne Endung gefunden...\n" + "-" * 40)
+        renamed_count = 0
+        unidentified_count = 0
+        deleted_count = 0
 
         for filepath in files_to_check:
-            # --- NEU: System-Müll erkennen und löschen ---
+            # --- System-Müll erkennen und löschen ---
             if filepath.name in SYSTEM_JUNK_FILES:
                 prefix = "[SIMULATION]" if DRY_RUN else "🗑️ Gelöscht"
-                log(f"{prefix}: '{filepath.name}' (Windows-Systemdatei ohne archivischen Wert)")
+                logger.info(f"{prefix}: '{filepath.name}' (Windows-Systemdatei ohne archivischen Wert)")
                 if not DRY_RUN:
                     try: 
                         filepath.unlink()
                         deleted_count += 1
                     except OSError as e: 
-                        log(f"    ❌ FEHLER beim Löschen: {e}")
+                        logger.error(f"    ❌ FEHLER beim Löschen: {e}")
                 else:
                     deleted_count += 1
                 continue
             
-            # Nutzt den festen Siegfried-Pfad aus der config
-            siegfried_result = run_command_with_json_output([config["siegfried_exec"], "-json", str(filepath)])
+            # Siegfried-Analyse
+            siegfried_result = run_command_with_json_output([config["siegfried_exec"], "-json", str(filepath)], logger)
             new_ext, source = None, None
             
             if siegfried_result and siegfried_result.get("files") and siegfried_result["files"][0].get("matches"):
-                new_ext, source = determine_extension_siegfried(filepath, siegfried_result["files"][0]["matches"][0])
+                best_match = siegfried_result["files"][0]["matches"][0]
+                new_ext, source = determine_extension_siegfried(filepath, best_match, ffprobe_path, logger)
 
+            # Fallback-Logik
             if not new_ext:
-                new_ext, source = determine_extension_fallback(filepath)
+                new_ext, source = determine_extension_fallback(filepath, logger)
             
             if new_ext:
                 new_path = filepath.with_suffix(new_ext)
@@ -237,29 +582,46 @@ def main():
                     counter += 1
                 
                 prefix = "[SIMULATION]" if DRY_RUN else "✅ Umbenannt"
-                log(f"{prefix}: '{filepath.name}' -> '{new_path.name}' [via {source}]")
+                logger.info(f"{prefix}: '{filepath.name}' -> '{new_path.name}' [via {source}]")
+                
                 if not DRY_RUN:
-                    try: filepath.rename(new_path); renamed_count += 1
-                    except OSError as e: log(f"    ❌ FEHLER: {e}")
-                else: renamed_count += 1
+                    try: 
+                        filepath.rename(new_path)
+                        renamed_count += 1
+                    except OSError as e: 
+                        logger.error(f"    ❌ FEHLER beim Umbenennen: {e}")
+                else: 
+                    renamed_count += 1
             else:
                 fmt_name, p_id = "Unbekannt", "UNKNOWN"
                 if siegfried_result and siegfried_result.get("files") and siegfried_result["files"][0].get("matches"):
                     m = siegfried_result["files"][0]["matches"][0]
-                    fmt_name, p_id = m.get("format", fmt_name), m.get("id", p_id)
+                    fmt_name = m.get("format", fmt_name)
+                    p_id = m.get("id", p_id)
                 
-                log(f"❓ Nicht zugeordnet: '{filepath.name}' (Siegfried: {fmt_name}, PRONOM: {p_id})")
+                logger.warning(f"❓ Nicht zugeordnet: '{filepath.name}' (Siegfried: {fmt_name}, PRONOM: {p_id})")
                 unidentified_count += 1
 
-        log("-" * 40 + f"\nAnalyse abgeschlossen.")
-        log(f"Dateien {'simuliert' if DRY_RUN else 'umbenannt'}: {renamed_count}")
-        log(f"System-Müll {'simuliert' if DRY_RUN else 'gelöscht'}: {deleted_count}")
-        log(f"Nicht zugeordnet: {unidentified_count}")
+        logger.info("-" * 40)
+        logger.info("Analyse abgeschlossen.")
+        logger.info(f"Dateien {'simuliert' if DRY_RUN else 'umbenannt'}: {renamed_count}")
+        logger.info(f"System-Müll {'simuliert' if DRY_RUN else 'gelöscht'}: {deleted_count}")
+        logger.info(f"Nicht zugeordnet: {unidentified_count}")
 
-    LOG_FILE_HANDLE.close()
+    logger.info("-" * 40)
     
-    open_q = input("\nAnalyse beendet. Zielordner öffnen? (j/n): ").lower()
-    if open_q == 'j': os.startfile(config["analysis_folder"])
+    # Sicheres Öffnen des Ordners am Ende
+    try:
+        open_q = input("\nAnalyse beendet. Zielordner öffnen? (j/n): ").lower()
+        if open_q == 'j':
+            if sys.platform == "win32":
+                os.startfile(config["analysis_folder"])
+            elif sys.platform == "darwin":
+                subprocess.call(["open", config["analysis_folder"]])
+            else:
+                subprocess.call(["xdg-open", config["analysis_folder"]])
+    except Exception as e:
+        logger.error(f"Konnte Ordner nicht öffnen: {e}")
 
 if __name__ == "__main__":
     main()
