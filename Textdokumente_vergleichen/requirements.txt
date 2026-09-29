@@ -1,9 +1,18 @@
+# ============================================================
+# UNTERORDNER requirements.txt (Textdokumente_vergleichen)
+# Enthält nur die Pakete für dieses Modul
+# ============================================================
+
 python-docx
-PyMuPDF
+pymupdf
 pdfplumber
 openpyxl
-rapidfuzz
-tqdm
-matplotlib
 sentence-transformers
+torch
+rapidfuzz
+matplotlib
+striprtf
+odfpy
+pypdf
+tqdm
 brunnhilde

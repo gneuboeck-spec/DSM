@@ -1,3 +1,9 @@
+# ============================================================
+# ZENTRALE requirements.txt (Hauptverzeichnis)
+# Enthält ALLE Pakete für den gesamten Workflow
+# ============================================================
+
+# --- Haupt-Workflow (Skripte A bis L) ---
 brunnhilde
 beautifulsoup4
 yara-python
@@ -11,3 +17,18 @@ requests
 urllib3
 bagit
 hachoir
+
+# --- Unterordner: Textdokumente_vergleichen ---
+python-docx
+pymupdf
+pdfplumber
+openpyxl
+sentence-transformers
+torch
+rapidfuzz
+matplotlib
+striprtf
+odfpy
+pypdf
+tqdm
+brunnhilde
