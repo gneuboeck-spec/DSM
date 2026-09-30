@@ -28,7 +28,14 @@ IGNORED_FILES = {
 
 # Ordner, die als eigene Menüeinträge angezeigt werden (mit Untermenü)
 SUBMENU_DIRS = {
-    "Textdokumente_vergleichen"
+    "Textdokumente_vergleichen",
+    "Tools"
+}
+
+# Explizite Shortcut-Zuweisung für Untermenü-Ordner
+FOLDER_SHORTCUTS = {
+    "Textdokumente_vergleichen": "T",
+    "Tools": "O"
 }
 
 
@@ -41,8 +48,13 @@ def print_header(ac_number, disk_id, current_path):
     print("===================================================")
     print("           PYTHON SKRIPT STARTER")
     print("===================================================")
-    print(f" Aktuelle AC-Nummer:      {ac_number}")
-    print(f" Aktuelle Datenträger-ID: {disk_id}")
+    
+    # Zeige Warnung wenn Werte nicht gesetzt sind
+    ac_display = ac_number if ac_number and ac_number != "NICHT GESETZT" else "❌ NICHT GESETZT"
+    disk_display = disk_id if disk_id and disk_id != "NICHT GESETZT" else "❌ NICHT GESETZT"
+    
+    print(f" Aktuelle AC-Nummer:      {ac_display}")
+    print(f" Aktuelle Datenträger-ID: {disk_display}")
     print(f" Aktueller Ordner:        {current_path}")
     print("---------------------------------------------------")
 
@@ -135,8 +147,10 @@ def get_submenu_scripts(submenu_dir_name: str):
 
 def get_folder_shortcut(folder_name: str) -> str:
     """
-    Gibt den ersten Buchstaben des Ordnernamens als Shortcut zurück.
+    Gibt den Shortcut für einen Ordner zurück.
     """
+    if folder_name in FOLDER_SHORTCUTS:
+        return FOLDER_SHORTCUTS[folder_name]
     return folder_name[0].upper() if folder_name else ""
 
 
@@ -156,7 +170,6 @@ def start_submenu(folder_name: str):
     print(f"Die start.bat wird als separater Prozess gestartet.")
     print(f"Nach dem Beenden kehren Sie automatisch zum Hauptmenü zurück.\n")
     
-    # Starte die start.bat als separaten Prozess
     subprocess.run(
         [str(start_bat)],
         cwd=str(submenu_path),
@@ -167,6 +180,42 @@ def start_submenu(folder_name: str):
     input("Drücken Sie Enter, um zum Hauptmenü zurückzukehren.")
 
 
+def ensure_ac_disk_id(ac_number, disk_id):
+    """
+    Prüft ob AC-Nummer und Datenträger-ID gesetzt sind.
+    Falls nicht, wird interaktiv nachgefragt.
+    Gibt (ac_number, disk_id, success) zurück.
+    """
+    ac_missing = not ac_number or ac_number == "NICHT GESETZT"
+    disk_missing = not disk_id or disk_id == "NICHT GESETZT"
+    
+    if not ac_missing and not disk_missing:
+        return ac_number, disk_id, True
+    
+    print("\n" + "=" * 50)
+    print("  [WARNUNG] Fehlende Parameter für Hauptskripte!")
+    print("=" * 50)
+    print()
+    print("Für die Ausführung von Hauptskripten werden")
+    print("AC-Nummer und Datenträger-ID benötigt.")
+    print()
+    
+    if ac_missing:
+        ac_number = input("AC-Nummer eingeben: ").strip()
+    
+    if disk_missing:
+        disk_id = input("Datenträger-ID eingeben: ").strip()
+    
+    # Prüfen ob jetzt beide Werte vorhanden sind
+    if not ac_number or not disk_id:
+        print("\n[FEHLER] Beide Werte müssen eingegeben werden.")
+        print("Skriptstart wurde abgebrochen.")
+        input("Drücken Sie Enter, um fortzufahren.")
+        return ac_number, disk_id, False
+    
+    return ac_number, disk_id, True
+
+
 # =====================================================
 # Hauptprogramm
 # =====================================================
@@ -174,12 +223,14 @@ def start_submenu(folder_name: str):
 def main():
     """Zeigt ein Menü an, verwaltet AC-Nummer/Disk-ID und führt Skripte aus."""
 
-    # Empfängt die Werte von der start.bat
+    # Empfängt die Werte von der start.bat (können leer sein)
     if len(sys.argv) >= 3:
-        ac_number = sys.argv[1]
-        disk_id = sys.argv[2]
+        ac_number = sys.argv[1] if sys.argv[1] else "NICHT GESETZT"
+        disk_id = sys.argv[2] if sys.argv[2] else "NICHT GESETZT"
+    elif len(sys.argv) == 2:
+        ac_number = sys.argv[1] if sys.argv[1] else "NICHT GESETZT"
+        disk_id = "NICHT GESETZT"
     else:
-        print("Fehler: AC-Nummer und Datenträger-ID wurden nicht übergeben.")
         ac_number = "NICHT GESETZT"
         disk_id = "NICHT GESETZT"
 
@@ -255,11 +306,9 @@ def main():
             choice_upper = choice.upper()
             for folder_name in submenu_entries:
                 if get_folder_shortcut(folder_name) == choice_upper:
-                    # NEU: Starte die start.bat des Unterordners als separaten Prozess
                     start_submenu(folder_name)
                     break
             else:
-                # Buchstabe passt zu keinem Ordner
                 print("\nUngueltige Eingabe.")
                 input("Druecken Sie Enter, um fortzufahren.")
             continue
@@ -270,6 +319,12 @@ def main():
 
             if 0 <= choice_index < len(scripts):
                 script_to_run = scripts[choice_index]
+
+                # NEU: Prüfen ob AC/Disk-ID gesetzt sind, bevor das Skript startet
+                ac_number, disk_id, success = ensure_ac_disk_id(ac_number, disk_id)
+                
+                if not success:
+                    continue
 
                 print(f"\n--- Starte Skript: {script_to_run.name} ---")
                 print(f"Uebergebe AC-Nummer: {ac_number}")

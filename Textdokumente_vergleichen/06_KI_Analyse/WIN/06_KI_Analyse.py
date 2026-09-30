@@ -450,7 +450,8 @@ def save_csv(rows, output_file):
     print(f"\n💾 CSV gespeichert: {output_file}")
 
 
-def save_as_excel(rows, output_file):
+# === NUR HIER WURDE EINE MINIMALE ÄNDERUNG VORGENOMMEN (base_dir Parameter + Hyperlink-Logik) ===
+def save_as_excel(rows, output_file, base_dir: Path):
     try:
         from openpyxl import Workbook
         from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -515,11 +516,18 @@ def save_as_excel(rows, output_file):
         row_fill = PatternFill(start_color=bg_color, end_color=bg_color, fill_type='solid')
         
         for col_num, field in enumerate(fieldnames, 1):
-            cell = ws.cell(row=row_num, column=col_num, value=row_data.get(field, ''))
+            cell_value = row_data.get(field, '')
+            cell = ws.cell(row=row_num, column=col_num, value=cell_value)
             cell.font = cell_font
             cell.fill = row_fill
             cell.alignment = cell_alignment
             cell.border = thin_border
+            
+            # NEU: Hyperlink für Relativer_Pfad hinzufügen
+            if field == "Relativer_Pfad" and cell_value:
+                abs_path = str((base_dir / cell_value).resolve())
+                cell.hyperlink = abs_path
+                cell.style = 'Hyperlink'
             
             if field in ['Änderung_Zeichen_%', 'Änderung_Wörter_%', 'KI_Semantische_Aehnlichkeit']:
                 cell.alignment = Alignment(horizontal='right', vertical='center')
@@ -540,7 +548,7 @@ def save_as_excel(rows, output_file):
     ws.auto_filter.ref = ws.dimensions
     
     wb.save(str(output_file))
-    print(f"📊 Excel-Datei mit Farben gespeichert: {output_file}")
+    print(f"📊 Excel-Datei mit Farben und klickbaren Hyperlinks gespeichert: {output_file}")
 
 
 # ==============================================================================
@@ -599,7 +607,8 @@ def main():
     save_csv(rows, output_csv)
     
     output_excel = ausgabe_pfad / "versionen_analyse_mit_ki_farbig.xlsx"
-    save_as_excel(rows, output_excel)
+    # NEU: eingabe_pfad wird jetzt als dritter Parameter übergeben
+    save_as_excel(rows, output_excel, eingabe_pfad)
 
     print("\n" + "=" * 60)
     print("✅ SCHRITT 2 ABGESCHLOSSEN!")

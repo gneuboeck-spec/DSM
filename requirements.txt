@@ -17,6 +17,7 @@ requests
 urllib3
 bagit
 hachoir
+requests
 
 # --- Unterordner: Textdokumente_vergleichen ---
 python-docx
@@ -32,3 +33,7 @@ odfpy
 pypdf
 tqdm
 brunnhilde
+
+# --- Unterordner: Tools ---
+lxml
+requests

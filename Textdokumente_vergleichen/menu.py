@@ -105,7 +105,7 @@ def skript_ausfuehren(script_path, eingabe_pfad, ausgabe_pfad):
     """Führt ein Skript mit den gegebenen Pfaden aus."""
     
     print(f"\n{'='*60}")
-    print(f" Starte: {script_path.relative_to(SCRIPT_DIR)}")
+    print(f" Starte: {script_path.name}")
     print(f" Eingabe-Verzeichnis: {eingabe_pfad}")
     print(f" Ausgabe-Verzeichnis: {ausgabe_pfad}")
     print(f"{'='*60}\n")
@@ -180,30 +180,66 @@ def main():
             print("   Keine Python-Skripte gefunden.")
         else:
             for i, script_path in enumerate(scripts, 1):
-                rel_path = script_path.relative_to(SCRIPT_DIR)
-                print(f"   {i:3} - {rel_path}")
+                print(f"   {i:3} - {script_path.name}")
         
-        print("\n   V - Verzeichnisse neu wählen")
+        print("\n---------------------------------------------------")
+        print("   E - Nur Eingabe-Verzeichnis ändern")
+        print("   A - Nur Ausgabe-Verzeichnis ändern")
+        print("   V - Beide Verzeichnisse neu wählen")
         print("   Q - Beenden")
         print("="*60)
         
-        choice = input("\nBitte Nummer des Skripts eingeben (oder V / Q): ").strip().lower()
+        choice = input("\nBitte Nummer des Skripts eingeben (oder E/A/V/Q): ").strip().lower()
         
         if choice == "q":
             print("\n Programm wird beendet.")
             break
         
-        elif choice == "v":
-            # Verzeichnisse neu wählen
-            neuer_eingabe = waehle_verzeichnis("Wähle das NEUE Eingabe-Verzeichnis")
+        elif choice == "e":
+            # Nur Eingabe-Verzeichnis neu wählen
+            neuer_eingabe = waehle_verzeichnis(
+                f"Wähle das NEUE Eingabe-Verzeichnis\n(aktuell: {eingabe_pfad})"
+            )
             if neuer_eingabe:
                 eingabe_pfad = neuer_eingabe
                 print(f"\n✅ Neues Eingabe-Verzeichnis: {eingabe_pfad}")
+            else:
+                print("\n⚠️ Keine Änderung - altes Eingabe-Verzeichnis bleibt erhalten.")
+            continue
+        
+        elif choice == "a":
+            # Nur Ausgabe-Verzeichnis neu wählen
+            neuer_ausgabe = waehle_verzeichnis(
+                f"Wähle das NEUE Ausgabe-Verzeichnis\n(aktuell: {ausgabe_pfad})"
+            )
+            if neuer_ausgabe:
+                ausgabe_pfad = neuer_ausgabe
+                print(f"\n✅ Neues Ausgabe-Verzeichnis: {ausgabe_pfad}")
+            else:
+                print("\n⚠️ Keine Änderung - altes Ausgabe-Verzeichnis bleibt erhalten.")
+            continue
+        
+        elif choice == "v":
+            # Beide Verzeichnisse neu wählen
+            print("\n--- Schritt 1/2: Eingabe-Verzeichnis ---")
+            neuer_eingabe = waehle_verzeichnis(
+                f"Wähle das NEUE Eingabe-Verzeichnis\n(aktuell: {eingabe_pfad})"
+            )
+            if neuer_eingabe:
+                eingabe_pfad = neuer_eingabe
+                print(f"✅ Neues Eingabe-Verzeichnis: {eingabe_pfad}")
+            else:
+                print("⚠️ Eingabe-Verzeichnis unverändert.")
             
-            neuer_ausgabe = waehle_verzeichnis("Wähle das NEUE Ausgabe-Verzeichnis")
+            print("\n--- Schritt 2/2: Ausgabe-Verzeichnis ---")
+            neuer_ausgabe = waehle_verzeichnis(
+                f"Wähle das NEUE Ausgabe-Verzeichnis\n(aktuell: {ausgabe_pfad})"
+            )
             if neuer_ausgabe:
                 ausgabe_pfad = neuer_ausgabe
                 print(f"✅ Neues Ausgabe-Verzeichnis: {ausgabe_pfad}")
+            else:
+                print("⚠️ Ausgabe-Verzeichnis unverändert.")
             
             continue
         
@@ -222,7 +258,7 @@ def main():
                 input("Drücke Enter, um fortzufahren.")
         
         except ValueError:
-            print("\n⚠️ Ungültige Eingabe. Bitte eine Nummer, V oder Q eingeben.")
+            print("\n⚠️ Ungültige Eingabe. Bitte eine Nummer, E, A, V oder Q eingeben.")
             input("Drücke Enter, um fortzufahren.")
         
         except Exception as e:

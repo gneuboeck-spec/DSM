@@ -61,7 +61,7 @@ def setup_and_validate_paths(ac_number, disk_archive_id):
 
 def manage_intermediate_files(folder, log_filepath, is_dry_run):
     if is_dry_run:
-        print("=== TESTLAUF AKTIV (KEINE DATEIEN WERDEN GELÖSCHT) ===")
+        print("=== TESTLAUF AKTIV (KEINE ODF-DATEIEN WERDEN GELÖSCHT) ===")
     else:
         print("=== ECHTER LÖSCHVORGANG AKTIV ===")
         
@@ -89,7 +89,7 @@ def manage_intermediate_files(folder, log_filepath, is_dry_run):
 
     if not files_to_process:
         print("Keine ODF-Zwischendateien zum Verarbeiten gefunden.")
-        return
+        return 0
 
     if is_dry_run:
         print(f"{len(files_to_process)} potenzielle ODF-Zwischendateien gefunden.")
@@ -100,14 +100,15 @@ def manage_intermediate_files(folder, log_filepath, is_dry_run):
                 for path in sorted(files_to_process): logfile.write(f"{path}\n")
             print("\n[OK] Testlauf-Log wurde erfolgreich erstellt.")
         except Exception as e: print(f"\n[FEHLER] Die Log-Datei konnte nicht geschrieben werden: {e}")
+        return 0
     else:
         print("Die folgenden ODF-Zwischendateien wurden zur Löschung identifiziert:")
         for f in sorted(files_to_process): print(f"  - {f}")
         
-        confirm = input("\nMöchten Sie diese Dateien wirklich löschen? (j/n): ").lower()
-        if confirm != 'j': print("Löschvorgang abgebrochen."); return
+        confirm = input("\nMöchten Sie diese ODF-Dateien wirklich löschen? (j/n): ").lower()
+        if confirm != 'j': print("ODF-Löschvorgang abgebrochen."); return 0
 
-        print(f"\nStarte Löschvorgang und erstelle Log-Datei: {log_filepath}")
+        print(f"\nStarte ODF-Löschvorgang und erstelle Log-Datei: {log_filepath}")
         successful_deletions, failed_deletions = [], []
         for f_path in files_to_process:
             try:
@@ -128,9 +129,10 @@ def manage_intermediate_files(folder, log_filepath, is_dry_run):
                 if failed_deletions:
                     for path, error in sorted(failed_deletions): logfile.write(f"Datei: {path}\nFehler: {error}\n\n")
                 else: logfile.write("Keine Fehler aufgetreten.\n")
-            print(f"\n[OK] Log-Datei wurde erfolgreich erstellt.")
+            print(f"\n[OK] ODF-Log-Datei wurde erfolgreich erstellt.")
         except Exception as e: print(f"\n[FEHLER] Die Log-Datei konnte nicht geschrieben werden: {e}")
-        print(f"\nAufräumen abgeschlossen. {len(successful_deletions)} gelöscht, {len(failed_deletions)} fehlgeschlagen.")
+        print(f"\nODF-Aufräumen abgeschlossen. {len(successful_deletions)} gelöscht, {len(failed_deletions)} fehlgeschlagen.")
+        return len(successful_deletions)
 
 # ==============================================================================
 # --- LOGIK FÜR "KONVERTIERTE WAVs LÖSCHEN" ---
@@ -156,13 +158,13 @@ def find_and_delete_intermediate_wavs(folder, log_filepath):
 
     if not files_to_delete:
         print("Keine konvertierten WAV-Dateien zum Löschen gefunden.")
-        return
+        return 0
 
-    print("Die folgenden, durch Konvertierung erstellten WAV-Dateien werden gelöscht:")
+    print("Die folgenden, durch Konvertierung erstellten WAV-Dateien wurden identifiziert:")
     for f in files_to_delete: print(f"  - {os.path.basename(f)}")
     
-    confirm = input("\nMöchten Sie diese Dateien wirklich löschen? (j/n): ").lower()
-    if confirm != 'j': print("Löschvorgang abgebrochen."); return
+    confirm = input("\nMöchten Sie diese WAV-Dateien wirklich löschen? (j/n): ").lower()
+    if confirm != 'j': print("WAV-Löschvorgang abgebrochen."); return 0
 
     deleted_count, failed_deletions = 0, []
     print() 
@@ -182,10 +184,11 @@ def find_and_delete_intermediate_wavs(folder, log_filepath):
             if failed_deletions:
                 for path, error in sorted(failed_deletions): logfile.write(f"Datei: {path}\nFehler: {error}\n\n")
             else: logfile.write("Keine Fehler aufgetreten.\n")
-        print(f"\n[OK] Log-Datei wurde erfolgreich erstellt: {log_filepath}")
+        print(f"\n[OK] WAV-Log-Datei wurde erfolgreich erstellt: {log_filepath}")
     except Exception as e: print(f"\n[FEHLER] Die Log-Datei konnte nicht geschrieben werden: {e}")
             
-    print(f"\nAufräumen abgeschlossen. {deleted_count} von {len(files_to_delete)} WAV-Dateien gelöscht.")
+    print(f"\nWAV-Aufräumen abgeschlossen. {deleted_count} von {len(files_to_delete)} WAV-Dateien gelöscht.")
+    return deleted_count
 
 # ==============================================================================
 # --- HAUPT-AUSFÜHRUNGSBLOCK ---
@@ -204,27 +207,45 @@ if __name__ == "__main__":
             print("\n========================================")
             print("  Wählen Sie eine Aufräum-Aktion:")
             print("========================================")
-            print("  1 - Zwischendateien (ODF) löschen")
-            print("  2 - Konvertierte WAV-Dateien löschen")
+            print("  1 - ODF- und WAV-Zwischendateien löschen")
             print("  Q - Beenden")
             print("========================================")
             choice = input("Ihre Wahl: ").strip().lower()
 
             if choice == '1':
-                print("\n--- Aktion: Zwischendateien (ODF) löschen ---")
-                manage_intermediate_files(
+                print("\n--- Aktion: ODF- und WAV-Zwischendateien in einem Rutsch löschen ---")
+                
+                # --- SCHRITT 1: ODF-Dateien löschen ---
+                print("\n" + "="*60)
+                print("  SCHRITT 1/2: ODF-Zwischendateien")
+                print("="*60)
+                odf_deleted = manage_intermediate_files(
                     folder=validated_paths["target_folder"],
                     log_filepath=validated_paths["log_filepath_odf"],
                     is_dry_run=DELETE_ODF_DRY_RUN
                 )
-                input("\nAktion beendet. Drücken Sie Enter, um zum Menü zurückzukehren.")
-            
-            elif choice == '2':
-                print("\n--- Aktion: Konvertierte WAV-Dateien löschen ---")
-                find_and_delete_intermediate_wavs(
+                
+                # Kurze Pause zwischen den Schritten
+                print("\n" + "-"*60)
+                
+                # --- SCHRITT 2: WAV-Dateien löschen ---
+                print("\n" + "="*60)
+                print("  SCHRITT 2/2: Konvertierte WAV-Dateien")
+                print("="*60)
+                wav_deleted = find_and_delete_intermediate_wavs(
                     folder=validated_paths["target_folder"],
                     log_filepath=validated_paths["log_filepath_wav"]
                 )
+                
+                # --- ZUSAMMENFASSUNG ---
+                print("\n" + "="*60)
+                print("  ZUSAMMENFASSUNG")
+                print("="*60)
+                print(f"  ODF-Dateien gelöscht: {odf_deleted}")
+                print(f"  WAV-Dateien gelöscht: {wav_deleted}")
+                print(f"  Gesamt gelöscht:       {odf_deleted + wav_deleted}")
+                print("="*60)
+                
                 input("\nAktion beendet. Drücken Sie Enter, um zum Menü zurückzukehren.")
             
             elif choice == 'q':

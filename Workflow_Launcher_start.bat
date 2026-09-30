@@ -1,14 +1,18 @@
 @echo off
-title Python Arbeitsumgebung
+chcp 65001 >nul
+title Python Arbeitsumgebung - Hauptmenü
 setlocal
 
 REM --- In den Ordner wechseln, in dem diese Batch-Datei liegt ---
 cd /d "%~dp0"
 
-REM --- Fragt einmalig nach den Werten ---
-echo --- Bitte geben Sie die initialen Werte ein ---
-set /p ac_number="AC-Nummer eingeben: "
-set /p disk_id="Datentraeger-ID eingeben: "
+REM --- Optionale Eingabe der Werte (Enter zum Überspringen) ---
+echo --- Optionale initiale Werte ---
+echo (Enter drücken zum Überspringen)
+echo (Kann später über "N" im Menü eingegeben werden)
+echo.
+set /p ac_number="AC-Nummer eingeben (oder Enter zum Überspringen): "
+set /p disk_id="Datentraeger-ID eingeben (oder Enter zum Überspringen): "
 
 echo.
 
@@ -19,7 +23,7 @@ if not exist "%~dp0Python_Skript_Starter_menu.py" (
     exit /b 1
 )
 
-REM --- Menue starten und Werte uebergeben ---
+REM --- Menue starten und Werte uebergeben (können leer sein) ---
 python "%~dp0Python_Skript_Starter_menu.py" "%ac_number%" "%disk_id%"
 
 echo.

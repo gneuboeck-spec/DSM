@@ -18,6 +18,17 @@ import logging
 import tempfile
 import unicodedata
 
+# Versuch, openpyxl zu importieren. Wird für die korrekte Hyperlink-Erstellung benötigt.
+try:
+    import openpyxl
+    from openpyxl.styles import Font
+except ImportError:
+    print("❌ FEHLER: Die Bibliothek 'openpyxl' ist nicht installiert.")
+    print("Bitte öffne dein Terminal / deine Eingabeaufforderung und führe aus:")
+    print("pip install openpyxl")
+    input("Drücken Sie die Eingabetaste, um dieses Fenster zu schließen...")
+    sys.exit(1)
+
 # ==============================================================================
 # 🔧 KONFIGURATION
 # ==============================================================================
@@ -81,20 +92,73 @@ def format_size(size_bytes):
         size_bytes /= 1024.0
 
 
-def write_log_file(log_path, mode, log_data):
-    """Schreibt die Zusammenfassung in eine CSV-Log-Datei (Vorschau oder Final)."""
-    print(f"\nErstelle {mode}-Log-Datei: {log_path}")
+def write_xlsx_log_file(log_path: Path, mode: str, log_data: list, base_dir: Path):
+    """Schreibt die Zusammenfassung in eine echte .xlsx-Datei mit klickbaren Hyperlinks."""
+    print(f"\nErstelle {mode}-Log-Datei (Excel-Format mit Hyperlinks): {log_path}")
+    try:
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = f"Dubletten_{mode}"
+        
+        headers = ['Gruppe_ID', 'Typ', 'Dateiname', 'Relativer_Pfad', 'Dateigröße', 'SHA256', 'Aktion']
+        ws.append(headers)
+        
+        # Überschrift fett machen
+        for cell in ws[1]:
+            cell.font = Font(bold=True)
+            
+        for data in log_data:
+            row_num = ws.max_row + 1
+            
+            ws.cell(row=row_num, column=1, value=data['Gruppe_ID'])
+            ws.cell(row=row_num, column=2, value=data['Typ'])
+            ws.cell(row=row_num, column=3, value=data['Dateiname'])
+            
+            # === HIER PASSIERT DIE HYPERLINK-MAGIE ===
+            rel_path = data['Relativer_Pfad']
+            # Wir bauen den absoluten Pfad für das Link-Ziel, zeigen aber den relativen Pfad an
+            abs_path = str((base_dir / rel_path).resolve())
+            
+            cell_link = ws.cell(row=row_num, column=4, value=rel_path)
+            cell_link.hyperlink = abs_path
+            cell_link.style = 'Hyperlink'  # Macht den Text blau und unterstrichen
+            # =========================================
+            
+            ws.cell(row=row_num, column=5, value=data['Dateigröße'])
+            ws.cell(row=row_num, column=6, value=data['SHA256'])
+            ws.cell(row=row_num, column=7, value=data['Aktion'])
+            
+        # Spaltenbreiten automatisch anpassen für bessere Lesbarkeit
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except Exception:
+                    pass
+            adjusted_width = min(max_length + 2, 50) # Maximal 50 Zeichen breit
+            ws.column_dimensions[column_letter].width = adjusted_width
+            
+        wb.save(log_path)
+        print(f"[OK] {mode.capitalize()}-Log-Datei erfolgreich erstellt.")
+        return True
+    except Exception as e:
+        print(f"[FEHLER] {mode.capitalize()}-Log-Datei konnte nicht erstellt werden: {e}")
+        return False
+
+
+def write_csv_log_file(log_path: Path, mode: str, log_data: list):
+    """Schreibt zusätzlich eine reine CSV-Datei als Rohdaten-Backup."""
     try:
         with open(log_path, 'w', newline='', encoding='utf-8-sig') as f:
             fieldnames = ['Gruppe_ID', 'Typ', 'Dateiname', 'Relativer_Pfad', 'Dateigröße', 'SHA256', 'Aktion']
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(log_data)
-        print(f"[OK] {mode.capitalize()}-Log-Datei erfolgreich erstellt.")
-        return True
     except Exception as e:
-        print(f"[FEHLER] {mode.capitalize()}-Log-Datei konnte nicht erstellt werden: {e}")
-        return False
+        print(f"[FEHLER] CSV-Backup konnte nicht erstellt werden: {e}")
 
 
 # ==============================================================================
@@ -573,7 +637,7 @@ def perform_deletion(duplicate_groups, base_dir, log_dir):
             'Gruppe_ID': f"GRUPPE_{group_id:03d}",
             'Typ': dubletten_typ,
             'Dateiname': original_file.name,
-            'Relativer_Pfad': str(original_file.relative_to(base_dir)),
+            'Relativer_Pfad': str(original_file.relative_to(base_dir)), # Reiner relativer Pfad
             'Dateigröße': format_size(size_bytes),
             'SHA256': file_hash,
             'Aktion': 'BEHALTEN (Original)'
@@ -611,7 +675,7 @@ def perform_deletion(duplicate_groups, base_dir, log_dir):
                 'Gruppe_ID': f"GRUPPE_{group_id:03d}",
                 'Typ': dubletten_typ,
                 'Dateiname': dup_file.name,
-                'Relativer_Pfad': str(dup_file.relative_to(base_dir)),
+                'Relativer_Pfad': str(dup_file.relative_to(base_dir)), # Reiner relativer Pfad
                 'Dateigröße': format_size(size_bytes),
                 'SHA256': file_hash,
                 'Aktion': action_str
@@ -686,7 +750,7 @@ if __name__ == "__main__":
                 'Gruppe_ID': f"GRUPPE_{group_id:03d}",
                 'Typ': dubletten_typ,
                 'Dateiname': files[0].name,
-                'Relativer_Pfad': str(files[0].relative_to(base_path)),
+                'Relativer_Pfad': str(files[0].relative_to(base_path)), # Reiner relativer Pfad
                 'Dateigröße': format_size(size_bytes),
                 'SHA256': file_hash,
                 'Aktion': 'BEHALTEN (Original)'
@@ -697,7 +761,7 @@ if __name__ == "__main__":
                     'Gruppe_ID': f"GRUPPE_{group_id:03d}",
                     'Typ': dubletten_typ,
                     'Dateiname': dup_file.name,
-                    'Relativer_Pfad': str(dup_file.relative_to(base_path)),
+                    'Relativer_Pfad': str(dup_file.relative_to(base_path)), # Reiner relativer Pfad
                     'Dateigröße': format_size(size_bytes),
                     'SHA256': file_hash,
                     'Aktion': 'ZUM LÖSCHEN VORGEMERKT'
@@ -705,25 +769,31 @@ if __name__ == "__main__":
                 preview_deleted_count += 1
                 preview_saved_bytes += size_bytes
 
-        preview_log_name = f"dublikaten_VORSCHAU_{base_path.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-        preview_log_file = log_path / preview_log_name
-        
-        write_log_file(preview_log_file, 'preview', preview_log_data)
+        # 1. Hauptausgabe: XLSX mit klickbaren Links
+        preview_log_name_xlsx = f"dublikaten_VORSCHAU_{base_path.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        preview_log_file_xlsx = log_path / preview_log_name_xlsx
+        write_xlsx_log_file(preview_log_file_xlsx, 'preview', preview_log_data, base_path)
 
+        # 2. Backup: Reine CSV-Datei (ohne Formeln, nur Rohdaten)
+        preview_log_name_csv = f"dublikaten_VORSCHAU_{base_path.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        preview_log_file_csv = log_path / preview_log_name_csv
+        write_csv_log_file(preview_log_file_csv, 'preview', preview_log_data)
+
+        # Öffne die XLSX-Datei, da diese die klickbaren Links enthält
         try:
             if sys.platform == "win32":
-                os.startfile(str(preview_log_file))
+                os.startfile(str(preview_log_file_xlsx))
             elif sys.platform == "darwin":
-                subprocess.run(["open", str(preview_log_file)])
+                subprocess.run(["open", str(preview_log_file_xlsx)])
             else:
-                subprocess.run(["xdg-open", str(preview_log_file)])
+                subprocess.run(["xdg-open", str(preview_log_file_xlsx)])
         except Exception:
             pass
 
         confirm_msg = (
             f"Es wurden {len(duplicate_groups)} Gruppen mit insgesamt {preview_deleted_count} Duplikaten gefunden.\n"
             f"Potenziell freigegebener Speicher: {format_size(preview_saved_bytes)}\n\n"
-            f"Eine Vorschau-Liste wurde erstellt und geöffnet unter:\n{preview_log_file}\n\n"
+            f"Eine Vorschau-Liste (Excel-Format mit klickbaren Links) wurde erstellt und geöffnet unter:\n{preview_log_file_xlsx}\n\n"
             f"Möchten Sie die als 'VORGEMERKT' markierten Dateien jetzt wirklich löschen?"
         )
         
@@ -736,9 +806,15 @@ if __name__ == "__main__":
         )
 
         if actual_deleted_count > 0 or DRY_RUN:
-            final_log_name = f"dublikaten_GELÖSCHT_{base_path.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-            final_log_file = log_path / final_log_name
-            write_log_file(final_log_file, 'final', final_log_data)
+            # 1. Hauptausgabe: XLSX mit klickbaren Links
+            final_log_name_xlsx = f"dublikaten_GELÖSCHT_{base_path.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            final_log_file_xlsx = log_path / final_log_name_xlsx
+            write_xlsx_log_file(final_log_file_xlsx, 'final', final_log_data, base_path)
+            
+            # 2. Backup: Reine CSV-Datei
+            final_log_name_csv = f"dublikaten_GELÖSCHT_{base_path.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+            final_log_file_csv = log_path / final_log_name_csv
+            write_csv_log_file(final_log_file_csv, 'final', final_log_data)
             
             print(f"\n\033[92mBereinigung erfolgreich abgeschlossen!\033[0m")
             messagebox.showinfo(
@@ -746,7 +822,7 @@ if __name__ == "__main__":
                 f"Bereinigung abgeschlossen.\n\n"
                 f"Gelöschte Duplikate: {actual_deleted_count}\n"
                 f"Freigegebener Speicher: {format_size(actual_saved_bytes)}\n\n"
-                f"Das finale Log wurde gespeichert unter:\n{final_log_file}"
+                f"Das finale Log (mit klickbaren Links) wurde gespeichert unter:\n{final_log_file_xlsx}"
             )
         else:
             messagebox.showinfo("Info", "Keine Dateien wurden tatsächlich gelöscht (möglicherweise aufgrund von Zugriffsfehlern).")

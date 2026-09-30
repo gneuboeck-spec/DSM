@@ -15,6 +15,7 @@
 #                 3. PREMIS-EVENT: Erstellt valides 'virus check' Event mit ClamAV-Agent.
 #                 4. DATUMS-FIX: Normalisiert ClamAV-Datumsformate (2026:08:12 -> ISO-8601).
 #                 5. LOGFILE-OBJEKT: Speichert den Virenscan-Report selbst als PREMIS-Artefakt.
+#                 6. VALIDIERUNG: Filtert FileTrove-Warnungen, zeigt nur echte Fehler.
 #
 # Benötigt: lxml (pip install lxml), requests (pip install requests)
 # ==============================================================================
@@ -1275,6 +1276,9 @@ class PremisGenerator:
         """
         Validiert die erstellte PREMIS-Datei gegen das offizielle XSD-Schema der LOC.
         Mit 3-stufigem Fallback: 1. Direkt, 2. Mit Browser-User-Agent, 3. Lokal.
+        
+        NEU: Filtert erwartete FileTrove/Greaseweazle-Erweiterungs-Warnungen heraus
+        und zeigt nur echte PREMIS-Fehler an.
         """
         print(f"\n--- Starte XML-Validierung (Schema: PREMIS v3) ---")
         try:
@@ -1320,13 +1324,48 @@ class PremisGenerator:
             schema_root = etree.XML(schema_content)
             schema = etree.XMLSchema(schema_root)
 
-            if schema.validate(xml_doc):
+            is_valid = schema.validate(xml_doc)
+            
+            # ==========================================================================
+            # NEU: INTELLIGENTE FEHLERFILTERUNG
+            # ==========================================================================
+            # Diese Namespaces sind erwartete, gültige PREMIS-Erweiterungen
+            # (definiert im <objectCharacteristicsExtension>-Element).
+            # Warnungen zu diesen Namespaces werden herausgefiltert.
+            ignored_namespaces = [
+                'info:onb.ac.at/filetrove-schema/v1',
+                'info:onb.ac.at/greaseweazle-format-schema/v1'
+            ]
+            
+            real_errors = []
+            ignored_count = 0
+            
+            for error in schema.error_log:
+                msg = str(error.message)
+                
+                # Prüfen ob diese Meldung eine erwartete Erweiterung betrifft
+                is_ignored = any(ns in msg for ns in ignored_namespaces)
+                
+                if is_ignored:
+                    ignored_count += 1
+                else:
+                    # Echter PREMIS-Fehler
+                    real_errors.append(f"    Zeile {error.line}: {msg}")
+            
+            # Ausgabe der Ergebnisse
+            if is_valid and len(real_errors) == 0:
                 print(f"\033[92m [ERFOLG] Die Datei ist valide nach dem offiziellen PREMIS-Schema.\033[0m")
+                if ignored_count > 0:
+                    print(f"\033[94m [INFO] {ignored_count} erwartete FileTrove-Erweiterungs-Warnungen wurden ignoriert.\033[0m")
                 return True
             else:
                 print(f"\033[91m [FEHLER] Die XML-Datei entspricht nicht dem Schema!\033[0m")
-                for error in schema.error_log:
-                    print(f"    Zeile {error.line}: {error.message}")
+                if real_errors:
+                    print(f"\033[91m {len(real_errors)} echte(r) PREMIS-Fehler gefunden:\033[0m")
+                    for err in real_errors:
+                        print(err)
+                if ignored_count > 0:
+                    print(f"\033[94m [INFO] {ignored_count} erwartete FileTrove-Erweiterungs-Warnungen wurden ignoriert.\033[0m")
                 return False
 
         except Exception as e:

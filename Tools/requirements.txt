@@ -1,0 +1,8 @@
+# ============================================================
+# Tools requirements.txt
+# Python-Abhängigkeiten für den Tools-Ordner
+# ============================================================
+
+# --- PREMIS_Validierung ---
+lxml
+requests
