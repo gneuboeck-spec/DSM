@@ -105,13 +105,15 @@ Datenaufbereitung/
 ├── G_Metadata_Extraction_Indexing_filetrove/
 │   ├── README.md
 │   └── win/
-│       └── G_Metadata_Extraction_Indexing_filetrove.py
+│       ├── G_Metadata_Extraction_Indexing_filetrove.py
+│       └── rules.yar                  <-- YARA-Regeln für Dateiformat-Identifizierung
 ├── H_VL_Export/
 │   ├── README.md
 │   └── win/
 │       └── H_VL_Export.py
 ├── I_PREMIS_XML_Generator/
 │   ├── README.md
+│   ├── premis-v3-0.xsd               <-- Offizielles PREMIS v3 XML-Schema (Library of Congress)
 │   └── win/
 │       └── I_PREMIS_XML_Generator.py
 ├── J_Staging-Workflow/
@@ -121,7 +123,8 @@ Datenaufbereitung/
 ├── K_Master_Index_Metadaten_Generator_LZA/
 │   ├── README.md
 │   └── win/
-│       └── K_Master_Index_Metadaten_Generator_LZA.py
+│       ├── K_Master_Index_Metadaten_Generator_LZA.py
+│       └── rules.yar                  <-- YARA-Regeln für Dateiformat-Identifizierung
 └── L_BagIt_METS_TAR_Archivierung/
     ├── README.md
     └── win/
@@ -186,6 +189,7 @@ Tools/
 ├── README.md
 └── PREMIS_Validierung/
     ├── README.md
+    ├── premis-v3-0.xsd                <-- Offizielles PREMIS v3 XML-Schema
     └── win/
         └── PREMIS_Validierung.py
 ```
@@ -212,7 +216,7 @@ Der Einstiegspunkt der Arbeitsumgebung. Wechselt in das eigene Verzeichnis, prü
 Das zentrale Auswahlmenü. Zeigt die drei Hauptbereiche an und startet beim Auswählen die jeweilige `start.bat` des gewählten Unterordners als separaten Prozess. Nach Beenden des Unterbereichs kehrt man automatisch zum Hauptmenü zurück.
 
 ### requirements.txt
-Enthält alle Python-Abhängigkeiten für das Projekt. Installation:
+Enthält alle Python-Abhängigkeiten für das gesamte Projekt. Installation:
 
 ```bash
 pip install -r requirements.txt
@@ -233,7 +237,7 @@ Bei Fehlern wird eine entsprechende Meldung angezeigt und das Skript pausiert.
 - **Python 3.13** oder höher
 - **Windows 10/11**
 - **Git** (für Versionskontrolle)
-- Externe Tools je nach Bereich (ExifTool, FFprobe, Siegfried, YARA, etc.)
+- Externe Tools je nach Bereich (ExifTool, FFprobe, Siegfried, YARA, ClamAV, LibreOffice, ImageMagick, Inkscape, Ghostscript etc.)
 
 ## Lizenz
 
