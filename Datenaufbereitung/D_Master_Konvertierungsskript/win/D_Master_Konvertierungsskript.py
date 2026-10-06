@@ -12,6 +12,10 @@ import shutil
 import time      # Für Warteschleifen
 import glob      # Zum Finden der PDFs (Löst das Problem mit den Punkten)
 import tempfile 
+import mailbox   # NEU: Für MBOX/DBX Verarbeitung
+import email     # NEU: Für E-Mail Parsing
+import email.utils
+from email.header import decode_header
 
 # ==============================================================================
 # 🔧 KONFIGURATION
@@ -60,6 +64,9 @@ SOURCE_VIDEO_EXTENSIONS = {".avi", ".mov", ".mkv", ".flv", ".wmv", ".webm", ".mp
     ".mxf", ".ogm", ".ts", ".mp4", ".ogv", ".r3d", ".3gp", ".asf", ".dv", ".f4v", ".gxf", ".m1v", ".m2v",
     ".mp2v", ".mpe", ".mpv", ".qt", ".rm", ".swf", ".tp", ".trp", ".vdr", ".viv", ".vivo", ".vro", ".wtv"}
 
+# --- NEU: DBX / E-MAIL KONFIGURATION ---
+DBX_CONV_PATH = "DbxConv.exe"
+
 # Globale Liste für fehlgeschlagene Konvertierungen
 conversion_errors = []
 
@@ -76,7 +83,8 @@ def setup_and_validate_paths(ac_number, disk_archive_id):
     if not paths["source_folder"].is_dir():
         print(f"\033[91mFehler: Der Quell-Ordner wurde nicht gefunden:\n{paths['source_folder']}\033[0m"); return None
 
-    required_tools = [ FFMPEG_PATH, FFPROBE_PATH, IMAGEMAGICK_PATH, INKSCAPE_PATH, GHOSTSCRIPT_PATH, LIBREOFFICE_PATH ]
+    # NEU: DBX_CONV_PATH zur Liste der benötigten Tools hinzugefügt
+    required_tools = [ FFMPEG_PATH, FFPROBE_PATH, IMAGEMAGICK_PATH, INKSCAPE_PATH, GHOSTSCRIPT_PATH, LIBREOFFICE_PATH, DBX_CONV_PATH ]
     missing_tools = [tool for tool in required_tools if not shutil.which(tool)]
     
     if missing_tools:
@@ -113,6 +121,30 @@ def run_generic_command(command, cwd=None):
     except Exception as e: log(f"         [FEHLER] Ein unerwartetes Problem ist aufgetreten: {e}"); return False
 
 # ==============================================================================
+# --- NEU: HELPER FÜR DBX & E-MAIL
+# ==============================================================================
+
+def sanitize_filename(text):
+    """Bereinigt Dateinamen für Windows-Kompatibilität."""
+    if text is None: return "Unbenannt"
+    try:
+        decoded_parts = decode_header(text)
+        clean_text = ""
+        for part, encoding in decoded_parts:
+            if isinstance(part, bytes):
+                clean_text += part.decode(encoding or 'latin1', errors='replace')
+            else:
+                clean_text += str(part)
+        text = clean_text
+    except Exception:
+        pass
+    
+    text = re.sub(r'[<>:"/\\|?*]', '_', text)
+    text = re.sub(r'\s+', '_', text.strip())
+    if text.startswith('.'): text = text[1:]
+    return text[:100] or "Unbenannt"
+
+# ==============================================================================
 # --- NEU: PDF/A ERKENNUNG
 # ==============================================================================
 
@@ -134,6 +166,91 @@ def is_already_pdfa(filepath):
     except Exception:
         pass
     return False
+
+# ==============================================================================
+# --- NEU: DBX & E-MAIL LOGIK
+# ==============================================================================
+
+def extract_emails_from_dbx(dbx_path, output_dir):
+    """Konvertiert DBX zu MBOX und extrahiert E-Mails sowie Anhänge."""
+    root = dbx_path.parent
+    mbx_temp_path = root / f"{dbx_path.stem}.mbx"
+    mbox_path = root / f"{dbx_path.stem}.mbox"
+    
+    # Cleanup alter Dateien
+    if mbx_temp_path.exists(): mbx_temp_path.unlink()
+    if mbox_path.exists(): mbox_path.unlink()
+    
+    # DbxConv aufrufen
+    # Parameter: -mbxrd (MBOX Format), -dn (Datum im Namen), -ic (Ignoriere Fehler), -senddate (Sendedatum nutzen)
+    cmd = [DBX_CONV_PATH, "-mbxrd", "-dn", "-ic", "-senddate", str(dbx_path)]
+    
+    log(f"         Führe DbxConv aus...")
+    res = run_generic_command(cmd, cwd=str(root))
+    
+    if not res or not mbx_temp_path.exists():
+        log(f"         [FEHLER] DbxConv konnte {dbx_path.name} nicht konvertieren.")
+        conversion_errors.append((dbx_path.name, "DBX Konvertierung fehlgeschlagen."))
+        return
+
+    # Umbenennen in .mbox für Python mailbox Modul
+    try:
+        mbx_temp_path.rename(mbox_path)
+    except Exception as e:
+        log(f"         [FEHLER] Rename zu .mbox fehlgeschlagen: {e}")
+        return
+
+    # Extraktion
+    output_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        mbox = mailbox.mbox(str(mbox_path))
+        count = 0
+        for msg in mbox:
+            count += 1
+            
+            # Metadaten parsen
+            date_str = "0000-00-00-00-00"
+            try:
+                date_obj = email.utils.parsedate_to_datetime(msg.get("Date"))
+                date_str = date_obj.strftime("%Y-%m-%d-%H-%M-%S")
+            except Exception:
+                pass
+            
+            subject_str = sanitize_filename(msg.get("Subject"))
+            base_name = f"{date_str}_{subject_str}"
+            
+            # EML speichern
+            eml_path = output_dir / f"{base_name}.eml"
+            try:
+                with open(eml_path, "w", encoding="utf-8", errors="replace") as f:
+                    f.write(msg.as_string())
+            except Exception as e:
+                log(f"         [FEHLER] Konnte EML nicht speichern: {e}")
+            
+            # Anhänge speichern
+            for part in msg.walk():
+                if part.get_content_maintype() == 'multipart' or part.get('Content-Disposition') is None:
+                    continue
+                
+                att_filename_raw = part.get_filename()
+                if att_filename_raw:
+                    att_filename = sanitize_filename(att_filename_raw)
+                    # Eindeutigen Namen erstellen: Datum_Subject_Anhangsname
+                    final_att_name = f"{base_name}_{att_filename}"
+                    att_path = output_dir / final_att_name
+                    
+                    try:
+                        with open(att_path, "wb") as f:
+                            f.write(part.get_payload(decode=True))
+                        log(f"         [ANHANG] Extrahiert: {final_att_name}")
+                    except Exception as e:
+                        log(f"         [FEHLER] Anhang Fehler: {e}")
+                        
+        log(f"         [OK] {count} E-Mails und Anhänge aus {dbx_path.name} extrahiert.")
+        
+    except Exception as e:
+        log(f"         [FEHLER] MBOX Parsing Fehler: {e}")
+        conversion_errors.append((dbx_path.name, f"MBOX Parsing Fehler: {e}"))
 
 # ==============================================================================
 # --- AUDIO-LOGIK
@@ -398,6 +515,19 @@ if __name__ == "__main__":
         
         log("Starte kombiniertes Konvertierungsskript.")
         
+        # --- NEU: DBX PRE-PROCESSING STUFE ---
+        log("\n--- Stufe 0: Suche und Entpacke DBX-Container ---")
+        dbx_files = list(source_folder.rglob("*.dbx"))
+        if dbx_files:
+            for dbx_file in dbx_files:
+                log(f"Verarbeite Container: {dbx_file.name}")
+                # Erstelle Unterordner für Extraktion, damit die Dateien im Walk gefunden werden
+                target_dir = dbx_file.parent / f"{dbx_file.stem}_extracted"
+                extract_emails_from_dbx(dbx_file, target_dir)
+        else:
+            log("Keine DBX-Container gefunden.")
+        # -------------------------------------
+
         all_valid_extensions = SOURCE_AUDIO_EXTENSIONS.union(VALID_IMAGE_EXTENSIONS).union(VALID_TEXT_EXTENSIONS).union(SOURCE_VIDEO_EXTENSIONS)
         
         files_to_process = []

@@ -616,6 +616,7 @@ class PremisGenerator:
             print("\nOptionen:")
             if results:
                 print("  1-N: Eintrag auswählen")
+            print("  m:   Manuellen Eintrag erstellen (Familienname, Vorname + GND-Nummer)")
             print("  s:   Neue Suche (Tippfehler korrigieren)")
             print("  x:   Ohne GND fortfahren (Lokal)")
             
@@ -624,6 +625,16 @@ class PremisGenerator:
             if choice == 's':
                 current_search_term = input("\nNeuer Suchbegriff: ")
                 continue 
+            elif choice == 'm':
+                print("\n--- Manueller Eintrag ---")
+                manual_name = input("Name (Format: Familienname, Vorname): ").strip()
+                manual_gnd = input("GND-Nummer: ").strip()
+                
+                if manual_name and manual_gnd:
+                    return {'id': manual_gnd, 'name': manual_name}
+                else:
+                    print("Ungültige Eingabe. Name und GND-Nummer sind erforderlich.")
+                    continue
             elif choice == 'x':
                 return None
             elif choice.isdigit():

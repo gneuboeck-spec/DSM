@@ -30,7 +30,7 @@ import shutil  # Für das Entfernen temporärer Verzeichnisse
 
 # --- 1. System-Pfade und Listen (manuell anpassen, falls nötig) ---
 # Diese Pfade sind systemweit und bleiben als manuelle Konfiguration erhalten.
-YARA_RULES_FILE = "C:\\Users\\digit\\Desktop\\Skripte\\K_Master_Index_Metadaten_Generator_LZA\\win\\rules.yar"
+YARA_RULES_FILE = "C:\\Users\\digit\\Desktop\\Skripte\\Datenaufbereitung\\K_Master_Index_Metadaten_Generator_LZA\\win\\rules.yar"
 EXIFTOOL_PATH = "C:\\Program Files\\ExifTool\\exiftool.exe"
 FFPROBE_PATH = "C:\\Program Files\\ffmpeg\\ffprobe.exe"
 HACHOIR_METADATA_PATH = "C:\\Users\\digit\\.venv\\Scripts\\hachoir-metadata.exe"

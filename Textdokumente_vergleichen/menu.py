@@ -180,6 +180,7 @@ def main():
             print("   Keine Python-Skripte gefunden.")
         else:
             for i, script_path in enumerate(scripts, 1):
+                # Nur den Dateinamen anzeigen, nicht den Pfad
                 print(f"   {i:3} - {script_path.name}")
         
         print("\n---------------------------------------------------")
