@@ -3,37 +3,55 @@
 # Enthält ALLE Pakete für den gesamten Workflow
 # ============================================================
 
-# --- Haupt-Workflow (Skripte A bis L) ---
+# --- Haupt-Workflow (Datenaufbereitung: Skripte A bis L) ---
+# Forensische Analyse und Fixity-Berichte
 brunnhilde
+# HTML-Report Parsing (Brunnhilde Output)
 beautifulsoup4
+# YARA-Regeln für Dateiformat-Identifizierung
 yara-python
+# Audio-Metadaten-Extraktion
 mutagen
+# PDF-Metadaten-Extraktion und Validierung
 PyPDF2
+# Bild-Metadaten-Extraktion (Dimensionen, ICC-Profile)
 Pillow
+# Zeichensatz-Erkennung für Textdateien
 chardet
+# Farbige Konsolenausgabe
 colorama
+# XML-Generierung und XSD-Validierung (PREMIS)
 lxml
+# API-Abfragen (GND-Integration, Schema-Download)
 requests
-urllib3
+# BagIt-Container-Erstellung
 bagit
+# Hachoir CLI-Tools für Metadaten-Extraktion
 hachoir
-requests
 
 # --- Unterordner: Textdokumente_vergleichen ---
+# DOCX-Dateien
 python-docx
+# PDF-Verarbeitung (mehrere Bibliotheken für verschiedene PDF-Typen)
 pymupdf
 pdfplumber
+pypdf
+# Excel-Export mit Formatierung
 openpyxl
+# KI-Semantische Analyse
 sentence-transformers
 torch
+# Schneller Textvergleich
 rapidfuzz
+# Visualisierung
 matplotlib
+# RTF-Verarbeitung
 striprtf
+# ODF-Dateien (ODT, ODS, ODP)
 odfpy
-pypdf
+# Fortschrittsbalken
 tqdm
-brunnhilde
 
 # --- Unterordner: Tools ---
-lxml
-requests
+# (lxml und requests sind bereits oben aufgeführt)
+# Keine zusätzlichen Pakete benötigt

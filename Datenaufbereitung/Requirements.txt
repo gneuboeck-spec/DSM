@@ -1,0 +1,38 @@
+# ============================================================
+# Datenaufbereitung requirements.txt
+# Python-Abhängigkeiten für den Master-Workflow (Skripte A-L)
+# ============================================================
+
+# --- Skript A: Brunnhilde Analyse ---
+# Führt die forensische Analyse durch und erstellt Fixity-Berichte
+brunnhilde
+
+# --- Skript B: XML Zusammenfassungs-Generator ---
+# Wird zum Parsen des von Brunnhilde generierten HTML-Reports benötigt
+beautifulsoup4
+
+# --- Skript G & K: Metadata Extraction & Master-Index ---
+# YARA-Regeln für die Dateiformat-Identifizierung und Validität
+yara-python
+# Audio-Metadaten-Extraktion (MP3, FLAC, WAV, etc.)
+mutagen
+# PDF-Metadaten-Extraktion und Validierung
+PyPDF2
+# Bild-Metadaten-Extraktion (Dimensionen, ICC-Profile)
+Pillow
+# Zeichensatz-Erkennung für Textdateien (z.B. SAM)
+chardet
+
+# --- Skript H, J & L: VL-Export, Staging-Workflow & Archivierung ---
+# Farbige und strukturierte Konsolenausgabe
+colorama
+
+# --- Skript I: PREMIS XML Generator ---
+# XML-Generierung und Validierung gegen das offizielle PREMIS v3 XSD-Schema
+lxml
+# API-Abfragen für GND-Integration (DNB SRU / lobid-gnd) und Schema-Download
+requests
+
+# --- Skript L: BagIt METS TAR Archivierung ---
+# Erstellung und Validierung von BagIt-konformen Archiv-Containern
+bagit
