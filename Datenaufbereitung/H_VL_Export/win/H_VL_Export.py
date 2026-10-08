@@ -34,6 +34,17 @@ def main():
         ac_number = sys.argv[1]
         disk_archive_id = sys.argv[2]
         print(f"Werte aus der Kommandozeile erhalten: AC={ac_number}, ID={disk_archive_id}")
+        
+        # NEU: Datenpfad aus menu.py übernehmen (sys.argv[3] oder Umgebungsvariable DATA_PATH)
+        if len(sys.argv) >= 4:
+            data_path_input = Path(sys.argv[3])
+        else:
+            env_path = os.environ.get("DATA_PATH")
+            if env_path:
+                data_path_input = Path(env_path)
+            else:
+                data_path_input = Path.home() / "Documents" / "data" / ac_number / disk_archive_id
+                
     except IndexError:
         print(Fore.RED + "FEHLER: AC-Nummer und Datenträger-ID wurden nicht übergeben.")
         print(Fore.YELLOW + "Dieses Skript sollte über die 'start.bat'-Datei und das Menü gestartet werden.")
@@ -41,6 +52,7 @@ def main():
         print("\nBitte geben Sie die Daten manuell ein:")
         ac_number = input("AC-Nummer eingeben: ")
         disk_archive_id = input("Datenträger-ID eingeben: ")
+        data_path_input = Path.home() / "Documents" / "data" / ac_number / disk_archive_id
 
     print("")
     print(Fore.MAGENTA + "========================================")
@@ -50,8 +62,10 @@ def main():
 
     # --- Pfade definieren ---
     print("\n" + Fore.CYAN + "Pfade definieren")
-    base_path = Path.home() / "Documents" / "data" / ac_number
-    main_folder = base_path / disk_archive_id
+    
+    # NEU: Der übergebene Datenpfad IST der MainFolder (der ID-Ordner)
+    main_folder = data_path_input
+    base_path = main_folder.parent
     destination_folder = main_folder / f"4_{disk_archive_id}_VL"
     
     print(Fore.WHITE + f"  BasePath: {base_path}")

@@ -66,9 +66,15 @@ def hash_sha256(filepath):
         return h.hexdigest()
     except: return "error_hashing"
 
-def load_all_lza_reference_hashes(ac_number, disk_id):
+def load_all_lza_reference_hashes(ac_number, disk_id, project_base_path_override=None):
     refs = {}
-    lza_dir = Path.home() / "Documents/data" / ac_number / disk_id / f"5_{disk_id}_LZA"
+    # NEU: Wenn ein Pfad aus dem Menü übergeben wurde, nutzen wir diesen.
+    if project_base_path_override:
+        project_base_path = Path(project_base_path_override)
+    else:
+        project_base_path = Path.home() / "Documents/data" / ac_number / disk_id
+        
+    lza_dir = project_base_path / f"5_{disk_id}_LZA"
     lza_log_dir = lza_dir / "logfiles"
     
     # 1. Imaging Log (TXT) -> SHA-512 (Greaseweazle/KryoFlux Tracks)
@@ -154,12 +160,17 @@ def load_all_lza_reference_hashes(ac_number, disk_id):
     return refs
 
 # --- 2. Funktion zur dynamischen Erstellung und Validierung der Projekt-Pfade ---
-def setup_and_validate_paths(ac_number, disk_archive_id):
+def setup_and_validate_paths(ac_number, disk_archive_id, project_base_path_override=None):
     """
     Erstellt und validiert die Projekt-Pfade für das Metadaten-Extraktionsskript.
     JETZT ANGEPASST AUF DEN LZA-ORDNER (STUFE 5) UND DEN LOGFILES-UNTERORDNER.
     """
-    project_base_path = Path.home() / "Documents/data" / ac_number / disk_archive_id
+    # NEU: Wenn ein Pfad aus dem Menü übergeben wurde, nutzen wir diesen.
+    if project_base_path_override:
+        project_base_path = Path(project_base_path_override)
+    else:
+        project_base_path = Path.home() / "Documents/data" / ac_number / disk_archive_id
+        
     lza_folder = project_base_path / f"5_{disk_archive_id}_LZA"
     
     paths = {
@@ -195,16 +206,26 @@ def setup_and_validate_paths(ac_number, disk_archive_id):
 
 # --- 3. Haupt-Ausführungsblock zur Pfad-Initialisierung ---
 # Dieser Teil wird ganz am Anfang ausgeführt, um die Pfad-Variablen zu setzen.
+data_path_input = None
 try:
     ac_number_input = sys.argv[1]
     disk_archive_id_input = sys.argv[2]
     print(f"Pfade werden aus Kommandozeilen-Argumenten generiert: AC={ac_number_input}, ID={disk_archive_id_input}")
-    validated_paths = setup_and_validate_paths(ac_number_input, disk_archive_id_input)
+    
+    # NEU: Datenpfad aus menu.py übernehmen (sys.argv[3] oder Umgebungsvariable DATA_PATH)
+    if len(sys.argv) >= 4:
+        data_path_input = Path(sys.argv[3])
+    else:
+        data_path_input = Path(os.environ.get("DATA_PATH", Path.home() / "Documents/data" / ac_number_input / disk_archive_id_input))
+        
+    validated_paths = setup_and_validate_paths(ac_number_input, disk_archive_id_input, project_base_path_override=data_path_input)
 except IndexError:
     print("Keine Kommandozeilen-Argumente gefunden. Bitte geben Sie die Daten manuell ein:")
     ac_number_input = input("AC-Nummer eingeben: ")
     disk_archive_id_input = input("Datenträger-ID eingeben: ")
-    validated_paths = setup_and_validate_paths(ac_number_input, disk_archive_id_input)
+    
+    data_path_input = Path(os.environ.get("DATA_PATH", Path.home() / "Documents/data" / ac_number_input / disk_archive_id_input))
+    validated_paths = setup_and_validate_paths(ac_number_input, disk_archive_id_input, project_base_path_override=data_path_input)
 
 if validated_paths:
     BASE_DIR = validated_paths["base_dir"]
@@ -216,7 +237,7 @@ if validated_paths:
     print("\nLade Referenz-Hashes (SHA-256 & SHA-512) aus ALLEN LZA-Logfiles...")
     
     # Nutzt die neue Lade-Funktion, die CSV, JSON, Index und PREMIS scannt
-    REFERENCE_HASHES = load_all_lza_reference_hashes(ac_number_input, disk_archive_id_input)
+    REFERENCE_HASHES = load_all_lza_reference_hashes(ac_number_input, disk_archive_id_input, project_base_path_override=data_path_input)
     print(f"-> {len(REFERENCE_HASHES)} Referenz-Einträge aus der Dokumentation geladen.\n")
     
     print("Skript wird mit folgenden Pfaden ausgeführt:")
@@ -1091,7 +1112,7 @@ def unify_metadata_keys(metadata: dict) -> dict:
 # HIER ENDET DER CODE, DEN SIE KOPIEREN MÜSSEN
 # =======================================================
 
-    # ANWDPREMIS UNDUNG DER MAPPING-REGELN
+    # ANWENDUNG DER MAPPING-REGELN
     for group_keys, preferred_key in key_mapping.items():
         standardized_group_keys = tuple(sanitize_tag(k) for k in group_keys)
         if preferred_key in unified_metadata or all(k in processed_standardized_keys for k in standardized_group_keys):

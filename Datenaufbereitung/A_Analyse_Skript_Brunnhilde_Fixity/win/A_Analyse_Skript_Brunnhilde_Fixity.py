@@ -36,12 +36,18 @@ def calculate_sha256(filepath):
 
 
 # --- 2. Funktion zur dynamischen Erstellung und Validierung der Projekt-Pfade ---
-def setup_and_validate_analysis_paths(ac_number, disk_archive_id, siegfried_dir, clamav_dir):
+def setup_and_validate_analysis_paths(ac_number, disk_archive_id, siegfried_dir, clamav_dir, project_base_path_override=None):
     """
     Erstellt und validiert die Projekt-Pfade für die Analyse mit Brunnhilde, Siegfried etc.
     und prüft die Verfügbarkeit der externen Tools.
     """
-    project_base_path = Path.home() / "Documents/data" / ac_number / disk_archive_id
+    # NEU: Wenn ein Pfad aus dem Menü übergeben wurde, nutzen wir diesen.
+    # Andernfalls greift der alte Fallback-Pfad.
+    if project_base_path_override:
+        project_base_path = Path(project_base_path_override)
+    else:
+        project_base_path = Path.home() / "Documents/data" / ac_number / disk_archive_id
+        
     extracted_files_path = project_base_path / f"2_{disk_archive_id}_extracted-files"
 
     paths = {
@@ -318,11 +324,24 @@ if __name__ == "__main__":
     try:
         ac_number_input = sys.argv[1]
         disk_archive_id_input = sys.argv[2]
+        
+        # NEU: Datenpfad aus menu.py übernehmen (sys.argv[3] oder Umgebungsvariable DATA_PATH)
+        if len(sys.argv) >= 4:
+            data_path_input = Path(sys.argv[3])
+        else:
+            data_path_input = Path(os.environ.get("DATA_PATH", Path.home() / "Documents/data" / ac_number_input / disk_archive_id_input))
+            
     except IndexError:
         print("FEHLER: AC-Nummer und Datenträger-ID wurden nicht übergeben.")
         sys.exit(1)
 
-    validated_paths = setup_and_validate_analysis_paths(ac_number_input, disk_archive_id_input, SIEGFRIED_DIR, CLAMAV_DIR)
+    validated_paths = setup_and_validate_analysis_paths(
+        ac_number_input, 
+        disk_archive_id_input, 
+        SIEGFRIED_DIR, 
+        CLAMAV_DIR,
+        project_base_path_override=data_path_input
+    )
 
     if validated_paths:
         BASE_DIR = validated_paths["base_dir"]

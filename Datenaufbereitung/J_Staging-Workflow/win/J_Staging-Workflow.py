@@ -13,7 +13,7 @@ except ImportError:
     class Fore: GREEN = RED = YELLOW = CYAN = MAGENTA = WHITE = ""
     class Style: RESET_ALL = ""
 
-def run_staging_workflow(ac_number, disk_id):
+def run_staging_workflow(ac_number, disk_id, project_base_path_override=None):
     """
     Workflow V11 (Angepasst):
     1. VL-Export (Stufe 4) vervollständigen (Fotos & Metadaten kopieren)
@@ -22,9 +22,13 @@ def run_staging_workflow(ac_number, disk_id):
        - Logs (.csv, .log, .txt, .index) gehen in Unterordner 'logfiles'
     3. KEINE automatische Bereinigung mehr (verschoben nach K3)
     """
-    # Pfad-Definition (Nutzt Path.home() für bessere Kompatibilität)
-    base_root = Path.home() / "Documents" / "data"
-    disk_path = base_root / ac_number / disk_id
+    # NEU: Wenn ein Pfad aus dem Menü übergeben wurde, nutzen wir diesen direkt als Basis.
+    if project_base_path_override:
+        disk_path = Path(project_base_path_override)
+    else:
+        # Pfad-Definition (Nutzt Path.home() für bessere Kompatibilität)
+        base_root = Path.home() / "Documents" / "data"
+        disk_path = base_root / ac_number / disk_id
 
     # Grundpfade
     f0 = disk_path / f"0_{disk_id}_picture-carrier"
@@ -171,6 +175,19 @@ def run_staging_workflow(ac_number, disk_id):
 
 if __name__ == "__main__":
     if len(sys.argv) >= 3:
-        run_staging_workflow(sys.argv[1], sys.argv[2])
+        ac_number = sys.argv[1]
+        disk_id = sys.argv[2]
+        
+        # NEU: Datenpfad aus menu.py übernehmen (sys.argv[3] oder Umgebungsvariable DATA_PATH)
+        if len(sys.argv) >= 4:
+            data_path_input = Path(sys.argv[3])
+        else:
+            env_path = os.environ.get("DATA_PATH")
+            if env_path:
+                data_path_input = Path(env_path)
+            else:
+                data_path_input = Path.home() / "Documents" / "data" / ac_number / disk_id
+                
+        run_staging_workflow(ac_number, disk_id, project_base_path_override=data_path_input)
     else:
         print(f"{Fore.RED}Fehler: AC-Nummer und ID fehlen.")

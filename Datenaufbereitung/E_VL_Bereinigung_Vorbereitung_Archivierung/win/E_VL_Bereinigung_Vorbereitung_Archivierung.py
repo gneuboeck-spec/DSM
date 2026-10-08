@@ -26,9 +26,14 @@ DELETE_EXTENSIONS = [
     ".sdb", ".sig", ".slt", ".smm", ".sol", ".spc", ".ss", ".stb", ".stt", ".sts", ".str", ".sty", ".syd", ".tab", ".t", ".tbs", ".temp", ".tbl", ".ths", ".tlb", ".tmp", ".tsc", ".tsk", ".ttf", ".ttx", ".tsp", ".tys", ".tyq", ".uce", ".url", ".umb", ".utf", ".vbx", ".vid", ".vue", ".vxd", ".wab", ".wa~", ".wbm", ".wlx", ".wof", ".w31", ".xml.pdf", ".x32", ".000", ".386"
 ]
 
-def setup_and_validate_paths(ac_number, disk_archive_id):
+def setup_and_validate_paths(ac_number, disk_archive_id, project_base_path_override=None):
     """Dynamische Pfaderstellung für VL-Bereinigung und LZA-Logging."""
-    project_base_path = Path.home() / "Documents/data" / ac_number / disk_archive_id
+    # NEU: Wenn ein Pfad aus dem Menü übergeben wurde, nutzen wir diesen.
+    # Andernfalls greift der alte Fallback-Pfad.
+    if project_base_path_override:
+        project_base_path = Path(project_base_path_override)
+    else:
+        project_base_path = Path.home() / "Documents/data" / ac_number / disk_archive_id
     
     # Arbeitsverzeichnis: 4_..._VL/files
     vl_folder = project_base_path / f"4_{disk_archive_id}_VL"
@@ -163,13 +168,23 @@ def perform_deletion(files_to_delete, empty_dirs_to_delete, extensions_counter, 
 # ==============================================================================
 if __name__ == "__main__":
     try:
-        ac_number_input, disk_archive_id_input = sys.argv[1], sys.argv[2]
+        ac_number_input = sys.argv[1]
+        disk_archive_id_input = sys.argv[2]
         print(f"Werte aus der Kommandozeile erhalten: AC={ac_number_input}, ID={disk_archive_id_input}")
+        
+        # NEU: Datenpfad aus menu.py übernehmen (sys.argv[3] oder Umgebungsvariable DATA_PATH)
+        if len(sys.argv) >= 4:
+            data_path_input = Path(sys.argv[3])
+        else:
+            data_path_input = Path(os.environ.get("DATA_PATH", Path.home() / "Documents/data" / ac_number_input / disk_archive_id_input))
+            
     except IndexError:
-        print("FEHLER: AC-Nummer und Datenträger-ID wurden nicht übergeben."); sys.exit(1)
+        print("FEHLER: AC-Nummer und Datenträger-ID wurden nicht übergeben.")
+        sys.exit(1)
 
     # --- ANFANG DER ERWEITERUNG: KOPIERVORGANG VON 3 NACH 4 ---
-    project_base_path = Path.home() / "Documents" / "data" / ac_number_input / disk_archive_id_input
+    # NEU: Verwendet den ermittelten Datenpfad statt hartcodiertem Pfad
+    project_base_path = data_path_input
     source_files_path = project_base_path / f"3_{disk_archive_id_input}_for-transfer" / "files"
     target_files_path = project_base_path / f"4_{disk_archive_id_input}_VL" / "files"
 
@@ -190,7 +205,12 @@ if __name__ == "__main__":
         sys.exit(1)
     # --- ENDE DER ERWEITERUNG ---
 
-    validated_paths = setup_and_validate_paths(ac_number_input, disk_archive_id_input)
+    validated_paths = setup_and_validate_paths(
+        ac_number_input, 
+        disk_archive_id_input,
+        project_base_path_override=data_path_input
+    )
+    
     if validated_paths:
         base_directory = validated_paths["base_directory"]
         log_file_path = validated_paths["log_file_path"]

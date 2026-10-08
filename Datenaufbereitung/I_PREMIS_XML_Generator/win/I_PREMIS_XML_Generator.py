@@ -350,12 +350,16 @@ def analyze_source_media(logfiles_path):
 # ==============================================================================
 
 class PremisGenerator:
-    def __init__(self, ac_number, disk_id):
+    def __init__(self, ac_number, disk_id, project_base_path_override=None):
         self.ac_number = ac_number
         self.disk_id = disk_id
         
-        # Basis-Pfad des Projekts
-        self.path_root = Path.home() / "Documents/data" / self.ac_number / self.disk_id
+        # NEU: Wenn ein Pfad aus dem Menü übergeben wurde, nutzen wir diesen.
+        # Andernfalls greift der alte Fallback-Pfad.
+        if project_base_path_override:
+            self.path_root = Path(project_base_path_override)
+        else:
+            self.path_root = Path.home() / "Documents/data" / self.ac_number / self.disk_id
         
         # ===== Pfade für die Stufen 0-3 (zuerst definieren!) =====
         self.path_step0 = self.path_root / f"0_{self.disk_id}_picture-carrier"
@@ -1456,7 +1460,17 @@ if __name__ == "__main__":
         ac = sys.argv[1]
         did = sys.argv[2]
         
-        gen = PremisGenerator(ac, did)
+        # NEU: Datenpfad aus menu.py übernehmen (sys.argv[3] oder Umgebungsvariable DATA_PATH)
+        if len(sys.argv) >= 4:
+            data_path_input = Path(sys.argv[3])
+        else:
+            env_path = os.environ.get("DATA_PATH")
+            if env_path:
+                data_path_input = Path(env_path)
+            else:
+                data_path_input = Path.home() / "Documents/data" / ac / did
+        
+        gen = PremisGenerator(ac, did, project_base_path_override=data_path_input)
         gen.run()
         
         antwort = input("\nOrdner öffnen? (j/n): ").strip().lower()

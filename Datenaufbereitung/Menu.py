@@ -1,6 +1,15 @@
 import subprocess
 import sys
+import os
 from pathlib import Path
+
+try:
+    import tkinter as tk
+    from tkinter import filedialog
+    TK_AVAILABLE = True
+except Exception:
+    TK_AVAILABLE = False
+
 
 # =====================================================
 # Grundeinstellungen
@@ -11,22 +20,196 @@ SCRIPT_DIR = MENU_FILE.parent
 EXCLUDED_DIRS = {".venv", ".git", "__pycache__", ".idea", ".vscode"}
 IGNORED_FILES = {MENU_FILE.name}
 
+# Wenn True, wird der Datenpfad als zusätzliches Argument übergeben:
+# python skript.py AC ID DATENPFAD
+# Falls deine Subskripte Probleme mit einem dritten Argument haben,
+# kannst du das auf False stellen. Dann wird nur die Umgebungsvariable DATA_PATH gesetzt.
+PASS_DATA_PATH_AS_ARGUMENT = True
+
+# Verwende möglichst die aktuelle Python-Exe.
+# Falls das Menü mit pythonw.exe gestartet wurde, bevorzuge python.exe,
+# damit Konsolenskripte sichtbar bleiben.
+PYTHON_EXECUTABLE = sys.executable
+if Path(PYTHON_EXECUTABLE).name.lower() == "pythonw.exe":
+    candidate = Path(PYTHON_EXECUTABLE).with_name("python.exe")
+    if candidate.exists():
+        PYTHON_EXECUTABLE = str(candidate)
+
+
 # =====================================================
-# Hilfsfunktionen
+# Hilfsfunktionen für Ordnerauswahl
 # =====================================================
-def print_header(ac_number, disk_id, current_path):
+def ask_directory(title, initial_dir=None):
+    """
+    Öffnet einen Ordner-Auswahldialog.
+    Falls tkinter nicht verfügbar ist, wird nach einem manuellen Pfad gefragt.
+    """
+    if initial_dir is not None:
+        initial_dir = Path(initial_dir)
+        if not initial_dir.exists():
+            initial_dir = SCRIPT_DIR
+
+    if TK_AVAILABLE:
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+
+        try:
+            if initial_dir is not None:
+                selected = filedialog.askdirectory(
+                    title=title,
+                    initialdir=str(initial_dir)
+                )
+            else:
+                selected = filedialog.askdirectory(title=title)
+        finally:
+            root.destroy()
+
+        if not selected:
+            return None
+
+        return Path(selected).resolve()
+
+    # Fallback ohne tkinter
+    if initial_dir is not None:
+        print(f"Startordner: {initial_dir}")
+
+    raw = input(f"{title}\nBitte vollständigen Ordnerpfad eingeben (leer = Abbrechen): ").strip().strip('"')
+    if not raw:
+        return None
+
+    p = Path(raw).expanduser()
+    if not p.is_dir():
+        print("[FEHLER] Der angegebene Pfad ist kein vorhandener Ordner.")
+        return None
+
+    return p.resolve()
+
+
+def select_ac_folder(initial_dir=None):
+    """Schritt 1: AC-Ordner auswählen."""
+    print("\nSchritt 1: AC-Ordner auswählen.")
+    print("Der Name dieses Ordners wird als AC-Nummer verwendet.")
+
+    ac_path = ask_directory("Schritt 1: AC-Ordner auswählen", initial_dir or SCRIPT_DIR)
+
+    if ac_path is None:
+        print("Auswahl abgebrochen.")
+        return None
+
+    print(f"Gewählter AC-Ordner: {ac_path.name} -> {ac_path}")
+    return ac_path
+
+
+def select_disk_folder(ac_path, initial_dir=None):
+    """Schritt 2: ID-Unterordner innerhalb des AC-Ordners auswählen."""
+    if not ac_path or not Path(ac_path).is_dir():
+        print("[FEHLER] Es ist kein gültiger AC-Ordner gesetzt.")
+        return None
+
+    ac_path = Path(ac_path).resolve()
+
+    if initial_dir is not None and Path(initial_dir).exists():
+        current_initial = Path(initial_dir).resolve()
+    else:
+        current_initial = ac_path
+
+    print("\nSchritt 2: ID-Unterordner auswählen.")
+    print(f"Der ID-Ordner muss ein Unterordner von {ac_path} sein.")
+
+    while True:
+        disk_path = ask_directory("Schritt 2: ID-Unterordner auswählen", current_initial)
+
+        if disk_path is None:
+            print("Auswahl abgebrochen.")
+            return None
+
+        if disk_path == ac_path:
+            print("[FEHLER] Der ID-Ordner darf nicht der AC-Ordner selbst sein.")
+            print("Bitte einen Unterordner auswählen.")
+            current_initial = ac_path
+            continue
+
+        try:
+            disk_path.relative_to(ac_path)
+            print(f"Gewählter ID-Ordner: {disk_path.name} -> {disk_path}")
+            return disk_path
+        except ValueError:
+            print("[FEHLER] Der gewählte Ordner liegt nicht im AC-Ordner.")
+            print("Bitte erneut einen Unterordner des AC-Ordners auswählen.")
+            current_initial = ac_path
+            continue
+
+
+def select_ac_and_disk():
+    """Geführte Auswahl: Erst AC-Ordner, dann ID-Unterordner."""
+    ac_path = select_ac_folder(SCRIPT_DIR)
+    if ac_path is None:
+        return None, None, False
+
+    disk_path = select_disk_folder(ac_path)
+    if disk_path is None:
+        return ac_path, None, False
+
+    return ac_path, disk_path, True
+
+
+def ensure_ac_disk_path(ac_path, disk_path):
+    """
+    Prüft, ob AC-Ordner und ID-Ordner gesetzt sind.
+    Falls nicht, wird der Benutzer zur Auswahl aufgefordert.
+    """
+    if ac_path is not None:
+        ac_path = Path(ac_path).resolve()
+    if disk_path is not None:
+        disk_path = Path(disk_path).resolve()
+
+    while True:
+        if not ac_path or not ac_path.is_dir():
+            ac_path = select_ac_folder(SCRIPT_DIR)
+            if ac_path is None:
+                return ac_path, disk_path, False
+
+            # Wenn ein neuer AC-Ordner gewählt wurde, passt die alte ID in der Regel nicht mehr.
+            disk_path = None
+
+        if not disk_path or not disk_path.is_dir():
+            disk_path = select_disk_folder(ac_path)
+            if disk_path is None:
+                return ac_path, disk_path, False
+
+        try:
+            disk_path.relative_to(ac_path)
+            return ac_path, disk_path, True
+        except ValueError:
+            print("[WARNUNG] Der ID-Ordner liegt nicht im AC-Ordner.")
+            print("Bitte ID-Ordner neu auswählen.")
+            disk_path = None
+
+
+# =====================================================
+# Anzeige / Skriptsuche
+# =====================================================
+def print_header(ac_path, disk_path):
     """Zeigt den Header mit den aktuellen Werten an."""
+    ac_display = ac_path.name if ac_path else "❌ NICHT GESETZT"
+    disk_display = disk_path.name if disk_path else "❌ NICHT GESETZT"
+
+    if disk_path:
+        path_display = str(disk_path)
+    elif ac_path:
+        path_display = str(ac_path)
+    else:
+        path_display = "❌ NICHT GESETZT"
+
     print("===================================================")
     print("           DATENAUFBEREITUNG - MENÜ")
     print("===================================================")
-    
-    ac_display = ac_number if ac_number and ac_number != "NICHT GESETZT" else "❌ NICHT GESETZT"
-    disk_display = disk_id if disk_id and disk_id != "NICHT GESETZT" else "❌ NICHT GESETZT"
-    
     print(f" Aktuelle AC-Nummer:      {ac_display}")
     print(f" Aktuelle Datenträger-ID: {disk_display}")
-    print(f" Aktueller Ordner:        {current_path}")
+    print(f" Aktueller Datenpfad:     {path_display}")
     print("---------------------------------------------------")
+
 
 def is_excluded_folder(script_path: Path) -> bool:
     """Prüft, ob die Datei in einem ausgeschlossenen Ordner liegt."""
@@ -34,13 +217,15 @@ def is_excluded_folder(script_path: Path) -> bool:
         rel_path = script_path.relative_to(SCRIPT_DIR)
     except ValueError:
         return True
+
     folders = rel_path.parts[:-1]
     return any(folder in EXCLUDED_DIRS for folder in folders)
+
 
 def get_scripts():
     """Sucht alle Python-Skripte rekursiv im aktuellen Ordner."""
     scripts = []
-    
+
     for path in SCRIPT_DIR.rglob("*.py"):
         if path.name in IGNORED_FILES:
             continue
@@ -48,79 +233,103 @@ def get_scripts():
             continue
         scripts.append(path)
 
-    # Sortierung nach relativem Pfad
     scripts = sorted(scripts, key=lambda p: str(p.relative_to(SCRIPT_DIR)).lower())
     return scripts
 
-def ensure_ac_disk_id(ac_number, disk_id):
-    """Prüft ob AC-Nummer und Datenträger-ID gesetzt sind."""
-    ac_missing = not ac_number or ac_number == "NICHT GESETZT"
-    disk_missing = not disk_id or disk_id == "NICHT GESETZT"
-    
-    if not ac_missing and not disk_missing:
-        return ac_number, disk_id, True
-    
-    print("\n" + "=" * 50)
-    print("  [WARNUNG] Fehlende Parameter!")
-    print("=" * 50)
-    print()
-    
-    if ac_missing:
-        ac_number = input("AC-Nummer eingeben: ").strip()
-    if disk_missing:
-        disk_id = input("Datenträger-ID eingeben: ").strip()
-    
-    if not ac_number or not disk_id:
-        print("\n[FEHLER] Beide Werte müssen eingegeben werden.")
-        input("Drücken Sie Enter, um fortzufahren.")
-        return ac_number, disk_id, False
-    
-    return ac_number, disk_id, True
 
 # =====================================================
 # Hauptprogramm
 # =====================================================
 def main():
+    ac_path = None
+    disk_path = None
+
+    # Optional: Falls das Menü selbst mit Pfaden gestartet wird.
+    # Beispiel:
+    # python menu.py "C:\daten\AC123" "C:\daten\AC123\ID456"
     if len(sys.argv) >= 3:
-        ac_number = sys.argv[1] if sys.argv[1] else "NICHT GESETZT"
-        disk_id = sys.argv[2] if sys.argv[2] else "NICHT GESETZT"
-    else:
-        ac_number = "NICHT GESETZT"
-        disk_id = "NICHT GESETZT"
+        arg_ac = Path(sys.argv[1]).expanduser()
+        arg_disk = Path(sys.argv[2]).expanduser()
+
+        if arg_ac.is_dir():
+            ac_path = arg_ac.resolve()
+
+        if arg_disk.is_dir():
+            disk_path = arg_disk.resolve()
+
+        if ac_path and disk_path:
+            try:
+                disk_path.relative_to(ac_path)
+            except ValueError:
+                disk_path = None
+
+        if not ac_path:
+            disk_path = None
 
     while True:
-        print_header(ac_number, disk_id, "Datenaufbereitung")
+        print_header(ac_path, disk_path)
         scripts = get_scripts()
         entry_num = 1
 
         if scripts:
             print("\n   --- Skripte ---")
             for script_path in scripts:
-                # NUR DEN DATEINAMEN ANZEIGEN
                 print(f"   {entry_num:3} - {script_path.name}")
                 entry_num += 1
         else:
             print("\n   Keine Skripte gefunden.")
 
         print("\n---------------------------------------------------")
-        print("   N - Neue Nummern eingeben")
-        print("   B - Zurück zum Hauptmenü")
+        print("   A - AC-Ordner auswählen")
+        print("   D - ID-Ordner auswählen")
+        print("   N - Neue Auswahl starten (AC + ID)")
+        print("   B - Zurück / Beenden")
         print("   Q - Beenden")
         print("===================================================")
 
-        choice = input("\nBitte Nummer eingeben: ").strip().lower()
+        choice = input("\nBitte Nummer oder Buchstabe eingeben: ").strip().lower()
 
         if choice == "q":
             break
+
         elif choice == "b":
             break
-        elif choice == "n":
-            print("\n--- Bitte neue Werte eingeben ---")
-            new_ac = input(f"Neue AC-Nummer (alt: {ac_number}): ").strip()
-            new_disk = input(f"Neue Datenträger-ID (alt: {disk_id}): ").strip()
 
-            if new_ac: ac_number = new_ac
-            if new_disk: disk_id = new_disk
+        elif choice == "a":
+            new_ac = select_ac_folder(ac_path or SCRIPT_DIR)
+            if new_ac is not None:
+                ac_path = new_ac
+
+                # Alte ID nur behalten, wenn sie zufällig im neuen AC-Ordner liegt
+                if disk_path is not None:
+                    try:
+                        disk_path.relative_to(ac_path)
+                    except ValueError:
+                        disk_path = None
+
+            input("\nDrücken Sie Enter, um fortzufahren.")
+            continue
+
+        elif choice == "d":
+            if not ac_path:
+                print("\nBitte zuerst einen AC-Ordner auswählen (Menüpunkt A).")
+            else:
+                new_disk = select_disk_folder(ac_path, disk_path or ac_path)
+                if new_disk is not None:
+                    disk_path = new_disk
+
+            input("\nDrücken Sie Enter, um fortzufahren.")
+            continue
+
+        elif choice == "n":
+            new_ac, new_disk, ok = select_ac_and_disk()
+            if ok:
+                ac_path = new_ac
+                disk_path = new_disk
+            else:
+                if new_ac is not None:
+                    ac_path = new_ac
+                    disk_path = None
 
             input("\nDrücken Sie Enter, um fortzufahren.")
             continue
@@ -131,22 +340,39 @@ def main():
             if 0 <= choice_index < len(scripts):
                 script_to_run = scripts[choice_index]
 
-                ac_number, disk_id, success = ensure_ac_disk_id(ac_number, disk_id)
+                ac_path, disk_path, success = ensure_ac_disk_path(ac_path, disk_path)
                 if not success:
+                    input("\nDrücken Sie Enter, um fortzufahren.")
                     continue
 
+                ac_number = ac_path.name
+                disk_id = disk_path.name
+                data_path = disk_path
+
                 print(f"\n--- Starte Skript: {script_to_run.name} ---")
-                print(f"Uebergebe AC-Nummer: {ac_number}")
-                print(f"Uebergebe Datenträger-ID: {disk_id}\n")
+                print(f"Uebergebe AC-Nummer:      {ac_number}")
+                print(f"Uebergebe Datenträger-ID: {disk_id}")
+                print(f"Uebergebe Datenpfad:      {data_path}\n")
+
+                env = os.environ.copy()
+                env["AC_NUMBER"] = ac_number
+                env["DISK_ID"] = disk_id
+                env["DATA_PATH"] = str(data_path)
+
+                cmd = [
+                    PYTHON_EXECUTABLE,
+                    str(script_to_run),
+                    ac_number,
+                    disk_id
+                ]
+
+                if PASS_DATA_PATH_AS_ARGUMENT:
+                    cmd.append(str(data_path))
 
                 subprocess.run(
-                    [
-                        r"C:\Users\digit\AppData\Local\Programs\Python\Python313\python.exe",
-                        str(script_to_run),
-                        ac_number,
-                        disk_id
-                    ],
-                    cwd=script_to_run.parent
+                    cmd,
+                    cwd=script_to_run.parent,
+                    env=env
                 )
 
                 print("\n----------------------------------------------------")
@@ -157,12 +383,13 @@ def main():
                 input("Druecken Sie Enter, um fortzufahren.")
 
         except ValueError:
-            print("\nUngueltige Eingabe. Bitte eine Nummer oder N/B/Q eingeben.")
+            print("\nUngueltige Eingabe. Bitte eine Nummer oder A/D/N/B/Q eingeben.")
             input("Druecken Sie Enter, um fortzufahren.")
 
         except Exception as e:
             print(f"\nEin unerwarteter Fehler ist aufgetreten: {e}")
             input("Druecken Sie Enter, um fortzufahren.")
+
 
 if __name__ == "__main__":
     main()

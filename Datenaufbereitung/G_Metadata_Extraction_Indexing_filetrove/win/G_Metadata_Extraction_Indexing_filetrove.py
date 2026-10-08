@@ -69,10 +69,14 @@ INTEGRITY_SUCCESS = []  # Für alle bestätigten Dateien
 INTEGRITY_ERRORS = []   # Für alle Abweichungen
 INTEGRITY_NEW = []      # Für neue Dateien (Derivate)
 
-def load_reference_hashes(ac_number, disk_id):
+def load_reference_hashes(ac_number, disk_id, project_base_path_override=None):
     """Lädt Hashes aus CSV (SHA-512), JSON (SHA-256) und Siegfried (MD5)."""
     refs = {}
-    base_path = Path.home() / "Documents/data" / ac_number / disk_id
+    # NEU: Wenn ein Pfad aus dem Menü übergeben wurde, nutzen wir diesen.
+    if project_base_path_override:
+        base_path = Path(project_base_path_override)
+    else:
+        base_path = Path.home() / "Documents/data" / ac_number / disk_id
     
     # Pfade definieren
     stage1_csv = base_path / f"1_{disk_id}_image-LZA" / "logfiles" / f"1_{disk_id}_image-log.csv"
@@ -119,14 +123,18 @@ def load_reference_hashes(ac_number, disk_id):
 
 
 # --- 2. Funktion zur dynamischen Erstellung und Validierung der Projekt-Pfade ---
-def setup_and_validate_paths(ac_number, disk_archive_id):
+def setup_and_validate_paths(ac_number, disk_archive_id, project_base_path_override=None):
     """
     Erstellt und validiert die Projekt-Pfade für das Metadaten-Extraktionsskript.
     - Analyse-Verzeichnis: Stufe 4 (VL)
     - Primäre Ausgabe: Stufe 5 (LZA) / logfiles
     - Sekundäre Kopie: Stufe 4 (VL)
     """
-    project_base_path = Path.home() / "Documents/data" / ac_number / disk_archive_id
+    # NEU: Wenn ein Pfad aus dem Menü übergeben wurde, nutzen wir diesen.
+    if project_base_path_override:
+        project_base_path = Path(project_base_path_override)
+    else:
+        project_base_path = Path.home() / "Documents/data" / ac_number / disk_archive_id
     
     # Pfad zum VL-Ordner (Arbeitsverzeichnis)
     vl_folder = project_base_path / f"4_{disk_archive_id}_VL"
@@ -171,23 +179,33 @@ def setup_and_validate_paths(ac_number, disk_archive_id):
 
 # --- 3. Haupt-Ausführungsblock zur Pfad-Initialisierung ---
 # Dieser Teil wird ganz am Anfang ausgeführt, um die Pfad-Variablen zu setzen.
+data_path_input = None
 try:
     ac_number_input = sys.argv[1]
     disk_archive_id_input = sys.argv[2]
     print(f"Pfade werden aus Kommandozeilen-Argumenten generiert: AC={ac_number_input}, ID={disk_archive_id_input}")
-    validated_paths = setup_and_validate_paths(ac_number_input, disk_archive_id_input)
+    
+    # NEU: Datenpfad aus menu.py übernehmen (sys.argv[3] oder Umgebungsvariable DATA_PATH)
+    if len(sys.argv) >= 4:
+        data_path_input = Path(sys.argv[3])
+    else:
+        data_path_input = Path(os.environ.get("DATA_PATH", Path.home() / "Documents/data" / ac_number_input / disk_archive_id_input))
+        
+    validated_paths = setup_and_validate_paths(ac_number_input, disk_archive_id_input, project_base_path_override=data_path_input)
 except IndexError:
     print("Keine Kommandozeilen-Argumente gefunden. Bitte geben Sie die Daten manuell ein:")
     ac_number_input = input("AC-Nummer eingeben: ")
     disk_archive_id_input = input("Datenträger-ID eingeben: ")
-    validated_paths = setup_and_validate_paths(ac_number_input, disk_archive_id_input)
+    
+    data_path_input = Path(os.environ.get("DATA_PATH", Path.home() / "Documents/data" / ac_number_input / disk_archive_id_input))
+    validated_paths = setup_and_validate_paths(ac_number_input, disk_archive_id_input, project_base_path_override=data_path_input)
 
 if validated_paths:
     BASE_DIR = validated_paths["base_dir"]
     OUTPUT_XML = validated_paths["output_xml"]
 
     print("\nLade Referenz-Hashes aus Vorstufen (Stufe 1 & 2)...")
-    REFERENCE_HASHES = load_reference_hashes(ac_number_input, disk_archive_id_input)
+    REFERENCE_HASHES = load_reference_hashes(ac_number_input, disk_archive_id_input, project_base_path_override=data_path_input)
     print(f"-> {len(REFERENCE_HASHES)} Referenz-Werte geladen.\n")
     
     print("\nSkript wird mit folgenden Pfaden ausgeführt:")

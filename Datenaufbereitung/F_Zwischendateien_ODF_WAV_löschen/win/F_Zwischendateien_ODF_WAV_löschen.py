@@ -25,9 +25,13 @@ SOURCE_AUDIO_EXTENSIONS_FOR_WAV_CLEANUP = {".aiff", ".flac", ".ogg", ".wav", ".m
 # --- PFAD-VALIDIERUNG ---
 # ==============================================================================
 
-def setup_and_validate_paths(ac_number, disk_archive_id):
-    # Basis-Pfad des Projekts
-    project_base_path = Path.home() / "Documents/data" / ac_number / disk_archive_id
+def setup_and_validate_paths(ac_number, disk_archive_id, project_base_path_override=None):
+    # NEU: Wenn ein Pfad aus dem Menü übergeben wurde, nutzen wir diesen.
+    # Andernfalls greift der alte Fallback-Pfad.
+    if project_base_path_override:
+        project_base_path = Path(project_base_path_override)
+    else:
+        project_base_path = Path.home() / "Documents/data" / ac_number / disk_archive_id
     
     # Definition der Haupt-Ordner
     VL_folder = project_base_path / f"4_{disk_archive_id}_VL"
@@ -195,12 +199,24 @@ def find_and_delete_intermediate_wavs(folder, log_filepath):
 # ==============================================================================
 if __name__ == "__main__":
     try:
-        ac_number_input, disk_archive_id_input = sys.argv[1], sys.argv[2]
+        ac_number_input = sys.argv[1]
+        disk_archive_id_input = sys.argv[2]
         print(f"Werte aus der Kommandozeile erhalten: AC={ac_number_input}, ID={disk_archive_id_input}")
+        
+        # NEU: Datenpfad aus menu.py übernehmen (sys.argv[3] oder Umgebungsvariable DATA_PATH)
+        if len(sys.argv) >= 4:
+            data_path_input = Path(sys.argv[3])
+        else:
+            data_path_input = Path(os.environ.get("DATA_PATH", Path.home() / "Documents/data" / ac_number_input / disk_archive_id_input))
+            
     except IndexError:
         print("FEHLER: AC-Nummer und Datenträger-ID wurden nicht übergeben."); sys.exit(1)
 
-    validated_paths = setup_and_validate_paths(ac_number_input, disk_archive_id_input)
+    validated_paths = setup_and_validate_paths(
+        ac_number_input, 
+        disk_archive_id_input,
+        project_base_path_override=data_path_input
+    )
 
     if validated_paths:
         while True:

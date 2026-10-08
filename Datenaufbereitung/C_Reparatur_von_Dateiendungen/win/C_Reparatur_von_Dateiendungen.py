@@ -103,8 +103,7 @@ def setup_logging(log_file_path):
 # 🔧 HILFSFUNKTIONEN
 # ==============================================================================
 
-def setup_and_validate_repair_paths(ac_number, disk_archive_id, logger):
-    project_base_path = Path.home() / "Documents/data" / ac_number / disk_archive_id
+def setup_and_validate_repair_paths(ac_number, disk_archive_id, project_base_path, logger):
     transfer_folder = project_base_path / f"3_{disk_archive_id}_for-transfer"
     
     # Pfad zu Siegfried fest hinterlegen
@@ -471,6 +470,7 @@ def parse_arguments():
     # KORREKTUR: nargs="?" macht die Argumente optional, erlaubt aber die Übergabe OHNE --ac / --id Flags
     parser.add_argument("ac", nargs="?", default=None, help="AC Nummer (z.B. AC123). Falls nicht angegeben, wird interaktiv gefragt.")
     parser.add_argument("id", nargs="?", default=None, help="Disk Archive ID (z.B. DISK01). Falls nicht angegeben, wird interaktiv gefragt.")
+    parser.add_argument("data_path", nargs="?", default=None, help="Datenpfad (aus menu.py übergeben).")
     parser.add_argument("--dryrun", action="store_true", help="Nur simulieren, keine Änderungen an Dateien vornehmen.")
     
     return parser.parse_args()
@@ -483,7 +483,16 @@ def main():
     id_in = args.id or input("ID: ").strip()
     DRY_RUN = args.dryrun
 
-    project_root = Path.home() / "Documents/data" / ac_in / id_in
+    # NEU: Datenpfad aus menu.py übernehmen (sys.argv[3] oder Umgebungsvariable DATA_PATH)
+    if args.data_path:
+        project_root = Path(args.data_path)
+    else:
+        env_path = os.environ.get("DATA_PATH")
+        if env_path:
+            project_root = Path(env_path)
+        else:
+            project_root = Path.home() / "Documents/data" / ac_in / id_in
+
     source_stage2 = project_root / f"2_{id_in}_extracted-files" / "files"
     target_stage3 = project_root / f"3_{id_in}_for-transfer" / "files"
 
@@ -510,8 +519,8 @@ def main():
     if DRY_RUN: 
         logger.warning("🚨 SIMULATIONSMODUS AKTIV. Es werden keine Dateien verändert.")
 
-    # Validierung der Pfade
-    config = setup_and_validate_repair_paths(ac_in, id_in, logger)
+    # Validierung der Pfade (Übergabe des ermittelten project_root)
+    config = setup_and_validate_repair_paths(ac_in, id_in, project_root, logger)
     if not config: 
         logger.error("Konfiguration fehlgeschlagen. Skript wird beendet.")
         sys.exit(1)

@@ -40,7 +40,7 @@ def compress_and_remove_folder(folder_path: Path, output_name: str):
     else:
         print(f"{Fore.YELLOW}    [INFO] Ordner nicht gefunden, Komprimierung übersprungen: {folder_path}")
 
-def run_final_archiving(ac_number, disk_id):
+def run_final_archiving(ac_number, disk_id, project_base_path_override=None):
     """
     0. Komprimiert NUR den Brunnhilde-Unterordner zu .tar.gz (Speicherplatz-Optimierung)
     1. Erstellt BagIt (verschiebt alles nach data/, inkl. der neuen .tar.gz Datei)
@@ -49,8 +49,13 @@ def run_final_archiving(ac_number, disk_id):
     4. BENENNT den Ordner von 5_..._LZA in nur noch ... (disk_id) um.
     5. Löscht alte Stufen 0-3 (VL bleibt erhalten)
     """
-    base_root = Path(r"C:\Users\digit\Documents\data")
-    disk_path = base_root / ac_number / disk_id
+    # NEU: Wenn ein Pfad aus dem Menü übergeben wurde, nutzen wir diesen direkt als Basis.
+    if project_base_path_override:
+        disk_path = Path(project_base_path_override)
+    else:
+        base_root = Path(r"C:\Users\digit\Documents\data")
+        disk_path = base_root / ac_number / disk_id
+        
     f5_lza = disk_path / f"5_{disk_id}_LZA"
     f4_vl = disk_path / f"4_{disk_id}_VL"
     
@@ -161,6 +166,19 @@ def run_final_archiving(ac_number, disk_id):
 
 if __name__ == "__main__":
     if len(sys.argv) >= 3:
-        run_final_archiving(sys.argv[1], sys.argv[2])
+        ac_number = sys.argv[1]
+        disk_id = sys.argv[2]
+        
+        # NEU: Datenpfad aus menu.py übernehmen (sys.argv[3] oder Umgebungsvariable DATA_PATH)
+        if len(sys.argv) >= 4:
+            data_path_input = Path(sys.argv[3])
+        else:
+            env_path = os.environ.get("DATA_PATH")
+            if env_path:
+                data_path_input = Path(env_path)
+            else:
+                data_path_input = Path(r"C:\Users\digit\Documents\data") / ac_number / disk_id
+                
+        run_final_archiving(ac_number, disk_id, project_base_path_override=data_path_input)
     else:
         print(f"{Fore.RED}Fehler: AC-Nummer und ID fehlen. Aufruf: script.py <AC_NUMMER> <DISK_ID>")

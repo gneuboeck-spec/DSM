@@ -27,7 +27,12 @@ except IndexError:
     AC_number = input("AC-Nummer eingeben:")
     disk_archive_ID = input("Datenträger-ID eingeben:")
 
-base_path = Path.home() / "Documents/data" / AC_number / disk_archive_ID
+# NEU: Datenpfad aus menu.py übernehmen (sys.argv[3] oder Umgebungsvariable DATA_PATH)
+if len(sys.argv) >= 4:
+    base_path = Path(sys.argv[3])
+else:
+    base_path = Path(os.environ.get("DATA_PATH", Path.home() / "Documents/data" / AC_number / disk_archive_ID))
+
 input_XML_path = base_path / f"0_{disk_archive_ID}_picture-carrier/0_{disk_archive_ID}_carrier-description.xml"
 input_HTML_path = base_path / f"2_{disk_archive_ID}_extracted-files/2_{disk_archive_ID}_extracted-files_brunnhilde/files_collection_report/report.html"
 output_XML_path = base_path / f"2_{disk_archive_ID}_extracted-files/2_{disk_archive_ID}_extracted-files.content"
