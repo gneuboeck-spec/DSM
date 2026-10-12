@@ -6,16 +6,6 @@ setlocal
 REM --- In den Ordner wechseln, in dem diese Batch-Datei liegt ---
 cd /d "%~dp0"
 
-REM --- Optionale Eingabe der Werte (Enter zum Überspringen) ---
-echo --- Optionale initiale Werte ---
-echo (Enter drücken zum Überspringen)
-echo (Kann später über "N" im Menü eingegeben werden)
-echo.
-set /p ac_number="AC-Nummer eingeben (oder Enter zum Überspringen): "
-set /p disk_id="Datentraeger-ID eingeben (oder Enter zum Überspringen): "
-
-echo.
-
 REM --- Pruefung: Gibt es die menu.py? ---
 if not exist "%~dp0menu.py" (
     echo FEHLER: menu.py wurde nicht gefunden.
@@ -23,8 +13,8 @@ if not exist "%~dp0menu.py" (
     exit /b 1
 )
 
-REM --- Menue starten und Werte uebergeben ---
-python "%~dp0menu.py" "%ac_number%" "%disk_id%"
+REM --- Menue starten (ohne Argumente, die Ordnerauswahl passiert im Menü) ---
+python "%~dp0menu.py"
 
 echo.
 echo Das Menue wurde beendet.

@@ -41,7 +41,7 @@ FOLDER_SHORTCUTS = {}
 def print_header(current_path):
     """Zeigt den Header für das Tools-Menü an (ohne AC/Disk-ID)."""
     print("===================================================")
-    print("           PYTHON TOOLS STARTER")
+    print("           PYTHON SKRIPTE TOOLS")
     print("===================================================")
     print(f" Aktueller Ordner:        {current_path}")
     print("---------------------------------------------------")

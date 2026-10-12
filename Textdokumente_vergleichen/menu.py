@@ -141,7 +141,7 @@ def main():
     """Zeigt ein Menü zur Auswahl der Skripte."""
     
     print("\n" + "="*60)
-    print("  PYTHON SKRIPT STARTER")
+    print("  SKRIPTSAMMLUNG DOKUMENTE VERGLEICHEN")
     print("="*60)
     print("\n Bitte wähle die Verzeichnisse...")
     
@@ -168,7 +168,7 @@ def main():
     # 3. Hauptschleife des Menüs
     while True:
         print("\n" + "="*60)
-        print("  PYTHON SKRIPT STARTER")
+        print("  PYTHON SKRIPTE DOKUMENTE VERGLEICHEN")
         print("="*60)
         print(f"\n Eingabe: {eingabe_pfad}")
         print(f" Ausgabe: {ausgabe_pfad}")

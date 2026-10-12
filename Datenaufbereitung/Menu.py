@@ -29,7 +29,7 @@ PASS_DATA_PATH_AS_ARGUMENT = True
 # Verwende möglichst die aktuelle Python-Exe.
 # Falls das Menü mit pythonw.exe gestartet wurde, bevorzuge python.exe,
 # damit Konsolenskripte sichtbar bleiben.
-PYTHON_EXECUTABLE = sys.executable
+PYTHON_EXECUTABLE = r"C:\Users\digit\AppData\Local\Programs\Python\Python313\python.exe"
 if Path(PYTHON_EXECUTABLE).name.lower() == "pythonw.exe":
     candidate = Path(PYTHON_EXECUTABLE).with_name("python.exe")
     if candidate.exists():
