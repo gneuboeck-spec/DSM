@@ -1,18 +1,80 @@
 # ============================================================
-# UNTERORDNER requirements.txt (Textdokumente_vergleichen)
-# Enthält nur die Pakete für dieses Modul
+# requirements.txt für Unterordner: Textdokumente_vergleichen
+# Python-Abhängigkeiten für:
+# - Dateiendungen reparieren
+# - Dublettenfinder
+# - Brunnhilde-Analyse
+# - Dokumente vergleichen
+# - KI-Analyse
+# - Visualisierung
+#
+# Optional, wenn du nur diesen Bereich installieren möchtest:
+# py -3.13 -m pip install -r Textdokumente_vergleichen/requirements.txt
 # ============================================================
 
-python-docx
-pymupdf
-pdfplumber
-openpyxl
-sentence-transformers
-torch
-rapidfuzz
-matplotlib
-striprtf
-odfpy
-pypdf
-tqdm
+# ------------------------------------------------------------
+# Skript 03: Brunnhilde-Analyse
+# ------------------------------------------------------------
+
+# Brunnhilde wird per Python-Modul aufgerufen
 brunnhilde
+
+# ------------------------------------------------------------
+# Textextraktion aus Dokumentformaten
+# ------------------------------------------------------------
+
+# DOCX-Verarbeitung
+python-docx
+
+# PDF-Textextraktion, schnelle Variante
+PyMuPDF
+
+# PDF-Textextraktion, alternative/fallback Variante
+pdfplumber
+
+# Moderner PDF-Reader
+pypdf
+
+# ODF-Verarbeitung, z. B. ODT, ODS, ODP
+odfpy
+
+# RTF-Textextraktion
+striprtf
+
+# ------------------------------------------------------------
+# Export
+# ------------------------------------------------------------
+
+# Excel-Export mit Formatierung und Hyperlinks
+openpyxl
+
+# ------------------------------------------------------------
+# Performance und Komfort
+# ------------------------------------------------------------
+
+# Schneller Textvergleich für große Dokumentmengen
+rapidfuzz
+
+# Fortschrittsbalken
+tqdm
+
+# ------------------------------------------------------------
+# Visualisierung
+# ------------------------------------------------------------
+
+# Diagramme und Auswertung
+matplotlib
+
+# ------------------------------------------------------------
+# KI-semantische Analyse
+# ------------------------------------------------------------
+
+# Semantic Embeddings für Kurztext-Zuordnung
+sentence-transformers
+
+# PyTorch, wird von sentence-transformers benötigt.
+# Achtung: torch ist sehr groß.
+# Wenn du die KI-Analyse nicht brauchst, kann dieser Block
+# theoretisch entfernt werden. Für den vollständigen Workflow
+# bleibt er enthalten.
+torch

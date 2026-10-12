@@ -1,8 +1,14 @@
 # ============================================================
-# Tools requirements.txt
-# Python-Abhängigkeiten für den Tools-Ordner
+# requirements.txt für Unterordner: Tools
+# Python-Abhängigkeiten für Tools-Skripte
 # ============================================================
 
-# --- PREMIS_Validierung ---
+# ------------------------------------------------------------
+# PREMIS-Validierung / Schema-Abruf
+# ------------------------------------------------------------
+
+# XML-Verarbeitung und XSD-Validierung
 lxml
+
+# HTTP-Anfragen, z. B. zum Laden des offiziellen PREMIS-XSD-Schemas
 requests

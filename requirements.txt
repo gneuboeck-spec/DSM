@@ -1,57 +1,97 @@
 # ============================================================
-# ZENTRALE requirements.txt (Hauptverzeichnis)
-# Enthält ALLE Pakete für den gesamten Workflow
+# ZENTRALE requirements.txt (Hauptverzeichnis DSM)
+# Enthält ALLE Python-Pakete für den gesamten Workflow.
+#
+# Installation:
+# py -3.13 -m pip install -r requirements.txt
 # ============================================================
 
-# --- Haupt-Workflow (Datenaufbereitung: Skripte A bis L) ---
-# Forensische Analyse und Fixity-Berichte
+# ------------------------------------------------------------
+# Datenaufbereitung / Master-Workflow (Skripte A bis L)
+# ------------------------------------------------------------
+
+# Forensische Analyse, Fixity-Berichte, Formatidentifizierung
 brunnhilde
-# HTML-Report Parsing (Brunnhilde Output)
+
+# HTML-Report-Parsing, z. B. für Brunnhilde-Output
 beautifulsoup4
-# YARA-Regeln für Dateiformat-Identifizierung
+
+# YARA-Regeln für Dateiformat-Identifizierung und Validierung
 yara-python
-# Audio-Metadaten-Extraktion
+
+# Audio-Metadaten-Extraktion, z. B. MP3, FLAC, WAV
 mutagen
+
 # PDF-Metadaten-Extraktion und Validierung
+# PyPDF2 wird aktuell von einigen Skripten direkt importiert.
 PyPDF2
-# Bild-Metadaten-Extraktion (Dimensionen, ICC-Profile)
+
+# Moderner PDF-Reader/Nachfolger von PyPDF2.
+# Wird von anderen Skripten verwendet.
+pypdf
+
+# Bild-Metadaten-Extraktion, Dimensionen, ICC-Profile
 Pillow
-# Zeichensatz-Erkennung für Textdateien
+
+# Zeichensatz-Erkennung für Textdateien, z. B. SAM, TXT, CSV
 chardet
+
 # Farbige Konsolenausgabe
 colorama
-# XML-Generierung und XSD-Validierung (PREMIS)
+
+# XML-Generierung und XSD-Validierung, z. B. PREMIS
 lxml
-# API-Abfragen (GND-Integration, Schema-Download)
+
+# HTTP-Requests, z. B. Schema-Download, API-Abfragen
 requests
-# BagIt-Container-Erstellung
+
+# BagIt-Container-Erstellung für Archivierung
 bagit
-# Hachoir CLI-Tools für Metadaten-Extraktion
+
+# Hachoir CLI-Tools, insbesondere hachoir-metadata
 hachoir
 
-# --- Unterordner: Textdokumente_vergleichen ---
-# DOCX-Dateien
+# ------------------------------------------------------------
+# Textdokumente_vergleichen
+# ------------------------------------------------------------
+
+# DOCX-Verarbeitung
 python-docx
-# PDF-Verarbeitung (mehrere Bibliotheken für verschiedene PDF-Typen)
-pymupdf
+
+# PDF-Textextraktion, schnelle Variante
+PyMuPDF
+
+# PDF-Textextraktion, alternative/fallback Variante
 pdfplumber
-pypdf
-# Excel-Export mit Formatierung
+
+# Excel-Export mit Formatierung und Hyperlinks
 openpyxl
-# KI-Semantische Analyse
+
+# KI-semantische Analyse
 sentence-transformers
+
+# PyTorch, wird von sentence-transformers benötigt.
+# Achtung: sehr großes Paket.
 torch
-# Schneller Textvergleich
+
+# Schneller Textvergleich für große Dokumentmengen
 rapidfuzz
-# Visualisierung
+
+# Visualisierung der Analyseergebnisse
 matplotlib
-# RTF-Verarbeitung
+
+# RTF-Textextraktion
 striprtf
-# ODF-Dateien (ODT, ODS, ODP)
+
+# ODF-Verarbeitung, z. B. ODT, ODS, ODP
 odfpy
+
 # Fortschrittsbalken
 tqdm
 
-# --- Unterordner: Tools ---
-# (lxml und requests sind bereits oben aufgeführt)
-# Keine zusätzlichen Pakete benötigt
+# ------------------------------------------------------------
+# Tools
+# ------------------------------------------------------------
+# Falls Tools/requirements.txt zusätzliche Pakete enthält,
+# bitte diese hier ergänzen oder separate Tools-Requirements nutzen.
+# Aktuell sind keine zusätzlichen Python-Pakete bekannt.

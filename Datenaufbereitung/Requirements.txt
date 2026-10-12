@@ -1,38 +1,59 @@
 # ============================================================
-# Datenaufbereitung requirements.txt
-# Python-Abhängigkeiten für den Master-Workflow (Skripte A-L)
+# requirements.txt für Unterordner: Datenaufbereitung
+# Python-Abhängigkeiten für den Master-Workflow, Skripte A bis L.
+#
+# Optional, wenn du nur diesen Bereich installieren möchtest:
+# py -3.13 -m pip install -r Datenaufbereitung/requirements.txt
 # ============================================================
 
-# --- Skript A: Brunnhilde Analyse ---
-# Führt die forensische Analyse durch und erstellt Fixity-Berichte
+# ------------------------------------------------------------
+# Skript A: Brunnhilde-Analyse
+# ------------------------------------------------------------
+
+# Forensische Analyse und Fixity-Berichte
 brunnhilde
 
-# --- Skript B: XML Zusammenfassungs-Generator ---
-# Wird zum Parsen des von Brunnhilde generierten HTML-Reports benötigt
+# HTML-Report-Parsing für Brunnhilde-Output
 beautifulsoup4
 
-# --- Skript G & K: Metadata Extraction & Master-Index ---
-# YARA-Regeln für die Dateiformat-Identifizierung und Validität
+# ------------------------------------------------------------
+# Skripte G und K: Metadaten-Extraktion und Master-Index
+# ------------------------------------------------------------
+
+# YARA-Regeln für Dateiformat-Identifizierung
 yara-python
-# Audio-Metadaten-Extraktion (MP3, FLAC, WAV, etc.)
+
+# Audio-Metadaten-Extraktion
 mutagen
+
 # PDF-Metadaten-Extraktion und Validierung
 PyPDF2
-# Bild-Metadaten-Extraktion (Dimensionen, ICC-Profile)
+
+# Bild-Metadaten-Extraktion
 Pillow
-# Zeichensatz-Erkennung für Textdateien (z.B. SAM)
+
+# Zeichensatz-Erkennung für Textdateien
 chardet
 
-# --- Skript H, J & L: VL-Export, Staging-Workflow & Archivierung ---
-# Farbige und strukturierte Konsolenausgabe
+# Hachoir-Metadaten-Tools, insbesondere hachoir-metadata
+hachoir
+
+# ------------------------------------------------------------
+# Skripte H, J und L: VL-Export, Staging, Archivierung
+# ------------------------------------------------------------
+
+# Farbige Konsolenausgabe
 colorama
 
-# --- Skript I: PREMIS XML Generator ---
-# XML-Generierung und Validierung gegen das offizielle PREMIS v3 XSD-Schema
-lxml
-# API-Abfragen für GND-Integration (DNB SRU / lobid-gnd) und Schema-Download
-requests
-
-# --- Skript L: BagIt METS TAR Archivierung ---
-# Erstellung und Validierung von BagIt-konformen Archiv-Containern
+# BagIt-Container-Erstellung
 bagit
+
+# ------------------------------------------------------------
+# Skript I: PREMIS XML Generator / Validator
+# ------------------------------------------------------------
+
+# XML-Generierung und XSD-Validierung
+lxml
+
+# HTTP-Requests, z. B. für Schema-Download oder API-Abfragen
+requests
