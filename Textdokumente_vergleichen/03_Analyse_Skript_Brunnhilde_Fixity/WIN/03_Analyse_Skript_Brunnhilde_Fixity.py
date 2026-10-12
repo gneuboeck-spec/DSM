@@ -19,11 +19,29 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 
 # ==============================================================================
-# 🔧 KONFIGURATION (BITTE FÜR IHR WINDOWS-SYSTEM ANPASSEN)
+# 🔧 DYNAMISCHE PFADERMITTLUNG FÜR EXTERNE TOOLS
 # ==============================================================================
 
-SIEGFRIED_DIR = r"C:\Program Files\Siegfried"
-CLAMAV_DIR = r"C:\Program Files\ClamAV" 
+def find_executable_dir(tool_name, fallback_path):
+    """Findet das Verzeichnis eines Tools im System-PATH oder nutzt den Fallback-Pfad."""
+    # 1. Versuche: Tool im PATH finden (z.B. wenn über Installer zum PATH hinzugefügt)
+    exe_path = shutil.which(tool_name)
+    if exe_path:
+        return str(Path(exe_path).parent)
+    
+    # 2. Fallback: Hardcodierter Pfad (für den alten Rechner)
+    if Path(fallback_path).exists():
+        return fallback_path
+    
+    # 3. Wenn nichts gefunden wird, gib den Fallback zurück (Skript wirft dann Fehlermeldung)
+    return fallback_path
+
+# ==============================================================================
+# 🔧 KONFIGURATION (Dynamisch ermittelt)
+# ==============================================================================
+
+SIEGFRIED_DIR = find_executable_dir("sf", r"C:\Program Files\Siegfried")
+CLAMAV_DIR = find_executable_dir("clamscan", r"C:\Program Files\ClamAV")
 
 # --- Hilfsfunktion für SHA256 ---
 def calculate_sha256(filepath):

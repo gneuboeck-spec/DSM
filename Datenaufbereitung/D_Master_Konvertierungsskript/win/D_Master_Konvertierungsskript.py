@@ -18,6 +18,24 @@ import email.utils
 from email.header import decode_header
 
 # ==============================================================================
+# 🔧 DYNAMISCHE PFADERMITTLUNG FÜR EXTERNE TOOLS
+# ==============================================================================
+
+def find_executable(tool_name, fallback_path):
+    """Findet eine ausführbare Datei im System-PATH oder nutzt den Fallback-Pfad."""
+    # 1. Versuche: Tool im PATH finden (z.B. wenn über Installer zum PATH hinzugefügt)
+    exe_path = shutil.which(tool_name)
+    if exe_path:
+        return exe_path
+    
+    # 2. Fallback: Hardcodierter Pfad (für den alten Rechner)
+    if Path(fallback_path).exists():
+        return fallback_path
+    
+    # 3. Wenn nichts gefunden wird, gib den Fallback zurück (Skript wirft dann Fehlermeldung)
+    return fallback_path
+
+# ==============================================================================
 # 🔧 KONFIGURATION
 # ==============================================================================
 
@@ -28,7 +46,7 @@ SOURCE_AUDIO_EXTENSIONS = {".aiff", ".flac", ".ogg", ".wav", ".m4a", ".wma", ".a
 
 # --- Bild-Konfiguration ---
 IMAGEMAGICK_PATH = "magick.exe"
-INKSCAPE_PATH = r"C:\Program Files\Inkscape\bin\inkscape.exe"
+INKSCAPE_PATH = find_executable("inkscape.exe", r"C:\Program Files\Inkscape\bin\inkscape.exe")
 GHOSTSCRIPT_PATH = "gswin64c.exe"
 RASTER_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".heic", ".tga", ".gif", ".jfif"}
 GHOSTSCRIPT_FORMATS = {".eps", ".ai"}
@@ -38,7 +56,7 @@ VECTOR_TARGET_EXT = ".pdf"
 VALID_IMAGE_EXTENSIONS = RASTER_EXTENSIONS.union(VECTOR_EXTENSIONS).union(GHOSTSCRIPT_FORMATS)
 
 # --- Text/Office-Konfiguration ---
-LIBREOFFICE_PATH = "C:/Program Files/LibreOffice/program/soffice.exe"
+LIBREOFFICE_PATH = find_executable("soffice.exe", r"C:\Program Files\LibreOffice\program\soffice.exe")
 CONVERSION_MAP = {
     ".doc": ("odt", "writer_pdf_Export"), ".docx": ("odt", "writer_pdf_Export"), ".dot": ("odt", "writer_pdf_Export"),
     ".rtf": ("odt", "writer_pdf_Export"), ".odt": ("odt", "writer_pdf_Export"), ".ott": ("odt", "writer_pdf_Export"),

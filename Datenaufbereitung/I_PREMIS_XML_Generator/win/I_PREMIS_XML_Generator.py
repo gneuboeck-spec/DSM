@@ -1301,7 +1301,8 @@ class PremisGenerator:
                 xml_doc = etree.parse(f)
 
             xsd_url = "https://www.loc.gov/standards/premis/v3/premis-v3-0.xsd"
-            local_xsd_path = r"C:\Users\digit\Desktop\Skripte\I_PREMIS_XML_Generator\premis-v3-0.xsd"
+            # NEU: Dynamischer Pfad zur lokalen XSD-Datei (relativ zum Skript)
+            local_xsd_path = str(Path(__file__).resolve().parent / "premis-v3-0.xsd")
             
             schema_content = None
             

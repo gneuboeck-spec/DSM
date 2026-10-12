@@ -16,6 +16,24 @@ from pathlib import Path
 from datetime import datetime
 
 # ==============================================================================
+# 🔧 DYNAMISCHE PFADERMITTLUNG FÜR EXTERNE TOOLS
+# ==============================================================================
+
+def find_executable(tool_name, fallback_path):
+    """Findet eine ausführbare Datei im System-PATH oder nutzt den Fallback-Pfad."""
+    # 1. Versuche: Tool im PATH finden (z.B. wenn über Installer zum PATH hinzugefügt)
+    exe_path = shutil.which(tool_name)
+    if exe_path:
+        return exe_path
+    
+    # 2. Fallback: Hardcodierter Pfad (für den alten Rechner)
+    if Path(fallback_path).exists():
+        return fallback_path
+    
+    # 3. Wenn nichts gefunden wird, gib den Fallback zurück (Skript wirft dann Fehlermeldung)
+    return fallback_path
+
+# ==============================================================================
 # 🔧 KONFIGURATION & MAPPINGS
 # ==============================================================================
 
@@ -422,7 +440,8 @@ def main():
         logger.warning("🚨 SIMULATIONSMODUS AKTIV. Es werden keine Dateien verändert.")
 
     # Validierung der externen Tools
-    SIEGFRIED_EXE = r"C:\Program Files\Siegfried\sf.exe"
+    # NEU: Dynamische Pfad-Ermittlung für Siegfried
+    SIEGFRIED_EXE = find_executable("sf", r"C:\Program Files\Siegfried\sf.exe")
     ffprobe_exec = "ffprobe.exe"
     
     if not Path(SIEGFRIED_EXE).exists(): 

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Florian Lüftner <florian.lueftner@posteo.com>
+# SPDX-FileCopyrightText: 2025 Gregor Neuböck <g.neuboeck@pgmail.com>
 #
 # SPDX-License-Identifier: MIT
 

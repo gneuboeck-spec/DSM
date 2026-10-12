@@ -25,8 +25,42 @@ import tempfile
 import shutil  # Für das Entfernen temporärer Verzeichnisse
 
 # ==============================================================================
+# 🔧 DYNAMISCHE PFADERMITTLUNG FÜR EXTERNE TOOLS
+# ==============================================================================
+
+def find_executable(tool_name, fallback_path):
+    """Findet eine ausführbare Datei im System-PATH oder nutzt den Fallback-Pfad."""
+    # 1. Versuche: Tool im PATH finden (z.B. wenn über Installer zum PATH hinzugefügt)
+    exe_path = shutil.which(tool_name)
+    if exe_path:
+        return exe_path
+    
+    # 2. Fallback: Hardcodierter Pfad (für den alten Rechner)
+    if Path(fallback_path).exists():
+        return fallback_path
+    
+    # 3. Wenn nichts gefunden wird, gib den Fallback zurück (Skript wirft dann Fehlermeldung)
+    return fallback_path
+
+# ==============================================================================
 # 🔧 KONFIGURATION
 # ==============================================================================
+
+# Dynamische Zuweisung der Tool-Pfade
+EXIFTOOL_PATH = find_executable("exiftool", r"C:\Program Files\ExifTool\exiftool.exe")
+FFPROBE_PATH = find_executable("ffprobe", r"C:\Program Files\ffmpeg\ffprobe.exe")
+HACHOIR_METADATA_PATH = find_executable("hachoir-metadata", r"C:\Users\digit\.venv\Scripts\hachoir-metadata.exe")
+SIEGFRIED_PATH = find_executable("sf", r"C:\Program Files\Siegfried\sf.exe")
+
+# NEU: Dynamischer Pfad für lokale Skript-Dateien (wie rules.yar)
+SCRIPT_DIR = Path(__file__).resolve().parent
+YARA_RULES_FILE = str(SCRIPT_DIR / "rules.yar")
+
+# --- NEU: Globaler Speicher für Referenz-Hashes ---
+REFERENCE_HASHES = {}
+INTEGRITY_SUCCESS = []  # Für alle bestätigten Dateien
+INTEGRITY_ERRORS = []   # Für alle Abweichungen
+INTEGRITY_NEW = []      # Für neue Dateien (Derivate)
 
 def hash_sha512(filepath):
     h = hashlib.sha512()
@@ -51,23 +85,6 @@ def hash_sha256(filepath):
             while chunk := f.read(8192): h.update(chunk)
         return h.hexdigest()
     except: return "error_hashing"
-
-# --- 1. System-Pfade und Listen (manuell anpassen, falls nötig) ---
-# Diese Pfade sind systemweit und bleiben als manuelle Konfiguration erhalten.
-EXIFTOOL_PATH = "C:\\Program Files\\ExifTool\\exiftool.exe"
-FFPROBE_PATH = "C:\\Program Files\\ffmpeg\\ffprobe.exe"
-HACHOIR_METADATA_PATH = "C:\\Users\\digit\\.venv\\Scripts\\hachoir-metadata.exe"
-SIEGFRIED_PATH = "C:\\Program Files\\Siegfried\\sf.exe"
-
-# NEU: Dynamischer Pfad für lokale Skript-Dateien (wie rules.yar)
-SCRIPT_DIR = Path(__file__).resolve().parent
-YARA_RULES_FILE = str(SCRIPT_DIR / "rules.yar")
-
-# --- NEU: Globaler Speicher für Referenz-Hashes ---
-REFERENCE_HASHES = {}
-INTEGRITY_SUCCESS = []  # Für alle bestätigten Dateien
-INTEGRITY_ERRORS = []   # Für alle Abweichungen
-INTEGRITY_NEW = []      # Für neue Dateien (Derivate)
 
 def load_reference_hashes(ac_number, disk_id, project_base_path_override=None):
     """Lädt Hashes aus CSV (SHA-512), JSON (SHA-256) und Siegfried (MD5)."""
@@ -320,18 +337,6 @@ def format_date_to_iso(date_str):
     return date_str  # Wenn alles fehlschlägt, den Originalstring zurückgeben
 
 
-def hash_sha256(filepath):
-    h = hashlib.sha256()
-    try:
-        with open(filepath, "rb") as f:
-            while chunk := f.read(8192):
-                h.update(chunk)
-        return h.hexdigest()
-    except Exception as e:
-        print(f"Fehler beim SHA256-Hashing von {filepath}: {e}")
-        return "error_hashing"
-
-
 def run_command(command, env=None, stream_output=False):
     """
     Führt einen Shell-Befehl aus und gibt stdout, stderr und den Return Code zurück.
@@ -574,6 +579,7 @@ def run_siegfried(filepath):
         print(f"Fehler bei Siegfried für {filepath}: {e}")
         pass
     return {}
+
 def extract_sam_specific(filepath):
     try:
         with open(filepath, "rb") as f:
@@ -725,6 +731,7 @@ def sanitize_for_xml(text):
     )
     
     return invalid_xml_char_pattern.sub('', text)
+
 def is_likely_software_tool(value):
     """
     Prüft heuristisch, ob ein Wert wahrscheinlich ein Software-Tool ist und KEIN Personen- oder Institutionsname.

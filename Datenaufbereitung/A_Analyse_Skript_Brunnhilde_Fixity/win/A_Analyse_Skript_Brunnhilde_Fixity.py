@@ -16,11 +16,26 @@ import ctypes
 from pathlib import Path
 
 # ==============================================================================
-# 🔧 KONFIGURATION (BITTE FÜR IHR WINDOWS-SYSTEM ANPASSEN)
+# 🔧 KONFIGURATION (Dynamische Pfadermittlung für Portabilität)
 # ==============================================================================
 
-SIEGFRIED_DIR = r"C:\Program Files\Siegfried"
-CLAMAV_DIR = r"C:\Program Files\ClamAV" 
+def find_tool_dir(tool_name, fallback_path):
+    """Findet das Verzeichnis eines Tools im System-PATH oder nutzt den Fallback."""
+    # 1. Versuche: Tool im PATH finden (z.B. wenn über Installer zum PATH hinzugefügt)
+    exe_path = shutil.which(tool_name)
+    if exe_path:
+        return str(Path(exe_path).parent)
+    
+    # 2. Fallback: Hardcodierter Pfad (für den alten Rechner, falls nicht im PATH)
+    if Path(fallback_path).exists():
+        return fallback_path
+    
+    # 3. Wenn nichts gefunden wird, geben wir den Fallback zurück (das Skript wirft dann eine saubere Fehlermeldung)
+    return fallback_path
+
+# Dynamische Zuweisung der Pfade
+SIEGFRIED_DIR = find_tool_dir("sf", r"C:\Program Files\Siegfried")
+CLAMAV_DIR = find_tool_dir("clamscan", r"C:\Program Files\ClamAV") 
 
 # --- NEU: Hilfsfunktion für SHA256 ---
 def calculate_sha256(filepath):

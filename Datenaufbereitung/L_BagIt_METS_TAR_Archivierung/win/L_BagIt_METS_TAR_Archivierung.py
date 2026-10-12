@@ -53,7 +53,8 @@ def run_final_archiving(ac_number, disk_id, project_base_path_override=None):
     if project_base_path_override:
         disk_path = Path(project_base_path_override)
     else:
-        base_root = Path(r"C:\Users\digit\Documents\data")
+        # Dynamischer Fallback-Pfad statt hardcodiertem Benutzernamen
+        base_root = Path.home() / "Documents" / "data"
         disk_path = base_root / ac_number / disk_id
         
     f5_lza = disk_path / f"5_{disk_id}_LZA"
@@ -177,7 +178,8 @@ if __name__ == "__main__":
             if env_path:
                 data_path_input = Path(env_path)
             else:
-                data_path_input = Path(r"C:\Users\digit\Documents\data") / ac_number / disk_id
+                # Dynamischer Fallback-Pfad statt hardcodiertem Benutzernamen
+                data_path_input = Path.home() / "Documents" / "data" / ac_number / disk_id
                 
         run_final_archiving(ac_number, disk_id, project_base_path_override=data_path_input)
     else:

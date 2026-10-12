@@ -60,6 +60,27 @@ mime_to_ext_map = {
 }
 
 # ==============================================================================
+# 🔧 DYNAMISCHE PFADERMITTLUNG FÜR EXTERNE TOOLS
+# ==============================================================================
+
+def find_tool(tool_name, fallback_path):
+    """Findet ein Tool im System-PATH oder nutzt den Fallback-Pfad."""
+    # 1. Versuche: Tool im PATH finden
+    exe_path = shutil.which(tool_name)
+    if exe_path:
+        return exe_path
+    
+    # 2. Fallback: Hardcodierter Pfad (für den alten Rechner)
+    if Path(fallback_path).exists():
+        return fallback_path
+    
+    # 3. Wenn nichts gefunden wird, gib den Fallback zurück (Skript wirft dann Fehlermeldung)
+    return fallback_path
+
+# Dynamische Zuweisung des Siegfried-Pfads
+SIEGFRIED_EXE = find_tool("sf", r"C:\Program Files\Siegfried\sf.exe")
+
+# ==============================================================================
 # 🔧 LOGGING SETUP (Mit Farberhalt für die Konsole)
 # ==============================================================================
 
@@ -106,14 +127,11 @@ def setup_logging(log_file_path):
 def setup_and_validate_repair_paths(ac_number, disk_archive_id, project_base_path, logger):
     transfer_folder = project_base_path / f"3_{disk_archive_id}_for-transfer"
     
-    # Pfad zu Siegfried fest hinterlegen
-    SIEGFRIED_EXE = r"C:\Program Files\Siegfried\sf.exe"
-    
     paths = {
         "analysis_folder": transfer_folder / "files",
         "log_file": transfer_folder / f"3_{disk_archive_id}_for-transfer_repair-file-extension.log",
         "ffprobe_exec": "ffprobe.exe",
-        "siegfried_exec": SIEGFRIED_EXE
+        "siegfried_exec": SIEGFRIED_EXE  # Dynamisch ermittelter Pfad
     }
     
     if not paths["analysis_folder"].is_dir(): 

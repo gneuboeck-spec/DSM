@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 import os
 import sys
 import csv
@@ -84,11 +88,21 @@ EXCERPT_THRESHOLD = 0.80
 MAX_COMPARE_LENGTH = 2000000  
 USE_SMART_SAMPLING = True
 
-LO_EXECUTABLES = [
-    'soffice', 'libreoffice',
+# NEU: Dynamische Ermittlung von LibreOffice für maximale Portabilität
+_libreoffice_paths = []
+lo_which = shutil.which('soffice') or shutil.which('libreoffice')
+if lo_which:
+    _libreoffice_paths.append(lo_which)
+
+_libreoffice_paths.extend([
     r'C:\Program Files\LibreOffice\program\soffice.exe',
     r'C:\Program Files (x86)\LibreOffice\program\soffice.exe',
-]
+    r'/usr/bin/libreoffice',
+    r'/usr/bin/soffice',
+    r'/Applications/LibreOffice.app/Contents/MacOS/soffice'
+])
+
+LO_EXECUTABLES = _libreoffice_paths
 
 
 # ==============================================================================
@@ -1168,7 +1182,6 @@ def save_csv(rows, output_file):
     print(f"\n💾 CSV gespeichert: {output_file}")
 
 
-# === NUR HIER WURDE EINE MINIMALE ÄNDERUNG VORGENOMMEN (base_dir Parameter + Hyperlink-Logik) ===
 def save_as_excel(rows, output_file, base_dir: Path):
     try:
         from openpyxl import Workbook
@@ -1425,7 +1438,6 @@ def main():
     save_csv(rows, output_csv)
     
     output_excel = ausgabe_pfad / "versionen_analyse_farbig.xlsx"
-    # NEU: eingabe_pfad wird jetzt als dritter Parameter übergeben
     save_as_excel(rows, output_excel, eingabe_pfad)
 
     print("\n" + "=" * 60)
@@ -1440,7 +1452,6 @@ def main():
     sys.stdout = sys.__stdout__
     sys.stderr = sys.__stderr__
     
-    # Log-Datei schließen (optional, wird beim Programmende automatisch geschlossen)
     log_file.close()
 
 

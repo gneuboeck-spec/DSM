@@ -25,16 +25,36 @@ import tempfile
 import shutil  # Für das Entfernen temporärer Verzeichnisse
 
 # ==============================================================================
+# 🔧 DYNAMISCHE PFADERMITTLUNG FÜR EXTERNE TOOLS
+# ==============================================================================
+
+def find_executable(tool_name, fallback_path):
+    """Findet eine ausführbare Datei im System-PATH oder nutzt den Fallback-Pfad."""
+    # 1. Versuche: Tool im PATH finden (z.B. wenn über Installer zum PATH hinzugefügt)
+    exe_path = shutil.which(tool_name)
+    if exe_path:
+        return exe_path
+    
+    # 2. Fallback: Hardcodierter Pfad (für den alten Rechner)
+    if Path(fallback_path).exists():
+        return fallback_path
+    
+    # 3. Wenn nichts gefunden wird, gib den Fallback zurück (Skript wirft dann Fehlermeldung)
+    return fallback_path
+
+# ==============================================================================
 # 🔧 KONFIGURATION
 # ==============================================================================
 
-# --- 1. System-Pfade und Listen (manuell anpassen, falls nötig) ---
-# Diese Pfade sind systemweit und bleiben als manuelle Konfiguration erhalten.
-YARA_RULES_FILE = "C:\\Users\\digit\\Desktop\\Skripte\\Datenaufbereitung\\K_Master_Index_Metadaten_Generator_LZA\\win\\rules.yar"
-EXIFTOOL_PATH = "C:\\Program Files\\ExifTool\\exiftool.exe"
-FFPROBE_PATH = "C:\\Program Files\\ffmpeg\\ffprobe.exe"
-HACHOIR_METADATA_PATH = "C:\\Users\\digit\\.venv\\Scripts\\hachoir-metadata.exe"
-SIEGFRIED_PATH = "C:\\Program Files\\Siegfried\\sf.exe"
+# --- 1. System-Pfade und Listen (dynamisch ermittelt) ---
+EXIFTOOL_PATH = find_executable("exiftool", r"C:\Program Files\ExifTool\exiftool.exe")
+FFPROBE_PATH = find_executable("ffprobe", r"C:\Program Files\ffmpeg\ffprobe.exe")
+HACHOIR_METADATA_PATH = find_executable("hachoir-metadata", r"C:\Users\digit\.venv\Scripts\hachoir-metadata.exe")
+SIEGFRIED_PATH = find_executable("sf", r"C:\Program Files\Siegfried\sf.exe")
+
+# NEU: Dynamischer Pfad für lokale Skript-Dateien (wie rules.yar)
+SCRIPT_DIR = Path(__file__).resolve().parent
+YARA_RULES_FILE = str(SCRIPT_DIR / "rules.yar")
 
 # --- NEU: Globaler Speicher für Referenz-Hashes ---
 REFERENCE_HASHES = {}

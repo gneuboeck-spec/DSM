@@ -17,6 +17,7 @@ import re
 import logging
 import tempfile
 import unicodedata
+import shutil
 
 # Versuch, openpyxl zu importieren. Wird für die korrekte Hyperlink-Erstellung benötigt.
 try:
@@ -341,21 +342,26 @@ def extract_text_via_libreoffice(file_path: Path) -> str:
     """Konvertiert das Dokument mit LibreOffice in eine TXT-Datei und extrahiert den Text."""
     libreoffice_path = None
     
-    possible_paths = [
-        r"C:\Program Files\LibreOffice\program\soffice.exe",
-        r"C:\Program Files (x86)\LibreOffice\program\soffice.exe",
-        "/usr/bin/libreoffice",
-        "/usr/bin/soffice",
-        "/Applications/LibreOffice.app/Contents/MacOS/soffice"
-    ]
+    # 1. Versuche: LibreOffice im System-PATH finden (beste Portabilität)
+    libreoffice_path = shutil.which("soffice") or shutil.which("libreoffice")
     
-    for path in possible_paths:
-        if os.path.exists(path):
-            libreoffice_path = path
-            break
+    # 2. Fallback: Bekannte Standardpfade prüfen, falls es nicht im PATH ist
+    if not libreoffice_path:
+        possible_paths = [
+            r"C:\Program Files\LibreOffice\program\soffice.exe",
+            r"C:\Program Files (x86)\LibreOffice\program\soffice.exe",
+            "/usr/bin/libreoffice",
+            "/usr/bin/soffice",
+            "/Applications/LibreOffice.app/Contents/MacOS/soffice"
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                libreoffice_path = path
+                break
     
     if not libreoffice_path:
-        raise Exception("LibreOffice nicht gefunden.")
+        raise Exception("LibreOffice nicht gefunden. Bitte installieren oder zum System-PATH hinzufügen.")
     
     with tempfile.TemporaryDirectory() as temp_dir:
         cmd = [
