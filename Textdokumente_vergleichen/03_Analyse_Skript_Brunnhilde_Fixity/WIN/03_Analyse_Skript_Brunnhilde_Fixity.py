@@ -236,11 +236,39 @@ def extract_brunnhilde_info(source_path, brunnhilde_output_dir):
             env['PATH'] = os.pathsep.join(tool_paths) + os.pathsep + env['PATH']
             print(f"Info: Umgebung für Brunnhilde wird temporär erweitert.")
         
-        brunnhilde_command = [
-            sys.executable, "-m", "brunnhilde",
-            str(source_path),
-            str(brunnhilde_report_path)
-        ]
+        # --- FIX: Robuste Python-Erkennung gegen Inkscape-Konflikt ---
+        python_exe = sys.executable
+        
+        # Teste, ob das aktuelle Python 'brunnhilde' hat. 
+        # Wenn nicht (z.B. bei Inkscape-Python), versuche den Launcher 'py'.
+        try:
+            subprocess.run([python_exe, "-c", "import brunnhilde"], check=True, capture_output=True)
+        except Exception:
+            py_launcher = shutil.which("py")
+            if py_launcher:
+                # Teste explizit Version 3.13 oder Default mit 'py -3'
+                test_cmd = [py_launcher, "-3", "-c", "import brunnhilde"]
+                result = subprocess.run(test_cmd, capture_output=True)
+                if result.returncode == 0:
+                    # Wir nutzen 'py -3', weil das garantiert die Hauptinstallation meint
+                    python_exe = f"{py_launcher} -3" 
+                else:
+                    # Nochmal ohne Versionsflag, falls 'py -3' nicht geht
+                    test_cmd_default = [py_launcher, "-c", "import brunnhilde"]
+                    result_def = subprocess.run(test_cmd_default, capture_output=True)
+                    if result_def.returncode == 0:
+                        python_exe = py_launcher
+
+        # Baue den Befehl dynamisch zusammen
+        if " " in python_exe:
+            # Fall: Es ist ein String wie "C:\...\py.exe -3" -> Aufspalten
+            cmd_parts = python_exe.split() + ["-m", "brunnhilde", str(source_path), str(brunnhilde_report_path)]
+        else:
+            # Fall: Es ist ein direkter Pfad zu python.exe
+            cmd_parts = [python_exe, "-m", "brunnhilde", str(source_path), str(brunnhilde_report_path)]
+            
+        brunnhilde_command = cmd_parts
+        # ------------------------------------------------------------------
         
         print(f"\n--- Führe Brunnhilde aus für {source_path}... ---")
         print(f"Befehl: {' '.join(brunnhilde_command)}")
