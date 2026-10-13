@@ -1,21 +1,34 @@
 @echo off
 chcp 65001 >nul
-title Python Arbeitsumgebung - Datenaufbereitung
-setlocal
+title Datenaufbereitung Menue
 
-REM --- In den Ordner wechseln, in dem diese Batch-Datei liegt ---
-cd /d "%~dp0"
+:: Dynamische Suche nach Python
+set "PY_EXE="
 
-REM --- Pruefung: Gibt es die menu.py? ---
-if not exist "%~dp0menu.py" (
-    echo FEHLER: menu.py wurde nicht gefunden.
-    pause
-    exit /b 1
+:: 1. PRIORITÄT: Neue Installation (Systemweit)
+if exist "C:\Program Files\Python313\python.exe" (
+    set "PY_EXE=C:\Program Files\Python313\python.exe"
+    goto :RUN_MENU
 )
 
-REM --- Menue starten (ohne Argumente, die Ordnerauswahl passiert im Menü) ---
-python "%~dp0menu.py"
+:: 2. FALLBACK: Alte Installation (User-spezifisch)
+if exist "%LOCALAPPDATA%\Programs\Python\Python313\python.exe" (
+    set "PY_EXE=%LOCALAPPDATA%\Programs\Python\Python313\python.exe"
+    goto :RUN_MENU
+)
 
-echo.
-echo Das Menue wurde beendet.
+:: 3. FALLBACK: Launcher 'py'
+where py >nul 2>&1
+if %errorlevel%==0 (
+    set "PY_EXE=py -3.13"
+    goto :RUN_MENU
+)
+
+echo [FEHLER] Kein geeignetes Python gefunden!
+pause
+exit /b 1
+
+:RUN_MENU
+echo Starte Menue mit: %PY_EXE%
+"%PY_EXE%" Menu.py
 pause

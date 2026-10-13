@@ -236,44 +236,91 @@ def extract_brunnhilde_info(source_path, brunnhilde_output_dir):
             env['PATH'] = os.pathsep.join(tool_paths) + os.pathsep + env['PATH']
             print(f"Info: Umgebung für Brunnhilde wird temporär erweitert.")
         
-        # --- FIX: Robuste Python-Erkennung gegen Inkscape-Konflikt ---
-        python_exe = sys.executable
+        # --- FIX FINAL: Sichere Python-Erkennung & Leerzeichen-Handling ---
         
-        # Teste, ob das aktuelle Python 'brunnhilde' hat. 
-        # Wenn nicht (z.B. bei Inkscape-Python), versuche den Launcher 'py'.
+        # 1. Bestimme das richtige Python, das 'brunnhilde' importieren kann
+        python_exe_for_brunnhilde = None
+        
+        # Option A: Prüfe aktuelles Interpreter-Python (sys.executable)
         try:
-            subprocess.run([python_exe, "-c", "import brunnhilde"], check=True, capture_output=True)
+            subprocess.run([sys.executable, "-c", "import brunnhilde"], check=True, capture_output=True)
+            python_exe_for_brunnhilde = sys.executable
         except Exception:
-            py_launcher = shutil.which("py")
-            if py_launcher:
-                # Teste explizit Version 3.13 oder Default mit 'py -3'
-                test_cmd = [py_launcher, "-3", "-c", "import brunnhilde"]
-                result = subprocess.run(test_cmd, capture_output=True)
-                if result.returncode == 0:
-                    # Wir nutzen 'py -3', weil das garantiert die Hauptinstallation meint
-                    python_exe = f"{py_launcher} -3" 
-                else:
-                    # Nochmal ohne Versionsflag, falls 'py -3' nicht geht
-                    test_cmd_default = [py_launcher, "-c", "import brunnhilde"]
-                    result_def = subprocess.run(test_cmd_default, capture_output=True)
-                    if result_def.returncode == 0:
-                        python_exe = py_launcher
-
-        # Baue den Befehl dynamisch zusammen
-        if " " in python_exe:
-            # Fall: Es ist ein String wie "C:\...\py.exe -3" -> Aufspalten
-            cmd_parts = python_exe.split() + ["-m", "brunnhilde", str(source_path), str(brunnhilde_report_path)]
-        else:
-            # Fall: Es ist ein direkter Pfad zu python.exe
-            cmd_parts = [python_exe, "-m", "brunnhilde", str(source_path), str(brunnhilde_report_path)]
+            pass
             
-        brunnhilde_command = cmd_parts
-        # ------------------------------------------------------------------
+        # Option B: Falls nicht gefunden, prüfe explizit die bekannten Pfade
+        if not python_exe_for_brunnhilde:
+            # Priorität 1: Neue Installation (Systemweit - C:\Program Files\...)
+            path_new = Path(r"C:\Program Files\Python313\python.exe")
+            if path_new.exists():
+                try:
+                    subprocess.run([str(path_new), "-c", "import brunnhilde"], check=True, capture_output=True)
+                    python_exe_for_brunnhilde = str(path_new)
+                except Exception:
+                    pass
+                    
+            # Priorität 2: Alte Installation (User-spezifisch - AppData\...)
+            if not python_exe_for_brunnhilde:
+                path_old = Path.home() / r"AppData\Local\Programs\Python\Python313\python.exe"
+                if path_old.exists():
+                    try:
+                        subprocess.run([str(path_old), "-c", "import brunnhilde"], check=True, capture_output=True)
+                        python_exe_for_brunnhilde = str(path_old)
+                    except Exception:
+                        pass
+
+        # Fallback: Wenn nichts anderes ging, nutze das aktuelle Python (wird wahrscheinlich fehlschlagen, aber verhindert Absturz beim Start)
+        if not python_exe_for_brunnhilde:
+            print("[WARNUNG] Kein eindeutiges Python mit 'brunnhilde' gefunden. Nutze sys.executable.")
+            python_exe_for_brunnhilde = sys.executable
+
+        # 2. Baue den Befehl als Liste auf (KEIN String-Joining!)
+        args_list = [
+            python_exe_for_brunnhilde, 
+            "-m", "brunnhilde",
+            str(source_path),
+            str(brunnhilde_report_path)
+        ]
         
         print(f"\n--- Führe Brunnhilde aus für {source_path}... ---")
-        print(f"Befehl: {' '.join(brunnhilde_command)}")
+        # Anzeige des Befehls für Debugging (mit Quoting für Leerzeichen)
+        display_cmd = ' '.join(f'"{a}"' if ' ' in a else a for a in args_list)
+        print(f"Befehl: {display_cmd}")
         
-        stdout, stderr, returncode = run_command(brunnhilde_command, env=env, monitor_clamav=True) 
+        # 3. Direkter Aufruf via Popen mit shell=False
+        # Dies umgeht das Problem, dass Windows Pfade mit Leerzeichen ("C:\Program Files...") zerlegt.
+        process = subprocess.Popen(
+            args_list,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            shell=False,  # KRITISCH: False statt True!
+            env=env,
+            encoding='utf-8',
+            errors='replace'
+        )
+
+        full_output = []
+        clamav_warning_triggered = False
+
+        # Live-Streaming des Outputs
+        for line in iter(process.stdout.readline, ""):
+            print(line, end="")
+            full_output.append(line)
+
+            # Prüfe live auf die ClamAV Warnung
+            if not clamav_warning_triggered:
+                if "older than 7 days" in line.lower():
+                    trigger_clamav_admin_update()
+                    clamav_warning_triggered = True
+
+        process.stdout.close()
+        return_code = process.wait()
+        
+        stdout = "".join(full_output)
+        stderr = ""
+        returncode = return_code
+        # ------------------------------------------------------------------
         
         print(f"Brunnhilde Exit Code: {returncode}")
         print(f"--- Brunnhilde-Ausführung beendet ---")
