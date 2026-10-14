@@ -33,6 +33,17 @@ SUBMENU_DIRS = set()
 # Explizite Shortcut-Zuweisung für Untermenü-Ordner
 FOLDER_SHORTCUTS = {}
 
+# Verwende denselben Interpreter, mit dem dieses Menü selbst läuft.
+# Das ist robust gegen unterschiedliche Installationspfade
+# (User-Installation vs. System-Installation usw.).
+# Falls das Menü mit pythonw.exe gestartet wurde, bevorzuge python.exe,
+# damit Konsolenskripte sichtbar bleiben.
+PYTHON_EXECUTABLE = sys.executable
+if Path(PYTHON_EXECUTABLE).name.lower() == "pythonw.exe":
+    candidate = Path(PYTHON_EXECUTABLE).with_name("python.exe")
+    if candidate.exists():
+        PYTHON_EXECUTABLE = str(candidate)
+
 
 # =====================================================
 # Hilfsfunktionen
@@ -247,7 +258,7 @@ def main():
 
                 subprocess.run(
                     [
-                        r"C:\Users\digit\AppData\Local\Programs\Python\Python313\python.exe",
+                        PYTHON_EXECUTABLE,
                         str(script_to_run)
                     ],
                     cwd=script_to_run.parent

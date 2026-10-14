@@ -26,10 +26,12 @@ IGNORED_FILES = {MENU_FILE.name}
 # kannst du das auf False stellen. Dann wird nur die Umgebungsvariable DATA_PATH gesetzt.
 PASS_DATA_PATH_AS_ARGUMENT = True
 
-# Verwende möglichst die aktuelle Python-Exe.
+# Verwende denselben Interpreter, mit dem dieses Menü selbst läuft.
+# Das ist robust gegen unterschiedliche Installationspfade
+# (User-Installation vs. System-Installation usw.).
 # Falls das Menü mit pythonw.exe gestartet wurde, bevorzuge python.exe,
 # damit Konsolenskripte sichtbar bleiben.
-PYTHON_EXECUTABLE = r"C:\Users\digit\AppData\Local\Programs\Python\Python313\python.exe"
+PYTHON_EXECUTABLE = sys.executable
 if Path(PYTHON_EXECUTABLE).name.lower() == "pythonw.exe":
     candidate = Path(PYTHON_EXECUTABLE).with_name("python.exe")
     if candidate.exists():
