@@ -2,82 +2,83 @@
 
 Dieses Skript dient der gezielten Bereinigung von technischen Zwischendateien in der VL-Stufe (Stufe 4). Es entfernt Derivate, die während des Konvertierungsprozesses lediglich als Brückentechnologie erstellt wurden (z. B. ODF-Dateien als Zwischenschritt zum PDF/A-Export oder WAV-Dateien als Zwischenschritt für MP3), um den Archivbestand schlank und übersichtlich zu halten.
 
-Das Skript ist interaktiv gestaltet und erlaubt es dem Benutzer, gezielt verschiedene Kategorien von Zwischendateien zu löschen.
+Das Skript ist interaktiv gestaltet: In einem einzigen Aufräum-Durchgang werden zuerst die ODF-Zwischendateien und danach die konvertierten WAV-Dateien entfernt.
 
----
+## Struktur
+
+    F_Zwischendateien_ODF_WAV_löschen/
+    |-- README.md                          <-- Diese Datei
+    `-- win/
+        `-- F_Zwischendateien_ODF_WAV_löschen.py   <-- Ausführbare Python-Datei
 
 ## Hauptfunktionen
 
-* **Interaktives Menü:** Wahlweise Löschung von ODF-Zwischendateien oder konvertierten WAV-Dateien.
-* **Intelligente ODF-Bereinigung:** Identifiziert `.odt`, `.ods` oder `.odp` Dateien, die aus alten Office-Formaten (z. B. `.doc`, `.docx`, `.rtf`) erzeugt wurden. Eine Löschung erfolgt nur, wenn die ursprüngliche Quelldatei im selben Verzeichnis noch existiert.
+* **Interaktives Menü:** Bietet einen einzigen Aufräum-Durchgang, der ODF- und WAV-Zwischendateien nacheinander entfernt.
+* **Intelligente ODF-Bereinigung:** Identifiziert `.odt`-Dateien, die aus alten Office-Formaten (z. B. `.doc`, `.docx`, `.rtf`) erzeugt wurden. Eine Löschung erfolgt nur, wenn die ursprüngliche Quelldatei im selben Verzeichnis noch existiert.
 * **WAV-Bereinigung:** Identifiziert `.wav`-Dateien, die aus anderen Audioformaten (z. B. `.mp3`, `.flac`, `.m4a`) generiert wurden, und entfernt diese, sofern das Original vorhanden ist.
 * **Sicherheitsmodus (Dry-Run):** Für die ODF-Bereinigung kann ein Testlauf aktiviert werden, der lediglich protokolliert, was gelöscht würde.
 * **Zentrales LZA-Logging:** Alle Löschvorgänge werden in Log-Dateien innerhalb des LZA-Verzeichnisses (Stufe 5 / `logfiles`) dokumentiert, um die Revisionssicherheit zu gewährleisten.
 
----
-
 ## TREE-Struktur & Dateipfade
 
-Das Skript scannt die kuratierten Daten in Stufe 4 und dokumentiert den Vorgang in Stufe 5:
+Das Skript scannt die kuratierten Daten in Stufe 4 und dokumentiert den Vorgang in Stufe 5. Der Projektpfad wird vom Menü übergeben (`sys.argv[3]` oder Umgebungsvariable `DATA_PATH`):
 
-```text
-Documents/data/[AC-Nummer]/[Datenträger-ID]/
-├── 4_[ID]_VL/
-│   └── files/                              <-- ARBEITSBEREICH (Eingabe & Löschung)
-│       ├── Dokument.doc                    <-- Original (bleibt)
-│       ├── Dokument.doc.odt                <-- ARTEFAKT (wird gelöscht)
-│       └── Dokument.doc.pdf                <-- Derivat (bleibt)
-└── 5_[ID]_LZA/logfiles/                    <-- LOG-ZIEL (Protokolle)
-    ├── 4_[ID]_VL_delete-converted-odfs.log <-- Protokoll der ODF-Bereinigung
-    └── 4_[ID]_VL_delete-converted-wavs.log <-- Protokoll der WAV-Bereinigung
-```
-
----
+    [Projektpfad]/
+    |-- 4_[ID]_VL/
+    |   `-- files/                              <-- ARBEITSBEREICH (Eingabe & Löschung)
+    |       |-- Dokument.doc                    <-- Original (bleibt)
+    |       |-- Dokument.doc.odt                <-- ARTEFAKT (wird gelöscht)
+    |       `-- Dokument.doc.pdf                <-- Derivat (bleibt)
+    `-- 5_[ID]_LZA/logfiles/                    <-- LOG-ZIEL (Protokolle)
+        |-- 4_[ID]_VL_delete-converted-odfs.log <-- Protokoll der ODF-Bereinigung
+        `-- 4_[ID]_VL_delete-converted-wavs.log <-- Protokoll der WAV-Bereinigung
 
 ## Technische Voraussetzungen
 
-* **Python:** Version 3.10 oder neuer empfohlen.
-* **Standard-Bibliotheken:** Nutzt `pathlib`, `os` und `subprocess` (keine externen Pakete erforderlich).
+* **Windows 10/11**
+* **Python 3.13** oder höher (siehe Hinweis zur Fallback-Kette unten)
+* **Standard-Bibliotheken:** Nutzt `pathlib`, `os`, `sys`, `subprocess` und `datetime` (keine externen Pakete erforderlich).
 
----
+## Python-Interpreter
+
+Dieses Skript verwendet dieselbe Python-Fallback-Kette wie das Hauptmenü. Der Interpreter wird von der übergeordneten `Start.bat` bzw. `Menu.py` ermittelt und über `sys.executable` an das Subskript weitergegeben.
 
 ## Konfiguration im Skript
 
 Im Header des Skripts kann der Testlauf-Modus global gesteuert werden:
 
-```python
-DELETE_ODF_DRY_RUN = False  # Auf True setzen für eine Simulation
-```
-
----
+    DELETE_ODF_DRY_RUN = False  # Auf True setzen für eine Simulation
 
 ## Ausführung
 
-Das Skript wird im normalen Arbeitsablauf über den zentralen **Workflow Launcher** (`Workflow_Launcher_start.bat`) und das darauf folgende **Auswahlmenü** gestartet. Die benötigten Parameter (AC-Nummer und Datenträger-ID) werden dabei automatisch vom Menü an das Skript übergeben.
+Das Skript wird im normalen Arbeitsablauf über das Hauptmenü gestartet:
 
-Nach dem Start öffnet das Skript ein eigenes interaktives Untermenü, in dem die spezifische Bereinigungsaktion gewählt werden kann.
+1. `Start.bat` im Root doppelklicken → Hauptmenü
+2. `D` eingeben (Datenaufbereitung)
+3. AC-Nummer und Datenträger-ID über die Menüpunkte `A`, `D` oder `N` wählen
+4. Skript `6` (F_Zwischendateien_ODF_WAV_löschen) auswählen
 
-Für manuelle Tests oder Debugging kann das Skript auch direkt über die Kommandozeile aufgerufen werden. Es erwartet zwei Argumente: die AC-Nummer und die Datenträger-ID.
+Nach dem Start öffnet das Skript ein eigenes interaktives Untermenü.
 
-**Beispiel für einen manuellen Aufruf:**
+Die Parameter werden vom Menü automatisch an das Skript übergeben:
 
-```bat
-@echo off
-set AC_NUMBER=AC_0001
-set DISK_ID=CD_01
-python "F_Zwischendateien_ODF_WAV_löschen.py" %AC_NUMBER% %DISK_ID%
-pause
-```
+- `sys.argv[1]` = AC-Nummer
+- `sys.argv[2]` = Datenträger-ID
+- `sys.argv[3]` = Datenpfad (optional; alternativ Umgebungsvariable `DATA_PATH`)
+
+Für manuelle Tests oder Debugging kann das Skript direkt über die Kommandozeile aufgerufen werden:
+
+    python "F_Zwischendateien_ODF_WAV_löschen.py" AC_0001 CD_01 "C:\Pfad\zum\Datenordner"
 
 ### Ablauf der Ausführung
 
 1. **Validierung:** Das Skript prüft die Pfade in Stufe 4 und stellt sicher, dass der Log-Ordner in Stufe 5 existiert (wird ggf. erstellt).
-2. **Menü-Auswahl:** Der Benutzer wählt die gewünschte Aufräum-Aktion (ODF oder WAV).
-3. **Analyse:** Das System sucht rekursiv nach Dateien, die dem Muster `Originalname.originalendung.zwischenendung` entsprechen, und prüft die Existenz des Originals.
-4. **Bestätigung:** Vor dem tatsächlichen Löschen wird eine Liste der gefundenen Dateien angezeigt.
-5. **Löschung & Logging:** Die Dateien werden entfernt und der Vorgang wird mit Zeitstempel in den LZA-Logordner (Stufe 5) geschrieben.
-
----
+2. **Menü-Auswahl:** Der Benutzer wählt die einzige Aufräum-Aktion (ODF und WAV in einem Durchgang) oder beendet das Skript.
+3. **Schritt 1/2 – ODF-Analyse:** Das System sucht rekursiv nach `.odt`-Dateien, deren Stammname auf eine der Original-Endungen endet und deren Originaldatei noch existiert.
+4. **ODF-Bestätigung & Löschung:** Vor dem tatsächlichen Löschen wird eine Liste der gefundenen Dateien angezeigt. Nach Bestätigung werden sie entfernt und der Vorgang protokolliert.
+5. **Schritt 2/2 – WAV-Analyse:** Das System sucht `.wav`-Dateien, deren vorletzte Endung eine Quell-Audioendung ist und deren Originaldatei noch existiert.
+6. **WAV-Bestätigung & Löschung:** Analog zu ODF – Liste, Bestätigung, Löschung, Protokollierung.
+7. **Zusammenfassung:** Am Ende werden die Anzahl der gelöschten ODF- und WAV-Dateien zusammengefasst.
 
 ## Detaillierte Hinweise zum Skriptverhalten
 
@@ -88,6 +89,7 @@ Das Skript löscht `.odt`-Dateien, deren Stammname (ohne `.odt`) auf eine der fo
 `.doc`, `.docx`, `.rtf`, `.wpd`, `.wps`, `.dot`, `.dotx`, `.wbk`
 
 **Erkennungslogik für ODF:**
+
 1. Rekursive Suche nach allen `.odt`-Dateien.
 2. `file.stem` ergibt z. B. `dokument.doc` (bei Datei `dokument.doc.odt`).
 3. Prüfung, ob dieser Stammname mit einer der Original-Endungen endet.
@@ -101,6 +103,7 @@ Das Skript löscht `.wav`-Dateien, die aus folgenden Audioformaten konvertiert w
 `.aiff`, `.flac`, `.ogg`, `.wav`, `.m4a`, `.wma`, `.aac`, `.mp3`
 
 **Erkennungslogik für WAV:**
+
 1. Alle Dateien im Zielordner werden in einen Set `all_found_files` geladen.
 2. Für jede `.wav`-Datei wird der Name an `.` gesplittet.
 3. Wenn mindestens 3 Teile vorhanden sind (z. B. `song.flac.wav` → `['song', 'flac', 'wav']`).
@@ -112,20 +115,20 @@ Das Skript löscht `.wav`-Dateien, die aus folgenden Audioformaten konvertiert w
 ### Interaktives Menü
 
 Das Skript zeigt folgendes Menü an:
-```text
-========================================
-  Wählen Sie eine Aufräum-Aktion:
-========================================
-  1 - Zwischendateien (ODF) löschen
-  2 - Konvertierte WAV-Dateien löschen
-  Q - Beenden
-========================================
-```
-Nach jeder abgeschlossenen Aktion muss der Benutzer **Enter drücken**, um zum Menü zurückzukehren.
+
+    ========================================
+      Wählen Sie eine Aufräum-Aktion:
+    ========================================
+      1 - ODF- und WAV-Zwischendateien löschen
+      Q - Beenden
+    ========================================
+
+Bei Auswahl `1` werden **beide** Bereinigungsschritte (erst ODF, dann WAV) nacheinander ausgeführt. Nach Abschluss muss der Benutzer **Enter drücken**, um zum Menü zurückzukehren. Bei `Q` wird das Menü verlassen.
 
 ### Simulationsmodus (nur für ODF)
 
 Die globale Variable `DELETE_ODF_DRY_RUN = False` steuert den Testlauf:
+
 - `True` → Simulation: Keine Löschung, nur Log mit potenziellen Löschkandidaten.
 - `False` → Echter Löschvorgang mit Bestätigungsabfrage.
 
@@ -134,32 +137,33 @@ Die WAV-Bereinigung hat **keinen Dry-Run-Modus** (löscht immer nach Bestätigun
 ### Bestätigungsabfragen
 
 **ODF-Bereinigung** (bei `DELETE_ODF_DRY_RUN = False`):
-```text
-Die folgenden ODF-Zwischendateien wurden zur Löschung identifiziert:
-  - Pfad/zu/datei.odt
 
-Möchten Sie diese Dateien wirklich löschen? (j/n):
-```
+    Die folgenden ODF-Zwischendateien wurden zur Löschung identifiziert:
+      - Pfad/zu/datei.odt
 
-**WAV-Bereinigung**:
-```text
-Die folgenden, durch Konvertierung erstellten WAV-Dateien werden gelöscht:
-  - datei.wav
+    Möchten Sie diese ODF-Dateien wirklich löschen? (j/n):
 
-Möchten Sie diese Dateien wirklich löschen? (j/n):
-```
-Bei `n` oder anderer Eingabe wird der Löschvorgang abgebrochen.
+**WAV-Bereinigung:**
+
+    Die folgenden, durch Konvertierung erstellten WAV-Dateien wurden identifiziert:
+      - datei.wav
+
+    Möchten Sie diese WAV-Dateien wirklich löschen? (j/n):
+
+Bei `n` oder anderer Eingabe wird der jeweilige Löschvorgang abgebrochen.
 
 ### Log-Dateien
 
 Beide Logs werden im Ordner `5_[ID]_LZA/logfiles/` abgelegt.
 
 **ODF-Log** (`*_delete-converted-odfs.log`):
+
 - Enthält bei Dry-Run: `# Protokoll des TESTLAUFS (keine ODF-Dateien wurden gelöscht)`
 - Enthält bei echtem Lauf: `# Protokoll des Aufräumvorgangs (ODF)`
 - Aufteilung in: `--- ERFOLGREICH GELÖSCHT ---` und `--- FEHLER BEIM LÖSCHEN ---`
 
 **WAV-Log** (`*_delete-converted-wavs.log`):
+
 - Enthält: `# Protokoll des Aufräumvorgangs (WAV)`
 - Aufteilung in: `--- ERFOLGREICH GELÖSCHT ---` und `--- FEHLER BEIM LÖSCHEN ---`
 
@@ -175,6 +179,7 @@ Beide Logs werden im Ordner `5_[ID]_LZA/logfiles/` abgelegt.
 ### Plattformabhängiges Öffnen des Zielordners
 
 Nach Verlassen des Menüs (Auswahl `Q`) fragt das Skript: `Zielordner oeffnen? (j/n):`. Bei `j`:
+
 - **Windows** → `os.startfile(str(destination_folder))`
 - **macOS** → `subprocess.run(["open", str(destination_folder)])`
 - **Linux/andere** → `subprocess.run(["xdg-open", str(destination_folder)])`
@@ -189,16 +194,14 @@ Dies verhindert das sofortige Schließen des Konsolenfensters bei Ausführung pe
 
 Das Skript verwendet nur Module der Python-Standardbibliothek: `os`, `sys`, `subprocess`, `datetime`, `pathlib`. Keine externen Python-Pakete erforderlich.
 
----
-
 ## Lizenz
 
-Copyright (c) 2025 Florian Lüftner <florian.lueftner@posteo.com>
+
 Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
 
 Dieses Skript ist unter der MIT-Lizenz lizenziert.
 
 ---
-SPDX-FileCopyrightText: 2025 Florian Lüftner
+
 SPDX-FileCopyrightText: 2025 Gregor Neuboeck
 SPDX-License-Identifier: MIT

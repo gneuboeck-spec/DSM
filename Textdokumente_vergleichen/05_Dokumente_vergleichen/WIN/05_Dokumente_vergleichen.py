@@ -169,7 +169,7 @@ def get_settings_from_user(default_sim, default_len, default_word, default_base,
         dialog.destroy()
 
     tk.Label(dialog, text="Schwellenwerte anpassen\n(Felder leer lassen für Standardwerte)", 
-             font=("Arial", 11, "bold")).pack(pady=10)
+            font=("Arial", 11, "bold")).pack(pady=10)
     
     frame_thresh = tk.Frame(dialog)
     frame_thresh.pack(padx=20, fill="x")
@@ -205,19 +205,19 @@ def get_settings_from_user(default_sim, default_len, default_word, default_base,
     entry_max_compare.grid(row=5, column=1, padx=10)
 
     tk.Label(dialog, text="Text-Sampling-Modus:", 
-             font=("Arial", 11, "bold")).pack(pady=(20, 5))
+            font=("Arial", 11, "bold")).pack(pady=(20, 5))
     
     sampling_var = tk.StringVar(value="standard")
     frame_sampling = tk.Frame(dialog)
     frame_sampling.pack(padx=20, fill="x")
     
     tk.Radiobutton(frame_sampling, text="Standard: Nur Anfang des Textes (schneller)", 
-                   variable=sampling_var, value="standard", anchor="w", font=("Arial", 10)).grid(row=0, column=0, sticky="w", pady=2)
+                variable=sampling_var, value="standard", anchor="w", font=("Arial", 10)).grid(row=0, column=0, sticky="w", pady=2)
     tk.Radiobutton(frame_sampling, text="Smart: Anfang + Ende (besser für lange Dokumente)", 
-                   variable=sampling_var, value="smart", anchor="w", font=("Arial", 10)).grid(row=1, column=0, sticky="w", pady=2)
+                variable=sampling_var, value="smart", anchor="w", font=("Arial", 10)).grid(row=1, column=0, sticky="w", pady=2)
 
     tk.Label(dialog, text="Kriterium für das Basisdokument:", 
-             font=("Arial", 11, "bold")).pack(pady=20)
+            font=("Arial", 11, "bold")).pack(pady=20)
     
     base_var = tk.StringVar(value=default_base)
     frame_base = tk.Frame(dialog)
@@ -257,7 +257,7 @@ def show_process_help(parent_dialog):
     scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
     
     text_widget = tk.Text(text_frame, wrap="word", font=("Arial", 10), 
-                          yscrollcommand=scrollbar.set, padx=10, pady=10, state="normal", relief="flat")
+                        yscrollcommand=scrollbar.set, padx=10, pady=10, state="normal", relief="flat")
     text_widget.pack(fill=tk.BOTH, expand=True)
     scrollbar.config(command=text_widget.yview)
     
@@ -571,7 +571,7 @@ def show_process_help(parent_dialog):
     btn_frame = tk.Frame(help_root)
     btn_frame.pack(pady=10)
     tk.Button(btn_frame, text="Fenster schließen", command=help_root.destroy, 
-              width=20, font=("Arial", 11, "bold")).pack()
+            width=20, font=("Arial", 11, "bold")).pack()
 
 def show_main_help(parent_dialog):
     help_root = tk.Toplevel(parent_dialog)
@@ -592,7 +592,7 @@ def show_main_help(parent_dialog):
     scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
     
     text_widget = tk.Text(text_frame, wrap="word", font=("Arial", 10), 
-                          yscrollcommand=scrollbar.set, padx=10, pady=10, state="normal", relief="flat")
+                        yscrollcommand=scrollbar.set, padx=10, pady=10, state="normal", relief="flat")
     text_widget.pack(fill=tk.BOTH, expand=True)
     scrollbar.config(command=text_widget.yview)
     
@@ -685,7 +685,7 @@ def show_main_help(parent_dialog):
     btn_frame = tk.Frame(help_root)
     btn_frame.pack(pady=10)
     tk.Button(btn_frame, text="Fenster schließen", command=help_root.destroy, 
-              width=20, font=("Arial", 11, "bold")).pack()
+            width=20, font=("Arial", 11, "bold")).pack()
 
 
 # ==============================================================================
@@ -960,8 +960,8 @@ def get_smart_text_sample(text, max_chars):
 
 
 def compare_pair(pair, preprocessed, similarity_threshold, max_compare_length,
-                 min_text_length, word_overlap_threshold, length_ratio_threshold,
-                 excerpt_threshold):
+                min_text_length, word_overlap_threshold, length_ratio_threshold,
+                excerpt_threshold):
     i, j = pair
     prep_i = preprocessed[i]
     prep_j = preprocessed[j]

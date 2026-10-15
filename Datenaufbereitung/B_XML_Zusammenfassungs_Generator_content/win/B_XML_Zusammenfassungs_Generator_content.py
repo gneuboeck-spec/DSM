@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Gregor Neuböck <g.neuboeck@pgmail.com>
+# SPDX-FileCopyrightText: 2025 Gregor Neuböck <g.neuboeck@gmail.com>
 #
 # SPDX-License-Identifier: MIT
 

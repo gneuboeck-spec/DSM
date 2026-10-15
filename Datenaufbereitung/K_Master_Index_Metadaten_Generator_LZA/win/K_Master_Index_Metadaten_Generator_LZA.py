@@ -49,7 +49,7 @@ def find_executable(tool_name, fallback_path):
 # --- 1. System-Pfade und Listen (dynamisch ermittelt) ---
 EXIFTOOL_PATH = find_executable("exiftool", r"C:\Program Files\ExifTool\exiftool.exe")
 FFPROBE_PATH = find_executable("ffprobe", r"C:\Program Files\ffmpeg\ffprobe.exe")
-HACHOIR_METADATA_PATH = find_executable("hachoir-metadata", r"C:\Users\digit\.venv\Scripts\hachoir-metadata.exe")
+HACHOIR_METADATA_PATH = find_executable("hachoir-metadata", r"C:\Users\digit\AppData\Local\Programs\Python\Python313\Scripts\hachoir-metadata.exe")
 SIEGFRIED_PATH = find_executable("sf", r"C:\Program Files\Siegfried\sf.exe")
 
 # NEU: Dynamischer Pfad für lokale Skript-Dateien (wie rules.yar)

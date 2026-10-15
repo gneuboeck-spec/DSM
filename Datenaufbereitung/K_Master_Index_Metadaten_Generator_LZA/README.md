@@ -2,7 +2,13 @@
 
 Dieses Skript ist das finale Kontroll- und Indexierungswerkzeug in Phase 4 (LZA-Paketierung). Es führt eine tiefgehende Metadaten-Extraktion über den gesamten Inhalt der Stufe 5 (LZA) durch und erstellt ein lückenloses digitales Inventar (`.index`). Das Kernstück ist der Multi-Source-Fixity-Check: Jede Datei im Paket wird live gegen bis zu sechs historische Dokumentationsquellen aus allen vorherigen Prozessstufen validiert, um die absolute Unveränderlichkeit der Daten vor der Archivierung zu beweisen.
 
----
+## Struktur
+
+    K_Master_Index_Metadaten_Generator_LZA/
+    |-- README.md                          <-- Diese Datei
+    `-- win/
+        |-- K_Master_Index_Metadaten_Generator_LZA.py   <-- Ausführbare Python-Datei
+        `-- rules.yar                      <-- YARA-Regeln für Dateiformat-Identifizierung
 
 ## Hauptfunktionen
 
@@ -19,66 +25,78 @@ Dieses Skript ist das finale Kontroll- und Indexierungswerkzeug in Phase 4 (LZA-
 * **Tiefenanalyse & Harmonisierung:**
   * Bündelt Metadaten von ExifTool, Siegfried, FFprobe, Hachoir und YARA in einem einheitlichen, alphabetisch sortierten XML-Schema.
 
----
-
 ## TREE-Struktur & Dateipfade (Phase 4)
 
-Das Skript arbeitet im fertig konsolidierten LZA-Staging-Ordner. Es scannt alle Objekte und gleicht sie mit den Protokollen im `logfiles`-Ordner ab:
+Das Skript arbeitet im fertig konsolidierten LZA-Staging-Ordner. Es scannt alle Objekte und gleicht sie mit den Protokollen im `logfiles`-Ordner ab. Der Projektpfad wird vom Menü übergeben (`sys.argv[3]` oder Umgebungsvariable `DATA_PATH`):
 
-```text
-Documents/data/[AC-Nummer]/[Datenträger-ID]/
-└── 5_[ID]_LZA/                            <-- ARBEITSBEREICH (Eingabe)
-    ├── 01_[ID].img (oder .001 / .bin)     <-- OBJEKT (Gegen SHA-512 geprüft)
-    ├── 3_files/                           <-- OBJEKTE (Gegen SHA-256/MD5 geprüft)
-    │   └── ... (Originale & Derivate)
-    ├── 5_[ID]_LZA.index                   <-- ZIEL (Finaler Master-Index)
-    └── logfiles/                          <-- QUELLEN & ZIEL FÜR LOGS
-        ├── 1_[ID]_image-log.csv           <-- Quelle: SHA-512 (Spalte: SHA-512-Hash)
-        ├── 01_[ID]_image-log.txt          <-- Quelle: SHA-512 (Sektion: SHA-512-Hashes)
-        ├── 2_[ID]_extracted-files_brunnhilde/
-        │   └── files_collection_report/
-        │       └── siegfried.csv          <-- Quelle: MD5 (Spalte: md5)
-        ├── 2_[ID]_extracted-files_brunnhilde-summary.json <-- Quelle: SHA-256 (Feld: sha256)
-        ├── 3_[ID]_for-transfer.index      <-- Quelle: SHA-256 (Tag: sha256)
-        ├── 5_[ID]_LZA_premis.xml          <-- Quelle: SHA-256 (Tag: messageDigest)
-        └── 5_[ID]_LZA_integrity.log       <-- ZIEL: Finaler Fixity-Beweis
-```
-
----
+    [Projektpfad]/
+    `-- 5_[ID]_LZA/                            <-- ARBEITSBEREICH (Eingabe)
+        |-- 01_[ID].img (oder .001 / .bin)     <-- OBJEKT (Gegen SHA-512 geprüft)
+        |-- 3_files/                           <-- OBJEKTE (Gegen SHA-256/MD5 geprüft)
+        |   `-- ... (Originale & Derivate)
+        `-- logfiles/                          <-- QUELLEN & ZIEL FÜR LOGS UND INDEX
+            |-- 1_[ID]_image-log.csv           <-- Quelle: SHA-512 (Spalte: SHA-512-Hash)
+            |-- 01_[ID]_image-log.txt          <-- Quelle: SHA-512 (Sektion: SHA-512-Hashes)
+            |-- 2_[ID]_extracted-files_brunnhilde/
+            |   `-- files_collection_report/
+            |       `-- siegfried.csv          <-- Quelle: MD5 (Spalte: md5)
+            |-- 2_[ID]_extracted-files_brunnhilde-summary.json <-- Quelle: SHA-256 (Feld: sha256)
+            |-- 3_[ID]_for-transfer.index      <-- Quelle: SHA-256 (Tag: sha256)
+            |-- 5_[ID]_LZA_premis.xml          <-- Quelle: SHA-256 (Tag: messageDigest)
+            |-- 5_[ID]_LZA.index               <-- ZIEL: Finaler Master-Index
+            `-- 5_[ID]_LZA_integrity.log       <-- ZIEL: Finaler Fixity-Beweis
 
 ## Technische Voraussetzungen
 
-Zusätzlich zu Python 3.10+ müssen folgende externe Python-Pakete installiert sein:
+Zusätzlich zu Python 3.13+ müssen folgende externe Python-Pakete installiert sein:
+
 * `mutagen`
 * `PyPDF2`
 * `Pillow`
 * `yara-python`
 * `chardet`
 
-Folgende externe Tools müssen im System-Pfad oder an den im Skript konfigurierten festen Pfaden verfügbar sein:
-1. **ExifTool** (`exiftool.exe`)
-2. **Siegfried** (`sf.exe`)
-3. **FFmpeg/FFprobe** (`ffprobe.exe`)
-4. **Hachoir** (`hachoir-metadata.exe`)
-5. **YARA**: Die Datei `rules.yar` muss sich im selben Verzeichnis (`win/`) wie das Python-Skript befinden.
+Installation:
 
----
+    pip install -r requirements.txt
+
+Folgende externe Tools müssen im System-PATH oder an den im Skript konfigurierten Fallback-Pfaden verfügbar sein:
+
+| Tool | Aufruf | Fallback-Pfad |
+|------|--------|---------------|
+| ExifTool | `exiftool` | `C:\Program Files\ExifTool\exiftool.exe` |
+| Siegfried | `sf` | `C:\Program Files\Siegfried\sf.exe` |
+| FFmpeg/FFprobe | `ffprobe` | `C:\Program Files\ffmpeg\ffprobe.exe` |
+| Hachoir | `hachoir-metadata` | `C:\Users\digit\AppData\Local\Programs\Python\Python313\Scripts\hachoir-metadata.exe` |
+
+**YARA-Regeln:** Die Datei `rules.yar` muss sich im selben Verzeichnis (`win/`) wie das Python-Skript befinden. Der Pfad wird dynamisch aus `SCRIPT_DIR` ermittelt.
+
+Nach einer PATH-Änderung muss die Konsole neu geöffnet werden, damit der Eintrag wirksam wird.
+
+## Python-Interpreter
+
+Dieses Skript verwendet dieselbe Python-Fallback-Kette wie das Hauptmenü. Der Interpreter wird von der übergeordneten `Start.bat` bzw. `Menu.py` ermittelt und über `sys.executable` an das Subskript weitergegeben.
 
 ## Ausführung
 
-Das Skript wird im normalen Arbeitsablauf über den zentralen **Workflow Launcher** (`Workflow_Launcher_start.bat`) und das darauf folgende **Auswahlmenü** gestartet. Die benötigten Parameter (AC-Nummer und Datenträger-ID) werden dabei automatisch vom Menü an das Skript übergeben.
+Das Skript wird im normalen Arbeitsablauf über das Hauptmenü gestartet:
 
-Für manuelle Tests oder Debugging kann das Skript auch direkt über die Kommandozeile aufgerufen werden. Es erwartet zwingend zwei Argumente: die AC-Nummer und die Datenträger-ID.
+1. `Start.bat` im Root doppelklicken → Hauptmenü
+2. `D` eingeben (Datenaufbereitung)
+3. AC-Nummer und Datenträger-ID über die Menüpunkte `A`, `D` oder `N` wählen
+4. Skript `11` (K_Master_Index_Metadaten_Generator_LZA) auswählen
 
-**Beispiel für einen manuellen Aufruf:**
+Die Parameter werden vom Menü automatisch an das Skript übergeben:
 
-```bat
-@echo off
-set AC_NUMBER=AC_0001
-set DISK_ID=ID_001
-python "K_MasterIndex_LZA.py" %AC_NUMBER% %DISK_ID%
-pause
-```
+- `sys.argv[1]` = AC-Nummer
+- `sys.argv[2]` = Datenträger-ID
+- `sys.argv[3]` = Datenpfad (optional; alternativ Umgebungsvariable `DATA_PATH`)
+
+Für manuelle Tests oder Debugging kann das Skript direkt über die Kommandozeile aufgerufen werden:
+
+    python "K_Master_Index_Metadaten_Generator_LZA.py" AC_0001 ID_001 "C:\Pfad\zum\Datenordner"
+
+Werden keine Kommandozeilen-Argumente übergeben, fragt das Skript interaktiv nach AC-Nummer und Datenträger-ID. Der Projektpfad greift dann auf die Umgebungsvariable `DATA_PATH` oder auf `~/Documents/data/[AC]/[ID]` zurück.
 
 ### Ablauf der Finalisierung
 
@@ -88,32 +106,28 @@ pause
 4. **Detail-Reporting:** Bei Abweichungen wird exakt dokumentiert, welcher Wert (z. B. MD5) aus welcher Quelle nicht mit dem aktuellen Scan übereinstimmt.
 5. **Abschluss:** Das Integritäts-Log wird als finaler Beweis für die lückenlose Kette ("Chain of Custody") erstellt.
 
----
-
 ## Detaillierte Hinweise zum Skriptverhalten
 
 ### Erwartete Ordnerstruktur (Stufe 5 LZA)
 
 Das Skript erwartet folgende vollständig konsolidierte Struktur nach Ausführung von Skript J (Staging):
 
-```text
-~/Documents/data/[AC-Nummer]/[Datenträger-ID]/
-└── 5_[Datenträger-ID]_LZA/                      <-- BASE_DIR (wird rekursiv gescannt)
-    ├── 01_[ID].img / *.001 / *.bin / *.dd       <-- Disk-Images
-    ├── 3_files/                                 <-- Nutzdaten (Originale & Derivate)
-    ├── [andere Dateien/Ordner aus Stufe 1-3]    <-- werden ebenfalls gescannt
-    ├── 5_[ID]_LZA.index                         <-- ZIEL (Master-Index)
-    └── logfiles/                                <-- QUELLE für Referenz-Hashes + ZIEL für Log
-        ├── 1_[ID]_image-log.csv
-        ├── 01_[ID]_image-log.txt
-        ├── 2_[ID]_extracted-files_brunnhilde/
-        │   └── files_collection_report/
-        │       └── siegfried.csv
-        ├── 2_[ID]_extracted-files_brunnhilde-summary.json
-        ├── 3_[ID]_for-transfer.index
-        ├── 5_[ID]_LZA_premis.xml
-        └── 5_[ID]_LZA_integrity.log             <-- ZIEL (finales Integritäts-Log)
-```
+    [Projektpfad]/
+    `-- 5_[Datenträger-ID]_LZA/                      <-- BASE_DIR (wird rekursiv gescannt)
+        |-- 01_[ID].img / *.001 / *.bin / *.dd       <-- Disk-Images
+        |-- 3_files/                                 <-- Nutzdaten (Originale & Derivate)
+        |-- [andere Dateien/Ordner aus Stufe 1-3]    <-- werden ebenfalls gescannt
+        `-- logfiles/                                <-- QUELLE für Referenz-Hashes + ZIEL für Log und Index
+            |-- 1_[ID]_image-log.csv
+            |-- 01_[ID]_image-log.txt
+            |-- 2_[ID]_extracted-files_brunnhilde/
+            |   `-- files_collection_report/
+            |       `-- siegfried.csv
+            |-- 2_[ID]_extracted-files_brunnhilde-summary.json
+            |-- 3_[ID]_for-transfer.index
+            |-- 5_[ID]_LZA_premis.xml
+            |-- 5_[ID]_LZA.index                     <-- ZIEL (Master-Index)
+            `-- 5_[ID]_LZA_integrity.log             <-- ZIEL (finales Integritäts-Log)
 
 ### Referenzquellen für Integritätsprüfung (`load_all_lza_reference_hashes`)
 
@@ -154,6 +168,7 @@ Das Log wird im Ordner `5_[ID]_LZA/logfiles/` erstellt und enthält:
 ### Metadaten-Extraktoren
 
 Das Skript verwendet die gleichen Extraktoren wie Skript G:
+
 * `get_file_info` (alle Dateien)
 * `run_siegfried` (alle Dateien)
 * `extract_image_info` (bei MIME-Typ `image/*`, außer SVG)
@@ -215,24 +230,23 @@ Das Element `<validity>` erhält `Yes` oder `No` basierend auf:
 
 | Datei | Pfad | Inhalt |
 |-------|------|--------|
-| Master-Index | `5_[ID]_LZA/5_[ID]_LZA.index` | XML mit Metadaten aller Dateien in Stufe 5 |
+| Master-Index | `5_[ID]_LZA/logfiles/5_[ID]_LZA.index` | XML mit Metadaten aller Dateien in Stufe 5 |
 | Integritäts-Log | `5_[ID]_LZA/logfiles/5_[ID]_LZA_integrity.log` | Textprotokoll der Hash-Validierung |
 
 ### Plattformabhängiges Öffnen des Zielordners
 
 Nach Abschluss fragt das Skript: `Zielordner oeffnen? (j/n):`. Bei `j`:
+
 * **Windows** → `os.startfile(destination_folder)`
 * **macOS** → `subprocess.run(["open", destination_folder])`
 * **Linux/andere** → `subprocess.run(["xdg-open", destination_folder])`
 
 ### Wichtige Einschränkungen
 
-* `.tiff`-Dateien werden nicht als Bilder erkannt (nur `.tif` für Hardware-Fotos).
 * Die Hash-Referenzen werden **nur über den reinen Dateinamen** abgeglichen (nicht über Pfad).
 * SHA-512 aus Greaseweazle-TXT-Log wird nur für `.raw`-Dateien extrahiert (Regex: `([\w\d\._-]+\.raw):\s*([a-fA-F0-9]{128})`).
 * PREMIS-XML wird nur gelesen, wenn es den Namespace `http://www.loc.gov/premis/v3` verwendet.
-
----
+* Der Master-Index wird im `logfiles`-Unterordner abgelegt, nicht im Hauptordner der Stufe 5.
 
 ## Lizenz
 

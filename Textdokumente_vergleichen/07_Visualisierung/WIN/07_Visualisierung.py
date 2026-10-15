@@ -773,7 +773,7 @@ def show_visualization_menu(rows):
 def main():
     if len(sys.argv) < 3:
         print("❌ Fehler: Eingabe- und Ausgabe-Pfad fehlen.")
-        print("Verwendung: python 03_visualisierung.py <eingabe_pfad> <ausgabe_pfad>")
+        print("Verwendung: python 07_Visualisierung.py <eingabe_pfad> <ausgabe_pfad>")
         input("Drücke Enter zum Beenden...")
         return
 

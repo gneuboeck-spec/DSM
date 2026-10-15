@@ -1,6 +1,11 @@
 # ============================================================
 # requirements.txt für Unterordner: Tools
 # Python-Abhängigkeiten für Tools-Skripte
+#
+# WICHTIG: Diese Datei enthält NUR Python-Pakete (pip).
+# Externe Programme wie Siegfried, ClamAV, FFmpeg, LibreOffice,
+# DbxConv usw. sind NICHT hier gelistet, sondern in:
+#     EXTERNE_TOOLS.md
 # ============================================================
 
 # ------------------------------------------------------------

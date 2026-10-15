@@ -557,7 +557,7 @@ def save_as_excel(rows, output_file, base_dir: Path):
 def main():
     if len(sys.argv) < 3:
         print("❌ Fehler: Eingabe- und Ausgabe-Pfad fehlen.")
-        print("Verwendung: python 02_ki_analyse.py <eingabe_pfad> <ausgabe_pfad>")
+        print("Verwendung: python 06_KI_Analyse.py <eingabe_pfad> <ausgabe_pfad>")
         input("Drücke Enter zum Beenden...")
         return
 

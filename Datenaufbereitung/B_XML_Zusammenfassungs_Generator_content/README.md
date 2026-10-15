@@ -4,7 +4,12 @@ Dieses Skript ist ein spezialisiertes Werkzeug zur Automatisierung der Berichter
 
 Diese `.content`-Datei dient als zentrale Übersicht über den Inhalt und die technischen Eigenschaften eines archivierten Datenträgers.
 
----
+## Struktur
+
+    B_XML_Zusammenfassungs_Generator_content/
+    |-- README.md                          <-- Diese Datei
+    `-- win/
+        `-- B_XML_Zusammenfassungs_Generator_content.py   <-- Ausführbare Python-Datei
 
 ## Hauptfunktionen
 
@@ -20,51 +25,51 @@ Diese `.content`-Datei dient als zentrale Übersicht über den Inhalt und die te
    * Ziel: Eine neue XML-Datei mit der Endung `.content` im Stufe-2-Verzeichnis.
    * Aktion: Erstellt eine saubere, maschinenlesbare Übersicht. Ein Überschreiben existierender Dateien wird vom Skript verhindert.
 
----
-
 ## TREE-Struktur & Dateipfade
 
 Das Skript verknüpft Daten aus verschiedenen Verarbeitungsstufen. Die Existenz des Transfer-Ordners (Stufe 3) wird ebenfalls validiert:
 
-```text
-[AC-Nummer]/[Datenträger-ID]/
-├── 0_[ID]_picture-carrier/
-│   └── 0_[ID]_carrier-description.xml          <-- QUELLE 1 (Manuelle Beschreibung)
-├── 2_[ID]_extracted-files/
-│   ├── 2_[ID]_extracted-files_brunnhilde/
-│   │   └── files_collection_report/
-│   │       └── report.html                     <-- QUELLE 2 (Brunnhilde-Analyse)
-│   └── 2_[ID]_extracted-files.content          <-- ZIEL (Zusammenfassungsbericht)
-└── 3_[ID]_for-transfer/                        <-- VALIDIERUNG (Muss existieren)
-```
-
----
+    [AC-Nummer]/[Datenträger-ID]/
+    |-- 0_[ID]_picture-carrier/
+    |   `-- 0_[ID]_carrier-description.xml          <-- QUELLE 1 (Manuelle Beschreibung)
+    |-- 2_[ID]_extracted-files/
+    |   |-- 2_[ID]_extracted-files_brunnhilde/
+    |   |   `-- files_collection_report/
+    |   |       `-- report.html                     <-- QUELLE 2 (Brunnhilde-Analyse)
+    |   `-- 2_[ID]_extracted-files.content          <-- ZIEL (Zusammenfassungsbericht)
+    `-- 3_[ID]_for-transfer/                        <-- VALIDIERUNG (Muss existieren)
 
 ## Technische Voraussetzungen
 
-* Python: Version 3.10 oder neuer empfohlen.
-* Bibliotheken: Beautiful Soup 4 muss installiert sein:
-  ```bash
-  pip install beautifulsoup4
-  ```
+- **Windows 10/11**
+- **Python 3.13** oder höher (siehe Hinweis zur Fallback-Kette unten)
+- **Python-Pakete:** `beautifulsoup4` (in `requirements.txt` enthalten; Installation: `pip install -r requirements.txt`)
+- Alle weiteren Module (`xml.etree.ElementTree`, `subprocess`, `platform`, `sys`, `pathlib`, `os`) sind Teil der Python-Standardbibliothek.
 
----
+## Python-Interpreter
+
+Dieses Skript verwendet dieselbe Python-Fallback-Kette wie das Hauptmenü. Der Interpreter wird von der übergeordneten `Start.bat` bzw. `Menu.py` ermittelt und über `sys.executable` an das Subskript weitergegeben.
 
 ## Ausführung
 
-Das Skript wird im normalen Arbeitsablauf über den zentralen **Workflow Launcher** (`Workflow_Launcher_start.bat`) und das darauf folgende **Auswahlmenü** gestartet. Die benötigten Parameter (AC-Nummer und Datenträger-ID) werden dabei automatisch vom Menü an das Skript übergeben.
+Das Skript wird im normalen Arbeitsablauf über das Hauptmenü gestartet:
 
-Für manuelle Tests oder Debugging kann das Skript auch direkt über die Kommandozeile aufgerufen werden. Es erwartet zwei Argumente: die AC-Nummer und die Datenträger-ID.
+1. `Start.bat` im Root doppelklicken → Hauptmenü
+2. `D` eingeben (Datenaufbereitung)
+3. AC-Nummer und Datenträger-ID über die Menüpunkte `A`, `D` oder `N` wählen
+4. Skript `2` (B_XML_Zusammenfassungs_Generator_content) auswählen
 
-**Beispiel für einen manuellen Aufruf:**
+Die Parameter werden vom Menü automatisch an das Skript übergeben:
 
-```bat
-@echo off
-set AC_NUMBER=AC_12345
-set DISK_ID=ID_001
-python "B_XML_Zusammenfassungs_Generator.py" %AC_NUMBER% %DISK_ID%
-pause
-```
+- `sys.argv[1]` = AC-Nummer
+- `sys.argv[2]` = Datenträger-ID
+- `sys.argv[3]` = Datenpfad (optional; alternativ Umgebungsvariable `DATA_PATH`)
+
+Für manuelle Tests oder Debugging kann das Skript auch direkt über die Kommandozeile aufgerufen werden:
+
+    python "B_XML_Zusammenfassungs_Generator_content.py" AC_12345 ID_001 "C:\Pfad\zum\Datenordner"
+
+Wird das Skript ohne Argumente gestartet (z. B. per Doppelklick), fragt es interaktiv nach AC-Nummer und Datenträger-ID. Dabei wird jedoch keine erneute Pfadvalidierung durchlaufen.
 
 ### Ablauf der Ausführung
 
@@ -73,8 +78,6 @@ pause
 3. **HTML-Parsing:** Extraktion der statistischen Daten und Format-Listen aus dem Brunnhilde-Bericht.
 4. **XML-Generierung:** Erstellung der `.content`-Datei mit strukturierter Einrückung.
 5. **Abschluss:** Optionale Abfrage, ob der Zielordner im Explorer geöffnet werden soll.
-
----
 
 ## Detaillierte Hinweise zum Skriptverhalten
 
@@ -101,9 +104,9 @@ Das Skript sucht in `report.html` nach **exakt diesen Textmustern** in `<p><stro
 
 Falls eines dieser Muster nicht gefunden wird, bleibt die entsprechende Variable leer (`""`).
 
-### Verarbeitung der „File format versions“-Tabelle
+### Verarbeitung der "File format versions"-Tabelle
 
-Das Skript sucht nach einer `<h2>`-Überschrift mit dem exakten Text **„File format versions“**. Die unmittelbar folgende `<table>` wird ausgewertet.
+Das Skript sucht nach einer `<h2>`-Überschrift mit dem exakten Text **"File format versions"**. Die unmittelbar folgende `<table>` wird ausgewertet.
 
 - **Erkannte Formate** werden in `file_format_versions` gespeichert (mit `PronomID`, `FileFormatType`, `FileFormatVersion`, `Number`).
 - **Unidentified files** werden erkannt, wenn die erste Tabellenspalte leer ist **und** die zweite Spalte den Text `"UNKNOWN"` enthält. Deren Anzahl landet in `unidentified_count`.
@@ -125,34 +128,32 @@ Die letzte Zeile ist besonders wichtig: Das Skript schützt existierende Ausgabe
 
 Die Ausgabedatei hat folgende Struktur (vereinfacht):
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<DataCarrierSummary ID="[disk_archive_ID]">
-    <CarrierDescription>
-        <CarrierType>...</CarrierType>
-        <CarrierInscription>...</CarrierInscription>
-        <CarrierBranding>...</CarrierBranding>
-        <CarrierCondition>...</CarrierCondition>
-        <CarrierDescriptionNote>...</CarrierDescriptionNote>
-    </CarrierDescription>
-    <FileStatistic>
-        <NumberOfFiles>
-            <TotalNumber>[total_files]</TotalNumber>
-            <IdentifiedFileFormatVersions>
-                <FileFormatVersion>...</FileFormatVersion>  <!-- mehrfach -->
-            </IdentifiedFileFormatVersions>
-            <UnidentifiedFileFormats>
-                <Number>[unidentified_count]</Number>
-            </UnidentifiedFileFormats>
-        </NumberOfFiles>
-        <FileSize>
-            <TotalSize>[total_size]</TotalSize>
-        </FileSize>
-        <DateEarliestCreated>[earliest_date]</DateEarliestCreated>
-        <DateLatestModified>[latest_date]</DateLatestModified>
-    </FileStatistic>
-</DataCarrierSummary>
-```
+    <?xml version="1.0" encoding="UTF-8"?>
+    <DataCarrierSummary ID="[disk_archive_ID]">
+        <CarrierDescription>
+            <CarrierType>...</CarrierType>
+            <CarrierInscription>...</CarrierInscription>
+            <CarrierBranding>...</CarrierBranding>
+            <CarrierCondition>...</CarrierCondition>
+            <CarrierDescriptionNote>...</CarrierDescriptionNote>
+        </CarrierDescription>
+        <FileStatistic>
+            <NumberOfFiles>
+                <TotalNumber>[total_files]</TotalNumber>
+                <IdentifiedFileFormatVersions>
+                    <FileFormatVersion>...</FileFormatVersion>  <!-- mehrfach -->
+                </IdentifiedFileFormatVersions>
+                <UnidentifiedFileFormats>
+                    <Number>[unidentified_count]</Number>
+                </UnidentifiedFileFormats>
+            </NumberOfFiles>
+            <FileSize>
+                <TotalSize>[total_size]</TotalSize>
+            </FileSize>
+            <DateEarliestCreated>[earliest_date]</DateEarliestCreated>
+            <DateLatestModified>[latest_date]</DateLatestModified>
+        </FileStatistic>
+    </DataCarrierSummary>
 
 Die Einrückung erfolgt mit vier Leerzeichen (`ET.indent(space="    ")`).
 
@@ -165,12 +166,6 @@ Nach erfolgreicher Erstellung fragt das Skript: `Zielordner oeffnen? (j/n)`. Bei
 - **Linux/andere** → `subprocess.run(["xdg-open", str(destination_folder)])`
 
 Die Umwandlung des `Path`-Objekts in einen String ist zwingend erforderlich – das Skript macht das korrekt.
-
-### Abhängigkeiten (zusätzlich)
-
-Neben `beautifulsoup4` werden keine weiteren externen Bibliotheken benötigt. `xml.etree.ElementTree`, `subprocess`, `platform`, `sys` und `pathlib` sind in der Python-Standardbibliothek enthalten.
-
----
 
 ## Lizenz
 

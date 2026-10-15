@@ -4,6 +4,11 @@
 #
 # Installation:
 # py -3.13 -m pip install -r requirements.txt
+#
+# WICHTIG: Diese Datei enthält NUR Python-Pakete (pip).
+# Externe Programme wie Siegfried, ClamAV, FFmpeg, LibreOffice,
+# DbxConv usw. sind NICHT hier gelistet, sondern in:
+#     EXTERNE_TOOLS.md
 # ============================================================
 
 # ------------------------------------------------------------
@@ -44,6 +49,9 @@ lxml
 
 # HTTP-Requests, z. B. Schema-Download, API-Abfragen
 requests
+
+# HTTP-Retry-Strategie (wird in I_PREMIS_XML_Generator.py direkt importiert)
+urllib3
 
 # BagIt-Container-Erstellung für Archivierung
 bagit

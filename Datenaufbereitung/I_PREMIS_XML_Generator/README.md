@@ -1,10 +1,16 @@
 # I - PREMIS v3 XML-Generator (Digital Preservation)
 
-Dieses Skript ist das zentrale Dokumentationswerkzeug im Archivierungsworkflow. Es generiert eine valide PREMIS v3 (Preservation Metadata: Implementation Strategies) XML-Datei, die den gesamten Lebenszyklus eines digitalen Objekts – von der physischen Quelle bis zum fertigen Archivpaket – normgerecht und maschinenlesbar dokumentiert. 
+Dieses Skript ist das zentrale Dokumentationswerkzeug im Archivierungsworkflow. Es generiert eine valide PREMIS v3 (Preservation Metadata: Implementation Strategies) XML-Datei, die den gesamten Lebenszyklus eines digitalen Objekts – von der physischen Quelle bis zum fertigen Archivpaket – normgerecht und maschinenlesbar dokumentiert.
 
 Das Skript verfügt über eine intelligente "Medien-Weiche", die automatisch erkennt, ob es sich um USB-Sticks (FTK), Disketten (Greaseweazle), Festplatten (ddrescue) oder optische Datenträger (Redumper) handelt, und extrahiert die entsprechenden forensischen Metadaten direkt aus den jeweiligen Logs.
 
----
+## Struktur
+
+    I_PREMIS_XML_Generator/
+    |-- README.md                          <-- Diese Datei
+    |-- premis-v3-0.xsd                    <-- Offizielles PREMIS v3 XML-Schema (Library of Congress)
+    `-- win/
+        `-- I_PREMIS_XML_Generator.py      <-- Ausführbare Python-Datei
 
 ## Hauptfunktionen
 
@@ -18,91 +24,94 @@ Das Skript verfügt über eine intelligente "Medien-Weiche", die automatisch erk
   * **LOBID-Fallback:** Nutzt bei Erreichbarkeitsproblemen der DNB automatisch die lobid-gnd API (hbz), um Namen, Lebensdaten und Berufe zur Identifikation zu verknüpfen.
 * **Hierarchische PREMIS-Struktur:**
   * **Objects:** Dokumentiert Träger-Fotos (Stufe 0), Disk-Images (Stufe 1), extrahierte Originaldateien (Stufe 2) und den technischen Index (Stufe 3).
-  * **Events:** Protokolliert Imaging, Extraktion, Metadaten-Erfassung, Konvertierung und Packaging.
-  * **Agents:** Verknüpft Software-Tools (Siegfried, Brunnhilde, Python-Skripte), Hardware und Personen (Urheber).
+  * **Events:** Protokolliert Imaging, Extraktion, Metadaten-Erfassung, Virus-Check, Konvertierung und Packaging.
+  * **Agents:** Verknüpft Software-Tools (Siegfried, Brunnhilde, ClamAV, Python-Skripte), Hardware und Personen (Urheber).
   * **Rights:** Erstellt Copyright-Statements basierend auf den Urheberdaten.
+* **ClamAV-Virus-Check-Integration:**
+  * Liest `viruscheck-log.txt` aus Stufe 2 (Brunnhilde-Report) oder Stufe 5.
+  * Erstellt ein PREMIS-Event `virus check` mit ClamAV-Agent (Engine-Version, gescannte und infizierte Dateien).
+  * Speichert die Log-Datei selbst als PREMIS-Objekt (Artefakt) mit SHA-256-Hash.
+  * Normalisiert ClamAV-Datumsformate (`2026:08:12` → ISO-8601).
 * **Schema-Validierung & XSD-Compliance:**
   * Erzwingt die strikte Einhaltung der Element-Reihenfolge (Objects → Events → Agents → Rights).
-  * Integrierte Live-Validierung gegen das offizielle PREMIS-Schema der Library of Congress (LOC).
-
----
+  * Integrierte Live-Validierung gegen das offizielle PREMIS-Schema der Library of Congress (LOC). Dreistufiger Fallback: direkter Abruf, Abruf mit Browser-User-Agent, lokale Datei `premis-v3-0.xsd`.
+  * Erwartete FileTrove-/Greaseweazle-Erweiterungs-Warnungen werden herausgefiltert, damit nur echte PREMIS-Fehler angezeigt werden.
 
 ## TREE-Struktur & Dateipfade (Zustand während Phase 4)
 
-Das Skript aggregiert Daten aus allen bisherigen Projektstufen, um die lückenlose Provenienz zu beweisen:
+Das Skript aggregiert Daten aus allen bisherigen Projektstufen, um die lückenlose Provenienz zu beweisen. Der Projektpfad wird vom Menü übergeben (`sys.argv[3]` oder Umgebungsvariable `DATA_PATH`):
 
-```text
-Documents/data/[AC-Nummer]/[Datenträger-ID]/
-├── 0_[ID]_picture-carrier/          <-- QUELLE (Hardware-Fotos .tif)
-├── 1_[ID]_image-LZA/                <-- QUELLE (Disk-Images .img / .001 / .bin / .dd)
-│   └── logfiles/                    <-- QUELLE (Imaging-Logs .txt / .csv)
-├── 2_[ID]_extracted-files/          <-- QUELLE (Siegfried.csv & Brunnhilde-Berichte)
-├── 3_[ID]_for-transfer/             <-- QUELLE (Technischer Index .index)
-└── 5_[ID]_LZA/                      <-- ARBEITSBEREICH & ZIEL (Archiv-Staging)
-    └── logfiles/                    <-- ZIEL (Hier wird die Dokumentation erstellt)
-        └── 5_[ID]_LZA_premis.xml    <-- Das finale PREMIS-Hauptdokument
-```
-
----
+    [Projektpfad]/
+    |-- 0_[ID]_picture-carrier/          <-- QUELLE (Hardware-Fotos .tif)
+    |-- 1_[ID]_image-LZA/                <-- QUELLE (Disk-Images .img / .001 / .bin / .dd)
+    |   `-- logfiles/                    <-- QUELLE (Imaging-Logs .txt / .csv)
+    |-- 2_[ID]_extracted-files/          <-- QUELLE (Siegfried.csv & Brunnhilde-Berichte)
+    |-- 3_[ID]_for-transfer/             <-- QUELLE (Technischer Index .index)
+    `-- 5_[ID]_LZA/                      <-- ARBEITSBEREICH & ZIEL (Archiv-Staging)
+        `-- logfiles/                    <-- ZIEL (Hier wird die Dokumentation erstellt)
+            `-- 5_[ID]_LZA_premis.xml    <-- Das finale PREMIS-Hauptdokument
 
 ## Technische Voraussetzungen
 
-* **Python:** Version 3.10 oder neuer empfohlen.
-* **Bibliotheken:** Benötigt `lxml` (für XML-Sortierung/Validierung), `requests` (für GND-Abfragen) und `urllib3`.
-  ```bash
-  pip install lxml requests urllib3
-  ```
+* **Windows 10/11**
+* **Python 3.13** oder höher (siehe Hinweis zur Fallback-Kette unten)
+* **Python-Pakete:** `lxml`, `requests`, `urllib3` (in `requirements.txt` enthalten; Installation: `pip install -r requirements.txt`)
+* **Standardbibliothek:** `sys`, `re`, `os`, `csv`, `subprocess`, `hashlib`, `glob`, `xml.etree.ElementTree`, `pathlib`, `datetime`
 
----
+## Python-Interpreter
+
+Dieses Skript verwendet dieselbe Python-Fallback-Kette wie das Hauptmenü. Der Interpreter wird von der übergeordneten `Start.bat` bzw. `Menu.py` ermittelt und über `sys.executable` an das Subskript weitergegeben.
 
 ## Ausführung
 
-Das Skript wird im normalen Arbeitsablauf über den zentralen **Workflow Launcher** (`Workflow_Launcher_start.bat`) und das darauf folgende **Auswahlmenü** gestartet. Die benötigten Parameter (AC-Nummer und Datenträger-ID) werden dabei automatisch vom Menü an das Skript übergeben.
+Das Skript wird im normalen Arbeitsablauf über das Hauptmenü gestartet:
 
-Für manuelle Tests oder Debugging kann das Skript auch direkt über die Kommandozeile aufgerufen werden. Es erwartet zwingend zwei Argumente: die AC-Nummer und die Datenträger-ID.
+1. `Start.bat` im Root doppelklicken → Hauptmenü
+2. `D` eingeben (Datenaufbereitung)
+3. AC-Nummer und Datenträger-ID über die Menüpunkte `A`, `D` oder `N` wählen
+4. Skript `9` (I_PREMIS_XML_Generator) auswählen
 
-**Beispiel für einen manuellen Aufruf:**
+Die Parameter werden vom Menü automatisch an das Skript übergeben:
 
-```bat
-@echo off
-set AC_NUMBER=AC_0001
-set DISK_ID=ID_001
-python "J_generate_premis_win.py" %AC_NUMBER% %DISK_ID%
-pause
-```
+- `sys.argv[1]` = AC-Nummer
+- `sys.argv[2]` = Datenträger-ID
+- `sys.argv[3]` = Datenpfad (optional; alternativ Umgebungsvariable `DATA_PATH`)
+
+Für manuelle Tests oder Debugging kann das Skript direkt über die Kommandozeile aufgerufen werden:
+
+    python "I_PREMIS_XML_Generator.py" AC_0001 ID_001 "C:\Pfad\zum\Datenordner"
+
+Das Skript erwartet zwingend mindestens zwei Argumente (AC-Nummer, Datenträger-ID). Ohne diese bricht es mit Fehlermeldung ab.
 
 ### Ablauf der Ausführung
 
 1. **Urheber-Wahl:** Das Skript bittet um die Eingabe eines Namens und sucht diesen in der GND. Ein passender Eintrag kann interaktiv ausgewählt werden.
 2. **Referenz-Analyse:** Imaging-Logs in Stufe 1 werden gescannt, um den Medientyp (USB, CD, Floppy, HDD) zu bestimmen.
 3. **Objekt-Erstellung:** Hashes und Metadaten aller Objekte (aus Stufe 0, 1, 2 und 3) werden als PREMIS-Objekte angelegt.
-4. **Event-Verknüpfung:** Die gesamte Kette (Imaging → Extraktion → Metadaten → Konvertierung) wird dokumentiert.
-5. **Reihenfolge-Fix:** Das Skript sortiert alle XML-Elemente XSD-konform um (Objects → Events → Agents → Rights).
-6. **Validierung:** Die finale Datei wird live gegen den LOC-Standard geprüft und in Stufe 5 gespeichert.
-
----
+4. **Virus-Check:** Sofern eine `viruscheck-log.txt` existiert, wird ein `virus check`-Event erstellt und die Log-Datei als Objekt verknüpft.
+5. **Event-Verknüpfung:** Die gesamte Kette (Imaging → Extraktion → Metadaten → Konvertierung → Packaging) wird dokumentiert.
+6. **Reihenfolge-Fix:** Das Skript sortiert alle XML-Elemente XSD-konform um (Objects → Events → Agents → Rights).
+7. **Validierung:** Die finale Datei wird gegen den LOC-Standard geprüft (mit lokalem Fallback auf `premis-v3-0.xsd`) und in Stufe 5 gespeichert.
 
 ## Detaillierte Hinweise zum Skriptverhalten
 
 ### Erwartete Ordnerstruktur
 
-```text
-~/Documents/data/[AC-Nummer]/[Datenträger-ID]/
-├── 0_[Datenträger-ID]_picture-carrier/          <-- QUELLE (Hardware-Fotos .tif)
-├── 1_[Datenträger-ID]_image-LZA/                <-- QUELLE (Disk-Images)
-│   └── logfiles/                                <-- QUELLE (Imaging-Logs)
-├── 2_[Datenträger-ID]_extracted-files/          <-- QUELLE (Brunnhilde-Berichte)
-│   └── 2_[ID]_extracted-files_brunnhilde/
-│       └── files_collection_report/
-│           └── siegfried.csv                    <-- QUELLE (Dateiliste)
-├── 3_[Datenträger-ID]_for-transfer/             <-- QUELLE (Technischer Index)
-│   └── 5_[ID]_LZA.index                         <-- wird gesucht
-└── 5_[Datenträger-ID]_LZA/                      <-- ZIEL
-    └── logfiles/                                <-- ZIEL
-        ├── 5_[ID]_LZA_premis.xml                <-- finale PREMIS-Datei
-        └── 5_[ID]_LZA_derivation-image.img      <-- wird gesucht (falls vorhanden)
-            └── *.log                            <-- wird gesucht (Packaging-Log)
-```
+    [Projektpfad]/
+    |-- 0_[Datenträger-ID]_picture-carrier/          <-- QUELLE (Hardware-Fotos .tif)
+    |-- 1_[Datenträger-ID]_image-LZA/                <-- QUELLE (Disk-Images)
+    |   `-- logfiles/                                <-- QUELLE (Imaging-Logs)
+    |-- 2_[Datenträger-ID]_extracted-files/          <-- QUELLE (Brunnhilde-Berichte)
+    |   `-- 2_[ID]_extracted-files_brunnhilde/
+    |       `-- files_collection_report/
+    |           `-- siegfried.csv                    <-- QUELLE (Dateiliste)
+    |-- 3_[Datenträger-ID]_for-transfer/             <-- QUELLE (Technischer Index)
+    |   `-- 5_[ID]_LZA.index                         <-- wird gesucht
+    `-- 5_[Datenträger-ID]_LZA/                      <-- ZIEL
+        `-- logfiles/                                <-- ZIEL
+            |-- 5_[ID]_LZA_premis.xml                <-- finale PREMIS-Datei
+            `-- 5_[ID]_LZA_derivation-image.img      <-- wird gesucht (falls vorhanden)
+                `-- *.log                            <-- wird gesucht (Packaging-Log)
 
 ### Medienerkennung (automatische Weiche)
 
@@ -116,16 +125,20 @@ Das Skript analysiert den `logfiles`-Ordner in Stufe 1 in folgender Reihenfolge:
 | `*.map`-Datei im LZA-Hauptordner (eine Ebene über logfiles) | `hdd` | ddrescue | kein detailliertes Parsing, nur Erkennung |
 | Keine der oben genannten | `unknown` | Standard | Fallback mit leeren Werten |
 
+**Fallback-Verhalten für logfiles-Ordner:** Wenn der `logfiles`-Unterordner in Stufe 1 fehlt, sucht das Skript die Log-Datei direkt im Hauptordner der Stufe 1, erstellt den `logfiles`-Ordner und verschiebt die Datei dorthin.
+
 ### GND-/LOBID-Suche (Urheber-Auswahl)
 
 **Ablauf:**
-1. Benutzer gibt Namen ein (z. B. "Brigitte Hamann").
-2. Zuerst wird die **DNB SRU-Schnittstelle** abgefragt.
-3. Bei Erfolglosigkeit oder Verbindungsfehler → **lobid-gnd API**.
-4. Ergebnisse werden als nummerierte Liste angezeigt.
-5. Benutzer wählt Nummer oder `s` (neue Suche) oder `x` (ohne GND fortfahren).
 
-**Extrahiert bei DNB:** GND-ID, Name, Lebensdaten, Typ (Person/Körperschaft/Ort/Werk), Berufe/Info.  
+1. Benutzer gibt Namen ein (z. B. "Brigitte Hamann").
+2. Zuerst wird die **DNB SRU-Schnittstelle** abgefragt (Timeout: 1 Sekunde).
+3. Bei Erfolglosigkeit oder Verbindungsfehler → **lobid-gnd API** (Timeout: 15 Sekunden).
+4. Ergebnisse werden als nummerierte Liste angezeigt.
+5. Benutzer wählt Nummer, `m` (manueller Eintrag), `s` (neue Suche) oder `x` (ohne GND fortfahren).
+
+**Extrahiert bei DNB:** GND-ID, Name, Lebensdaten, Typ (Person/Körperschaft/Ort/Werk), Berufe/Info.
+
 **Extrahiert bei lobid:** GND-ID, Name, Geburts-/Todesdatum, Berufe (aus `professionOrOccupation`).
 
 **Fallback:** Bei `x` wird `creator_gnd_id = None` gesetzt, Agent-ID wird aus dem eingegebenen Namen generiert.
@@ -140,12 +153,14 @@ Das Skript analysiert den `logfiles`-Ordner in Stufe 1 in folgender Reihenfolge:
 ### PREMIS-Element-Reihenfolge
 
 Das Skript erzwingt zwingend folgende Reihenfolge (XSD-konform):
+
 1. `object` (alle)
 2. `event` (alle)
 3. `agent` (alle)
 4. `rights` (alle)
 
 Innerhalb von `object` gilt:
+
 1. `objectIdentifier`
 2. `preservationLevel`
 3. `significantProperties`
@@ -154,6 +169,7 @@ Innerhalb von `object` gilt:
 6. `relationship`
 
 Innerhalb von `event`:
+
 1. `eventIdentifier`
 2. `eventType`
 3. `eventDateTime`
@@ -168,6 +184,7 @@ Innerhalb von `event`:
 | `evt_imaging_[ID]` | `creation` | Disk Imaging (verknüpft Carrier mit Image) |
 | `evt_extraction_[ID]` | `extraction` | Brunnhilde Extraktion (verknüpft Image mit extrahierten Dateien) |
 | `evt_metadata_extraction_[ID]` | `metadata extraction` | Extraktion aus Siegfried/Index |
+| `evt_virus_check_[ID]` | `virus check` | ClamAV-Virus-Scan (sofern Log vorhanden) |
 | `evt_conversion_[ID]` | `migration` | PDF-Konvertierung (sofern Derivate existieren) |
 | `evt_packaging_[ID]` | `creation` | Finales Packaging (verknüpft alle archivierten Dateien mit Archiv-Image) |
 
@@ -179,6 +196,8 @@ Innerhalb von `event`:
 | `SW_Brunnhilde` | Brunnhilde File Characterization Tool | software |
 | `SW_InternalPythonScripts_Conversion` | Internal Python Conversion Scripts | software |
 | `SW_InternalPythonScripts_Metadata` | Internal Python Metadata Extraction Scripts | software |
+
+Zusätzlich werden dynamisch Agenten für Hardware (Tableau, optisches Laufwerk), Werkzeuge (FTK Imager, Redumper, Greaseweazle) und ClamAV (mit Versionsnummer) erstellt.
 
 ### Dateiformat-Identifikation (PRONOM)
 
@@ -192,6 +211,7 @@ Innerhalb von `event`:
 ### Quellen für extrahierte Dateien (Stufe 2)
 
 Das Skript verwendet folgende Priorität:
+
 1. **Index-Datei:** `3_[ID]_for-transfer/5_[ID]_LZA.index` (bevorzugt, da enthält SHA-256, Größe, PRONOM-ID, Creator-Tool).
 2. **Siegfried-CSV:** `2_[ID]_extracted-files/.../siegfried.csv` (Fallback, enthält Dateiname, Größe, PRONOM-ID).
 3. **Ableitung:** Original-Extraktionen werden über Pfad-Präfix erkannt (wenn Dateipfad mit einem Original-Extraktionspfad beginnt).
@@ -199,9 +219,11 @@ Das Skript verwendet folgende Priorität:
 ### Integritätsprüfung (XML-Validierung)
 
 Nach dem Schreiben der PREMIS-Datei führt das Skript eine Live-Validierung durch:
+
 * Lädt das offizielle XSD-Schema von `https://www.loc.gov/standards/premis/v3/premis-v3-0.xsd`.
-* Validiert die erzeugte XML dagegen.
-* Bei Fehlern: Ausgabe von Zeilennummer und Fehlermeldung.
+* Dreistufiger Abruf: (1) direkt, (2) mit Browser-User-Agent, (3) lokale Datei `premis-v3-0.xsd` im Skript-Ordner.
+* Erwartete FileTrove-/Greaseweazle-Erweiterungs-Namespace-Warnungen werden herausgefiltert.
+* Bei echten Fehlern: Ausgabe von Zeilennummer und Fehlermeldung.
 * Bei Erfolg: grüne Bestätigung.
 
 ### Fehlerfälle und Abbruchbedingungen
@@ -209,7 +231,7 @@ Nach dem Schreiben der PREMIS-Datei führt das Skript eine Live-Validierung durc
 | Fehlerfall | Verhalten |
 |------------|-----------|
 | `path_step5_lza` existiert nicht | FATALER FEHLER + `sys.exit(1)` |
-| Keine Kommandozeilen-Argumente | Fehlermeldung + `sys.exit(1)` |
+| Weniger als 2 Kommandozeilen-Argumente | Fehlermeldung + `sys.exit(1)` |
 | Keine Objekte in `xml_objects` | Warnung + Minimal-Objekt wird erstellt (damit XML valide bleibt) |
 | GND-Suche schlägt komplett fehl | Benutzer kann ohne GND fortfahren (`creator_gnd_id = None`) |
 | XSD-Validierung schlägt fehl | Fehlermeldung mit Details, Skript läuft weiter (kein Abbruch) |
@@ -217,18 +239,10 @@ Nach dem Schreiben der PREMIS-Datei führt das Skript eine Live-Validierung durc
 ### Plattformabhängiges Öffnen des Zielordners
 
 Nach Abschluss fragt das Skript: `Ordner öffnen? (j/n):`. Bei `j`:
+
 * **Windows** → `subprocess.Popen(['explorer', str(target_path)])`
 * **macOS** → `subprocess.run(["open", str(target_path)])`
 * **Linux/andere** → `subprocess.run(["xdg-open", str(target_path)])`
-
-### Abhängigkeiten
-
-**Erforderliche Python-Pakete:**
-* `lxml` (für XML-Verarbeitung, Sortierung, XSD-Validierung)
-* `requests` (für GND-/lobid-API-Abfragen)
-* `urllib3` (für Retry-Strategie bei DNB)
-
-**Standardbibliothek:** `sys`, `re`, `os`, `csv`, `subprocess`, `hashlib`, `glob`, `xml.etree.ElementTree`, `pathlib`, `datetime`
 
 ### Wichtige Einschränkungen
 
@@ -237,8 +251,7 @@ Nach Abschluss fragt das Skript: `Ordner öffnen? (j/n):`. Bei `j`:
 * FTK-Parser extrahiert Hashes nur aus dem Abschnitt "Image Verification Results".
 * Greaseweazle-Parser setzt `has_flux_stream = True` und erzeugt ein Flux-Stream-Set-`representation`.
 * ddrescue-Erkennung basiert nur auf Existenz von `.map`-Dateien (kein Inhalts-Parsing).
-
----
+* DNB-SRU-Abfrage hat ein Timeout von nur 1 Sekunde. Das ist sehr kurz und kann dazu führen, dass der lobid-gnd-Fallback häufiger genutzt wird als beabsichtigt. Bei Bedarf in `_search_dnb_sru()` anpassen.
 
 ## Lizenz
 

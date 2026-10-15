@@ -3,11 +3,11 @@
 # SPDX-License-Identifier: MIT
 
 
-# J_generate_premis_win.py
+# I_PREMIS_XML_Generator.py
 # ==============================================================================
 # Skript zur automatischen Generierung einer PREMIS v3 XML-Datei.
 #
-# Autor: Ihr Name / Ihre Abteilung
+# Autor: Gregor Neuböck / DSM
 # Datum: 2025-12-15
 # Version: 22.4.1 - CLAMAV FIX
 #                 1. BUGFIX: relatedObjectIdentifier ist in PREMIS relationship zwingend.
@@ -1144,7 +1144,7 @@ class PremisGenerator:
                 meta = {c.tag: c.text for c in f}
                 
                 c_app = None
-                if meta.get('document_ceator_tool'):
+                if meta.get('document_creator_tool'):
                     c_app = (meta.get('document_creator_tool'), meta.get('asset_created_date'))
                 
                 self.create_xml_object(

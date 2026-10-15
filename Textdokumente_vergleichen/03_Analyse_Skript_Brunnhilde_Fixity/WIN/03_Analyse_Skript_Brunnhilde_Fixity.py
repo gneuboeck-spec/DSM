@@ -408,7 +408,7 @@ if __name__ == "__main__":
     # 1. Pfade aus sys.argv holen (werden von der menu.py übergeben)
     if len(sys.argv) < 3:
         print("❌ Fehler: Eingabe- und Ausgabe-Pfad fehlen.")
-        print("Verwendung: python 01_Analyse_Skript_Brunnhilde_Fixity.py <eingabe_pfad> <ausgabe_pfad>")
+        print("Verwendung: python 03_Analyse_Skript_Brunnhilde_Fixity.py <eingabe_pfad> <ausgabe_pfad>")
         input("Drücken Sie die Eingabetaste, um dieses Fenster zu schließen...")
         sys.exit(1)
 

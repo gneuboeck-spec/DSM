@@ -4,52 +4,52 @@ Zentrale Arbeitsumgebung für die digitale Datenrettung und Langzeitarchivierung
 
 ## Gesamtstruktur
 
-```text
-Skriptsammlung/
-├── Start.bat                          <-- Haupt-Startpunkt (Doppelklick hier)
-├── Menu.py                            <-- Zentrales Auswahlmenü
-├── requirements.txt                   <-- Python-Abhängigkeiten
-├── git-update.bat                     <-- Git-Update-Skript
-├── README.md                          <-- Diese Datei
-│
-├── Datenaufbereitung/                 <-- Haupt-Workflow (Skripte A-L)
-│   ├── start.bat
-│   ├── menu.py
-│   ├── requirements.txt
-│   ├── README.md
-│   ├── A_Analyse_Skript_Brunnhilde_Fixity/
-│   ├── B_XML_Zusammenfassungs_Generator_content/
-│   ├── C_Reparatur_von_Dateiendungen/
-│   ├── D_Master_Konvertierungsskript/
-│   ├── E_VL_Bereinigung_Vorbereitung_Archivierung/
-│   ├── F_Zwischendateien_ODF_WAV_löschen/
-│   ├── G_Metadata_Extraction_Indexing_filetrove/
-│   ├── H_VL_Export/
-│   ├── I_PREMIS_XML_Generator/
-│   ├── J_Staging-Workflow/
-│   ├── K_Master_Index_Metadaten_Generator_LZA/
-│   └── L_BagIt_METS_TAR_Archivierung/
-│
-├── Textdokumente_vergleichen/         <-- Vergleichs-Modul
-│   ├── start.bat
-│   ├── menu.py
-│   ├── requirements.txt
-│   ├── README.md
-│   ├── 01_Dateiendungen_reparieren/
-│   ├── 02_Dublikatenfinder/
-│   ├── 03_Analyse_Skript_Brunnhilde_Fixity/
-│   ├── 04_Bereinigungsskript/
-│   ├── 05_Dokumente_vergleichen/
-│   ├── 06_KI_Analyse/
-│   └── 07_Visualisierung/
-│
-└── Tools/                             <-- Hilfs-Skripte
-    ├── start.bat
-    ├── menu.py
-    ├── requirements.txt
-    ├── README.md
-    └── PREMIS_Validierung/
-```
+    Skriptsammlung/
+    |-- Start.bat                          <-- Haupt-Startpunkt (Doppelklick hier)
+    |-- Menu.py                            <-- Zentrales Auswahlmenü
+    |-- requirements.txt                   <-- Python-Abhängigkeiten (optional, siehe unten)
+    |-- EXTERNE_TOOLS.md                   <-- Externe Programme (nicht über pip installierbar)
+    |-- git-sync.bat                       <-- Nur Pull (Stand holen)
+    |-- git-update.bat                     <-- Pull + Commit + Push (Änderungen hochladen)
+    |-- README.md                          <-- Diese Datei
+    |
+    |-- Datenaufbereitung/                 <-- Haupt-Workflow (Skripte A-L)
+    |   |-- Start.bat
+    |   |-- Menu.py
+    |   |-- requirements.txt
+    |   |-- README.md
+    |   |-- A_Analyse_Skript_Brunnhilde_Fixity/
+    |   |-- B_XML_Zusammenfassungs_Generator_content/
+    |   |-- C_Reparatur_von_Dateiendungen/
+    |   |-- D_Master_Konvertierungsskript/
+    |   |-- E_VL_Bereinigung_Vorbereitung_Archivierung/
+    |   |-- F_Zwischendateien_ODF_WAV_löschen/
+    |   |-- G_Metadata_Extraction_Indexing_filetrove/
+    |   |-- H_VL_Export/
+    |   |-- I_PREMIS_XML_Generator/
+    |   |-- J_Staging-Workflow/
+    |   |-- K_Master_Index_Metadaten_Generator_LZA/
+    |   `-- L_BagIt_METS_TAR_Archivierung/
+    |
+    |-- Textdokumente_vergleichen/         <-- Vergleichs-Modul
+    |   |-- Start.bat
+    |   |-- Menu.py
+    |   |-- requirements.txt
+    |   |-- README.md
+    |   |-- 01_Dateiendungen_reparieren/
+    |   |-- 02_Duplikatenfinder/
+    |   |-- 03_Analyse_Skript_Brunnhilde_Fixity/
+    |   |-- 04_Bereinigungsskript/
+    |   |-- 05_Dokumente_vergleichen/
+    |   |-- 06_KI_Analyse/
+    |   `-- 07_Visualisierung/
+    |
+    `-- Tools/                             <-- Hilfs-Skripte
+        |-- Start.bat
+        |-- Menu.py
+        |-- requirements.txt
+        |-- README.md
+        `-- PREMIS_Validierung/
 
 ## Aufbau eines Skript-Ordners
 
@@ -57,12 +57,10 @@ Jedes einzelne Skript ist in einem eigenen Unterordner gekapselt. Dieser enthäl
 
 Beispiel am Skript `A_Analyse_Skript_Brunnhilde_Fixity`:
 
-```text
-A_Analyse_Skript_Brunnhilde_Fixity/
-├── README.md                          <-- Dokumentation des Skripts
-└── win/
-    └── A_Analyse_Skript_Brunnhilde_Fixity.py   <-- Ausführbare Python-Datei
-```
+    A_Analyse_Skript_Brunnhilde_Fixity/
+    |-- README.md                          <-- Dokumentation des Skripts
+    `-- win/
+        `-- A_Analyse_Skript_Brunnhilde_Fixity.py   <-- Ausführbare Python-Datei
 
 Dieses Muster gilt einheitlich für alle Skripte in allen drei Hauptbereichen.
 
@@ -72,127 +70,121 @@ Dieses Muster gilt einheitlich für alle Skripte in allen drei Hauptbereichen.
 
 Enthält die komplette Pipeline für die digitale Datenrettung und Langzeitarchivierung. Die Skripte A bis L bilden den Master-Workflow.
 
-```text
-Datenaufbereitung/
-├── start.bat
-├── menu.py
-├── requirements.txt
-├── README.md
-├── A_Analyse_Skript_Brunnhilde_Fixity/
-│   ├── README.md
-│   └── win/
-│       └── A_Analyse_Skript_Brunnhilde_Fixity.py
-├── B_XML_Zusammenfassungs_Generator_content/
-│   ├── README.md
-│   └── win/
-│       └── B_XML_Zusammenfassungs_Generator_content.py
-├── C_Reparatur_von_Dateiendungen/
-│   ├── README.md
-│   └── win/
-│       └── C_Reparatur_von_Dateiendungen.py
-├── D_Master_Konvertierungsskript/
-│   ├── README.md
-│   └── win/
-│       └── D_Master_Konvertierungsskript.py
-├── E_VL_Bereinigung_Vorbereitung_Archivierung/
-│   ├── README.md
-│   └── win/
-│       └── E_VL_Bereinigung_Vorbereitung_Archivierung.py
-├── F_Zwischendateien_ODF_WAV_löschen/
-│   ├── README.md
-│   └── win/
-│       └── F_Zwischendateien_ODF_WAV_löschen.py
-├── G_Metadata_Extraction_Indexing_filetrove/
-│   ├── README.md
-│   └── win/
-│       ├── G_Metadata_Extraction_Indexing_filetrove.py
-│       └── rules.yar                  <-- YARA-Regeln für Dateiformat-Identifizierung
-├── H_VL_Export/
-│   ├── README.md
-│   └── win/
-│       └── H_VL_Export.py
-├── I_PREMIS_XML_Generator/
-│   ├── README.md
-│   ├── premis-v3-0.xsd               <-- Offizielles PREMIS v3 XML-Schema (Library of Congress)
-│   └── win/
-│       └── I_PREMIS_XML_Generator.py
-├── J_Staging-Workflow/
-│   ├── README.md
-│   └── win/
-│       └── J_Staging-Workflow.py
-├── K_Master_Index_Metadaten_Generator_LZA/
-│   ├── README.md
-│   └── win/
-│       ├── K_Master_Index_Metadaten_Generator_LZA.py
-│       └── rules.yar                  <-- YARA-Regeln für Dateiformat-Identifizierung
-└── L_BagIt_METS_TAR_Archivierung/
-    ├── README.md
-    └── win/
-        └── L_BagIt_METS_TAR_Archivierung.py
-```
+    Datenaufbereitung/
+    |-- Start.bat
+    |-- Menu.py
+    |-- requirements.txt
+    |-- README.md
+    |-- A_Analyse_Skript_Brunnhilde_Fixity/
+    |   |-- README.md
+    |   `-- win/
+    |       `-- A_Analyse_Skript_Brunnhilde_Fixity.py
+    |-- B_XML_Zusammenfassungs_Generator_content/
+    |   |-- README.md
+    |   `-- win/
+    |       `-- B_XML_Zusammenfassungs_Generator_content.py
+    |-- C_Reparatur_von_Dateiendungen/
+    |   |-- README.md
+    |   `-- win/
+    |       `-- C_Reparatur_von_Dateiendungen.py
+    |-- D_Master_Konvertierungsskript/
+    |   |-- README.md
+    |   `-- win/
+    |       `-- D_Master_Konvertierungsskript.py
+    |-- E_VL_Bereinigung_Vorbereitung_Archivierung/
+    |   |-- README.md
+    |   `-- win/
+    |       `-- E_VL_Bereinigung_Vorbereitung_Archivierung.py
+    |-- F_Zwischendateien_ODF_WAV_löschen/
+    |   |-- README.md
+    |   `-- win/
+    |       `-- F_Zwischendateien_ODF_WAV_löschen.py
+    |-- G_Metadata_Extraction_Indexing_filetrove/
+    |   |-- README.md
+    |   `-- win/
+    |       |-- G_Metadata_Extraction_Indexing_filetrove.py
+    |       `-- rules.yar                  <-- YARA-Regeln für Dateiformat-Identifizierung
+    |-- H_VL_Export/
+    |   |-- README.md
+    |   `-- win/
+    |       `-- H_VL_Export.py
+    |-- I_PREMIS_XML_Generator/
+    |   |-- README.md
+    |   |-- premis-v3-0.xsd                <-- Offizielles PREMIS v3 XML-Schema (Library of Congress)
+    |   `-- win/
+    |       `-- I_PREMIS_XML_Generator.py
+    |-- J_Staging-Workflow/
+    |   |-- README.md
+    |   `-- win/
+    |       `-- J_Staging-Workflow.py
+    |-- K_Master_Index_Metadaten_Generator_LZA/
+    |   |-- README.md
+    |   `-- win/
+    |       |-- K_Master_Index_Metadaten_Generator_LZA.py
+    |       `-- rules.yar                  <-- YARA-Regeln für Dateiformat-Identifizierung
+    `-- L_BagIt_METS_TAR_Archivierung/
+        |-- README.md
+        `-- win/
+            `-- L_BagIt_METS_TAR_Archivierung.py
 
-**Start:** Hauptmenü → `D`  
+**Start:** Hauptmenü → `D`
 **Parameter:** AC-Nummer und Datenträger-ID
 
 ### 2. Textdokumente_vergleichen
 
 Eigenständiges Modul zur syntaktischen und semantischen Analyse von Textdokumenten.
 
-```text
-Textdokumente_vergleichen/
-├── start.bat
-├── menu.py
-├── requirements.txt
-├── README.md
-├── 01_Dateiendungen_reparieren/
-│   ├── README.md
-│   └── win/
-│       └── 01_Dateiendungen_reparieren.py
-├── 02_Dublikatenfinder/
-│   ├── README.md
-│   └── win/
-│       └── 02_Dublikatenfinder.py
-├── 03_Analyse_Skript_Brunnhilde_Fixity/
-│   ├── README.md
-│   └── win/
-│       └── 03_Analyse_Skript_Brunnhilde_Fixity.py
-├── 04_Bereinigungsskript/
-│   ├── README.md
-│   └── win/
-│       └── 04_Bereinigungsskript.py
-├── 05_Dokumente_vergleichen/
-│   ├── README.md
-│   └── win/
-│       └── 05_Dokumente_vergleichen.py
-├── 06_KI_Analyse/
-│   ├── README.md
-│   └── win/
-│       └── 06_KI_Analyse.py
-└── 07_Visualisierung/
-    ├── README.md
-    └── win/
-        └── 07_Visualisierung.py
-```
+    Textdokumente_vergleichen/
+    |-- Start.bat
+    |-- Menu.py
+    |-- requirements.txt
+    |-- README.md
+    |-- 01_Dateiendungen_reparieren/
+    |   |-- README.md
+    |   `-- win/
+    |       `-- 01_Dateiendungen_reparieren.py
+    |-- 02_Duplikatenfinder/
+    |   |-- README.md
+    |   `-- win/
+    |       `-- 02_Duplikatenfinder.py
+    |-- 03_Analyse_Skript_Brunnhilde_Fixity/
+    |   |-- README.md
+    |   `-- win/
+    |       `-- 03_Analyse_Skript_Brunnhilde_Fixity.py
+    |-- 04_Bereinigungsskript/
+    |   |-- README.md
+    |   `-- win/
+    |       `-- 04_Bereinigungsskript.py
+    |-- 05_Dokumente_vergleichen/
+    |   |-- README.md
+    |   `-- win/
+    |       `-- 05_Dokumente_vergleichen.py
+    |-- 06_KI_Analyse/
+    |   |-- README.md
+    |   `-- win/
+    |       `-- 06_KI_Analyse.py
+    `-- 07_Visualisierung/
+        |-- README.md
+        `-- win/
+            `-- 07_Visualisierung.py
 
-**Start:** Hauptmenü → `T`  
+**Start:** Hauptmenü → `T`
 **Parameter:** Eingabe- und Ausgabe-Verzeichnis (über GUI-Dialog)
 
 ### 3. Tools
 
 Sammlung von Hilfs-Skripten und Utilities.
 
-```text
-Tools/
-├── start.bat
-├── menu.py
-├── requirements.txt
-├── README.md
-└── PREMIS_Validierung/
-    ├── README.md
-    ├── premis-v3-0.xsd                <-- Offizielles PREMIS v3 XML-Schema
-    └── win/
-        └── PREMIS_Validierung.py
-```
+    Tools/
+    |-- Start.bat
+    |-- Menu.py
+    |-- requirements.txt
+    |-- README.md
+    `-- PREMIS_Validierung/
+        |-- README.md
+        |-- premis-v3-0.xsd                <-- Offizielles PREMIS v3 XML-Schema
+        `-- win/
+            `-- PREMIS_Validierung.py
 
 **Start:** Hauptmenü → `O`
 
@@ -210,34 +202,99 @@ Tools/
 ## Zentrale Dateien im Root
 
 ### Start.bat
-Der Einstiegspunkt der Arbeitsumgebung. Wechselt in das eigene Verzeichnis, prüft ob `Menu.py` vorhanden ist, und startet das Hauptmenü.
+
+Der Einstiegspunkt der Arbeitsumgebung. Wechselt in das eigene Verzeichnis, prüft ob `Menu.py` vorhanden ist und startet das Hauptmenü. Der zu verwendende Python-Interpreter wird dynamisch ermittelt (siehe Abschnitt "Python-Interpreter" unten).
 
 ### Menu.py
-Das zentrale Auswahlmenü. Zeigt die drei Hauptbereiche an und startet beim Auswählen die jeweilige `start.bat` des gewählten Unterordners als separaten Prozess. Nach Beenden des Unterbereichs kehrt man automatisch zum Hauptmenü zurück.
+
+Das zentrale Auswahlmenü. Zeigt die drei Hauptbereiche an und startet beim Auswählen die jeweilige `Start.bat` des gewählten Unterordners als separaten Prozess. Nach Beenden des Unterbereichs kehrt man automatisch zum Hauptmenü zurück.
 
 ### requirements.txt
-Enthält alle Python-Abhängigkeiten für das gesamte Projekt. Installation:
 
-```bash
-pip install -r requirements.txt
-```
+Enthält die Python-Abhängigkeiten für das gesamte Projekt. Installation:
+
+    pip install -r requirements.txt
+
+Wichtig: Diese Datei enthält **nur Python-Pakete**. Externe Programme (Siegfried, FFmpeg, LibreOffice usw.) sind **nicht** hier gelistet, sondern in `EXTERNE_TOOLS.md`.
+
+### EXTERNE_TOOLS.md
+
+Zentrale Dokumentation aller externen Programme, die von den Skripten aufgerufen werden und **nicht** über `pip` installierbar sind (z. B. Siegfried, ClamAV, FFmpeg, ImageMagick, Ghostscript, Inkscape, LibreOffice, ExifTool, DbxConv, Hachoir).
+
+Die Datei enthält:
+
+- Referenz-Rechner und seine Installationspfade
+- Versionen und Download-Quellen
+- Hinweise zu PATH-Pflicht und Fallback-Pfaden
+- Empfohlene Reihenfolge beim Aufsetzen eines neuen Rechners
+- Übersicht, welche Programme welches Skript benötigt
+
+Diese Dokumentation ist die **verbindliche Referenz** für das Einrichten neuer Rechner.
+
+### git-sync.bat
+
+Holt den aktuellen Stand vom Server (nur `git pull`, keine eigenen Änderungen). Diese Datei ist auf allen Rechnern der Standard, auf denen nur mit der Skriptsammlung gearbeitet wird. Sie kann nichts versehentlich hochladen.
 
 ### git-update.bat
-Automatisiertes Git-Update-Skript. Führt folgende Schritte aus:
+
+Automatisiertes Git-Update-Skript zum Hochladen eigener Änderungen. Führt folgende Schritte aus:
 
 1. **Pull**: Holt aktuelle Änderungen vom Server
 2. **Add**: Fügt alle lokalen Änderungen hinzu (`git add -A`)
-3. **Commit**: Erstellt Commit mit Zeitstempel
+3. **Commit**: Erstellt Commit mit Zeitstempel (nur wenn es tatsächlich Änderungen gibt)
 4. **Push**: Lädt Änderungen hoch
 
 Bei Fehlern wird eine entsprechende Meldung angezeigt und das Skript pausiert.
 
+Verwendung:
+- Auf dem Test-Rechner (Rechner A), um geprüfte Änderungen zentral bereitzustellen.
+- Auf anderen Rechnern nur dann, wenn dort bewusst Änderungen gepusht werden sollen.
+
+## Python-Interpreter
+
+Die Skriptsammlung nutzt eine Fallback-Kette, um auf jedem Rechner den passenden Python-Interpreter zu finden. Die `Start.bat`-Dateien suchen in dieser Reihenfolge:
+
+1. `C:\Program Files\Python313\python.exe` (systemweite Installation)
+2. `%LOCALAPPDATA%\Programs\Python\Python313\python.exe` (User-Installation)
+3. `py -3.13` (Python-Launcher)
+
+Die `Menu.py`-Dateien verwenden `sys.executable`, um die Subskripte mit demselben Interpreter zu starten, mit dem das Menü selbst läuft. Damit ist es egal, wo Python installiert ist – alle Skripte laufen konsistent mit derselben Installation.
+
+## Externe Abhängigkeiten
+
+Neben den Python-Paketen aus `requirements.txt` benötigen einige Skripte **eigenständige Programme**, die nicht über `pip` installiert werden können. Sie müssen separat installiert und – je nach Programm – im Windows-PATH eingetragen sein.
+
+Die vollständige Liste mit Pfaden, Versionen, Quellen und Hinweisen ist in der Datei **`EXTERNE_TOOLS.md`** dokumentiert. Dort steht für jedes Programm:
+
+- Aufruf-Name (`sf`, `clamscan`, `ffmpeg`, `magick`, `gswin64c`, `inkscape`, `soffice`, `exiftool`, `DbxConv`, `hachoir-metadata`)
+- Installationspfad auf dem Referenzrechner (A)
+- Version
+- Download-Quelle
+- Ob eine PATH-Eintragung zwingend erforderlich ist oder ein Fallback-Pfad im Skript existiert
+
+Nach einer PATH-Änderung muss die Konsole neu geöffnet werden, damit der Eintrag wirksam wird.
+
 ## Systemvoraussetzungen
 
-- **Python 3.13** oder höher
 - **Windows 10/11**
+- **Python 3.13** oder höher
 - **Git** (für Versionskontrolle)
-- Externe Tools je nach Bereich (ExifTool, FFprobe, Siegfried, YARA, ClamAV, LibreOffice, ImageMagick, Inkscape, Ghostscript etc.)
+- **Externe Programme** gemäß `EXTERNE_TOOLS.md`
+
+## Aufsetzen auf einem neuen Rechner
+
+1. **Python 3.13** installieren (systemweit oder als User-Installation).
+2. **Git** installieren.
+3. Repository klonen oder vorhandenen Ordner kopieren.
+4. Python-Pakete installieren:
+
+       pip install -r requirements.txt
+
+5. **Externe Programme installieren** – gemäß der Anleitung in `EXTERNE_TOOLS.md`. Wenn möglich, dieselben Versionen und Installationspfade wie auf dem Referenzrechner (A).
+6. **Neue Konsole öffnen**, damit PATH-Änderungen wirksam werden.
+7. **Optional: `setup-check.bat` ausführen** – prüft, welche der externen Programme auf diesem Rechner fehlen.
+8. `git-sync.bat` ausführen, um den aktuellen Stand zu holen.
+9. `Start.bat` doppelklicken und Bereiche testen.
 
 ## Lizenz
 
@@ -246,5 +303,5 @@ Copyright (c) 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
 Dieses Projekt ist unter der MIT-Lizenz lizenziert.
 
 ---
-SPDX-FileCopyrightText: 2025 Gregor Neuboeck  
+SPDX-FileCopyrightText: 2025 Gregor Neuboeck
 SPDX-License-Identifier: MIT

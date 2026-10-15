@@ -140,7 +140,7 @@ if __name__ == "__main__":
     # 1. Pfade aus sys.argv holen (werden von der menu.py übergeben)
     if len(sys.argv) < 3:
         print("❌ Fehler: Quellverzeichnis und Log-Verzeichnis fehlen.")
-        print("Verwendung: python 05_bereinigung.py <quellverzeichnis> <log_verzeichnis>")
+        print("Verwendung: python 04_bereinigung.py <quellverzeichnis> <log_verzeichnis>")
         input("Drücken Sie die Eingabetaste, um dieses Fenster zu schließen...")
         sys.exit(1)
 

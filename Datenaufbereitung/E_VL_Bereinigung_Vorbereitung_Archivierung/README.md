@@ -2,15 +2,20 @@
 
 Dieses Skript dient der automatischen Bereinigung von Dateibeständen vor der endgültigen Übergabe in die Langzeitarchivierung (LZA). Es filtert unerwünschte Systemdateien, temporäre Dateien sowie Hilfsdateien aus vorherigen Konvertierungsschritten heraus, um einen sauberen Archivbestand in der VL-Stufe (Stufe 4) zu gewährleisten.
 
-Das Skript ist Teil eines mehrstufigen Workflows und wird über den Workflow Launcher mit der AC-Nummer und Datenträger-ID gesteuert.
+Das Skript ist Teil eines mehrstufigen Workflows und wird über das Menü mit der AC-Nummer und Datenträger-ID gesteuert.
 
----
+## Struktur
+
+    E_VL_Bereinigung_Vorbereitung_Archivierung/
+    |-- README.md                          <-- Diese Datei
+    `-- win/
+        `-- E_VL_Bereinigung_Vorbereitung_Archivierung.py   <-- Ausführbare Python-Datei
 
 ## Hauptfunktionen
 
 * **Automatischer Datentransfer (Stufe 3 nach Stufe 4):** Das Skript kopiert automatisch den gesamten `files`-Ordner von der Transfer-Stufe (3) in die Bereinigungs-Stufe (4), bevor die Löschvorgänge starten. Ein bestehender Zielordner wird dabei sicherheitshalber vorher entfernt.
 * **System-Dateien entfernen:** Automatische Löschung von Windows-spezifischen Dateien wie `Thumbs.db` oder `desktop.ini` sowie versteckten Apple-Ressourcen-Dateien (`._`).
-* **Gezielte Extension-Bereinigung:** Löscht über 150 potenziell unerwünschte Dateitypen (z. B. `.exe`, `.dll`, `.tmp`, `.bak`, `.ini`, `.log`, `.lnk`).
+* **Gezielte Extension-Bereinigung:** Löscht rund 180 potenziell unerwünschte Dateitypen (z. B. `.exe`, `.dll`, `.tmp`, `.bak`, `.ini`, `.log`, `.lnk`).
 * **Keyword-Filter:** Identifiziert und löscht Dateien, die bestimmte Schlagworte im Namen tragen (z. B. `konvertierungslog`, `bereinigungslog`), um Hilfsberichte aus der VL-Stufe zu entfernen.
 * **Bereinigung leerer Ordner:** Entfernt rekursiv alle Verzeichnisse, die nach der Dateibereinigung keine Inhalte mehr enthalten.
 * **Detailliertes LZA-Logging:**
@@ -18,47 +23,47 @@ Das Skript ist Teil eines mehrstufigen Workflows und wird über den Workflow Lau
   * **Final-Log:** Dokumentiert alle tatsächlich gelöschten Dateien und Ordner.
   * Die Logs werden direkt im Verzeichnis der Stufe 5 (LZA) abgelegt, um den Audit-Trail lückenlos zu wahren.
 
----
-
 ## TREE-Struktur & Dateipfade (Phase 3)
 
-Das Skript synchronisiert Stufe 3 mit Stufe 4 und dokumentiert die Bereinigung in Stufe 5:
+Das Skript synchronisiert Stufe 3 mit Stufe 4 und dokumentiert die Bereinigung in Stufe 5. Der Projektpfad wird vom Menü übergeben (`sys.argv[3]` oder Umgebungsvariable `DATA_PATH`):
 
-```text
-Documents/data/[AC-Nummer]/[Datenträger-ID]/
-├── 3_[ID]_for-transfer/
-│   └── files/                              <-- QUELLE (Inhalt wird nach 4 kopiert)
-├── 4_[ID]_VL/                              <-- ARBEITSBEREICH
-│   └── files/                              <-- ZIEL (Hier erfolgt die Löschung)
-└── 5_[ID]_LZA/logfiles/                    <-- LOG-ZIEL (Protokolle)
-    ├── 4_[ID]_VL_delete-preview-all.log    <-- Vorschau der Löschkandidaten
-    └── 4_[ID]_VL_delete-all.log            <-- Bestätigung der erfolgten Löschung
-```
-
----
+    [Projektpfad]/
+    |-- 3_[ID]_for-transfer/
+    |   `-- files/                              <-- QUELLE (Inhalt wird nach 4 kopiert)
+    |-- 4_[ID]_VL/                              <-- ARBEITSBEREICH
+    |   `-- files/                              <-- ZIEL (Hier erfolgt die Löschung)
+    `-- 5_[ID]_LZA/logfiles/                    <-- LOG-ZIEL (Protokolle)
+        |-- 4_[ID]_VL_delete-preview-all.log    <-- Vorschau der Löschkandidaten
+        `-- 4_[ID]_VL_delete-all.log            <-- Bestätigung der erfolgten Löschung
 
 ## Technische Voraussetzungen
 
-* **Python:** Version 3.10 oder neuer empfohlen.
+* **Windows 10/11**
+* **Python 3.13** oder höher (siehe Hinweis zur Fallback-Kette unten)
 * **Standard-Bibliotheken:** Benötigt keine externen Pakete. Es werden ausschließlich Module der Python-Standardbibliothek genutzt (`os`, `sys`, `shutil`, `subprocess`, `stat`, `collections`, `pathlib`, `datetime`).
 
----
+## Python-Interpreter
+
+Dieses Skript verwendet dieselbe Python-Fallback-Kette wie das Hauptmenü. Der Interpreter wird von der übergeordneten `Start.bat` bzw. `Menu.py` ermittelt und über `sys.executable` an das Subskript weitergegeben.
 
 ## Ausführung
 
-Das Skript wird im normalen Arbeitsablauf über den zentralen **Workflow Launcher** (`Workflow_Launcher_start.bat`) und das darauf folgende **Auswahlmenü** gestartet. Die benötigten Parameter (AC-Nummer und Datenträger-ID) werden dabei automatisch vom Menü an das Skript übergeben.
+Das Skript wird im normalen Arbeitsablauf über das Hauptmenü gestartet:
 
-Für manuelle Tests oder Debugging kann das Skript auch direkt über die Kommandozeile aufgerufen werden. Es erwartet zwei Argumente: die AC-Nummer und die Datenträger-ID.
+1. `Start.bat` im Root doppelklicken → Hauptmenü
+2. `D` eingeben (Datenaufbereitung)
+3. AC-Nummer und Datenträger-ID über die Menüpunkte `A`, `D` oder `N` wählen
+4. Skript `5` (E_VL_Bereinigung_Vorbereitung_Archivierung) auswählen
 
-**Beispiel für einen manuellen Aufruf:**
+Die Parameter werden vom Menü automatisch an das Skript übergeben:
 
-```bat
-@echo off
-set AC_NUMBER=AC_0001
-set DISK_ID=CD_01
-python "E_VL_Bereinigung_Vorbereitung_Archivierung.py" %AC_NUMBER% %DISK_ID%
-pause
-```
+- `sys.argv[1]` = AC-Nummer
+- `sys.argv[2]` = Datenträger-ID
+- `sys.argv[3]` = Datenpfad (optional; alternativ Umgebungsvariable `DATA_PATH`)
+
+Für manuelle Tests oder Debugging kann das Skript direkt über die Kommandozeile aufgerufen werden:
+
+    python "E_VL_Bereinigung_Vorbereitung_Archivierung.py" AC_0001 CD_01 "C:\Pfad\zum\Datenordner"
 
 ### Ablauf der Ausführung
 
@@ -70,15 +75,13 @@ pause
 6. **Abschluss-Bericht:** Ein finaler Bericht über die gelöschten Elemente wird in Stufe 5 erstellt.
 7. **Abschluss:** Optionale Abfrage, ob der VL-Zielordner im Explorer geöffnet werden soll.
 
----
-
 ## Detaillierte Hinweise zum Skriptverhalten
 
 ### Vollständige `DELETE_EXTENSIONS` Liste
 
 Das Skript löscht Dateien mit folgenden Endungen (Groß-/Kleinschreibung wird ignoriert):
 
-`.001`, `.030`, `.2gr`, `.3gr`, `.abk`, `.acl`, `.acm`, `.acs`, `.agd`, `.alt`, `.ani`, `.ann`, `.ax`, `.bak`, `.bat`, `.bin`, `.bmt`, `.bof`, `.bpl`, `.cab`, `.cal`, `.cat`, `.cbd`, `.cb`, `.cbk`, `.cfg`, `.chk`, `.chl`, `.chm`, `.chw`, `.class`, `.clb`, `.clp`, `.cnt`, `.cnf`, `.cnv`, `.com`, `.cov`, `.cpe`, `.cpi`, `.cpl`, `.cpx`, `.crd`, `.crl`, `.cur`, `.ctx`, `.dat`, `.db`, `.dbs`, `.dls`, `.ds`, `.dsz`, `.dct`, `.desklink`, `.dfv`, `.dic`, `.dka`, `.dki`, `.dll`, `.dmp`, `.dsc`, `.dr_`, `.drv`, `.p01`, `.ecf`, `.ecw`, `.ess`, `.exc`, `.ass`, `.env`, `.evt`, `.exe`, `.fcs`, `.fi`, `.flg`, `.flt`, `.fnt`, `.fon`, `.for`, `.fot`, `.fsd`, `.fsi`, `.gid`, `.grd`, `.grt`, `.grp`, `.he4`, `.hic`, `.him`, `.hti`, `.hlp`, `.hpm`, `.htt`, `.htx`, `.htz`, `.hyp`, `.icm`, `.ico`, `.id`, `.idf`, `.idx`, `.inf`, `.ini`, `.ink`, `.ins`, `.in2`, `.isr`, `.isu`, `.iwa`, `.job`, `.jpg^`, `.ki`, `.krn`, `.ku4`, `.last`, `.lex`, `.lgo`, `.lib`, `.liveupdate`, `.ld`, `.lnk`, `.log`, `.lst`, `.lwa`, `.m2v`, `.mad`, `.MAPIMail`, `.mdb`, `.ml`, `.ms`, `.msi`, `.msc`, `.msg`, `.mbx`, `.mbox`, `.mod`, `.mtm`, `.mydocs`, `._mp`, `.nch`, `.net`, `.nls`, `.nt`, `.ns`, `.olb`, `.old`, `.ocx`, `.osd`, `.ovl`, `.pal`, `.par`, `.p01`, `.p02`, `.p03`, `.pbk`, `.pci`, `.pco`, `.pdr`, `.pgm`, `.pfm`, `.pfb`, `.pif`, `.pip`, `.pkg`, `.plx`, `.pnf`, `.pol`, `.pr4`, `.pro`, `.prx`, `.ps2`, `.ptm`, `.pwl`, `.qlc`, `.qdat`, `.qtp`, `.qtr`, `.qts`, `.qtx`, `.ra4`, `.rat`, `.rbk`, `.reg`, `.rle`, `.rsc`, `.sav`, `.sca`, `.scn`, `.scf`, `.scr`, `.sdw`, `.set`, `.sf0`, `.sfc`, `.shx`, `.sik`, `.skp`, `.sob`, `.spd`, `.swx`, `.sys`, `.sdb`, `.sig`, `.slt`, `.smm`, `.sol`, `.spc`, `.ss`, `.stb`, `.stt`, `.sts`, `.str`, `.sty`, `.syd`, `.tab`, `.t`, `.tbs`, `.temp`, `.tbl`, `.ths`, `.tlb`, `.tmp`, `.tsc`, `.tsk`, `.ttf`, `.ttx`, `.tsp`, `.tys`, `.tyq`, `.uce`, `.url`, `.umb`, `.utf`, `.vbx`, `.vid`, `.vue`, `.vxd`, `.wab`, `.wa~`, `.wbm`, `.wlx`, `.wof`, `.w31`, `.xml.pdf`, `.x32`, `.000`, `.386`, `.zip`
+`.001`, `.030`, `.2gr`, `.3gr`, `.abk`, `.acl`, `.acm`, `.acs`, `.agd`, `.alt`, `.ani`, `.ann`, `.ax`, `.bak`, `.bat`, `.bin`, `.bmt`, `.bof`, `.bpl`, `.cab`, `.cal`, `.cat`, `.cbd`, `.cb`, `.cbk`, `.cfg`, `.chk`, `.chl`, `.chm`, `.chw`, `.class`, `.clb`, `.clp`, `.cnt`, `.cnf`, `.cnv`, `.com`, `.cov`, `.cpe`, `.cpi`, `.cpl`, `.cpx`, `.crd`, `.crl`, `.cur`, `.ctx`, `.dat`, `.db`, `.dbs`, `.dls`, `.ds`, `.dsz`, `.dct`, `.desklink`, `.dfv`, `.dic`, `.dka`, `.dki`, `.dll`, `.dmp`, `.dsc`, `.dr_`, `.drv`, `.p01`, `.ecf`, `.ecw`, `.ess`, `.exc`, `.ass`, `.env`, `.evt`, `.exe`, `.fcs`, `.fi`, `.flg`, `.flt`, `.fnt`, `.fon`, `.for`, `.fot`, `.fsd`, `.fsi`, `.gid`, `.grd`, `.grt`, `.grp`, `.he4`, `.hic`, `.him`, `.hti`, `.hlp`, `.hpm`, `.htt`, `.htx`, `.htz`, `.hyp`, `.icm`, `.ico`, `.id`, `.idf`, `.idx`, `.inf`, `.ini`, `.ink`, `.ins`, `.in2`, `.isr`, `.isu`, `.iwa`, `.job`, `.jpg^`, `.ki`, `.krn`, `.ku4`, `.last`, `.lex`, `.lgo`, `.lib`, `.liveupdate`, `.ld`, `.lnk`, `.log`, `.lst`, `.lwa`, `.m2v`, `.mad`, `.MAPIMail`, `.mdb`, `.ml`, `.ms`, `.msi`, `.msc`, `.msg`, `.mbx`, `.mbox`, `.mod`, `.mtm`, `.mydocs`, `._mp`, `.nch`, `.net`, `.nls`, `.nt`, `.ns`, `.olb`, `.old`, `.ocx`, `.osd`, `.ovl`, `.pal`, `.par`, `.p02`, `.p03`, `.pbk`, `.pci`, `.pco`, `.pdr`, `.pgm`, `.pfm`, `.pfb`, `.pif`, `.pip`, `.pkg`, `.plx`, `.pnf`, `.pol`, `.pr4`, `.pro`, `.prx`, `.ps2`, `.ptm`, `.pwl`, `.qlc`, `.qdat`, `.qtp`, `.qtr`, `.qts`, `.qtx`, `.ra4`, `.rat`, `.rbk`, `.reg`, `.rle`, `.rsc`, `.sav`, `.sca`, `.scn`, `.scf`, `.scr`, `.sdw`, `.set`, `.sf0`, `.sfc`, `.shx`, `.sik`, `.skp`, `.sob`, `.spd`, `.swx`, `.sys`, `.sdb`, `.sig`, `.slt`, `.smm`, `.sol`, `.spc`, `.ss`, `.stb`, `.stt`, `.sts`, `.str`, `.sty`, `.syd`, `.tab`, `.t`, `.tbs`, `.temp`, `.tbl`, `.ths`, `.tlb`, `.tmp`, `.tsc`, `.tsk`, `.ttf`, `.ttx`, `.tsp`, `.tys`, `.tyq`, `.uce`, `.url`, `.umb`, `.utf`, `.vbx`, `.vid`, `.vue`, `.vxd`, `.wab`, `.wa~`, `.wbm`, `.wlx`, `.wof`, `.w31`, `.xml.pdf`, `.x32`, `.000`, `.386`
 
 ### Vollständige `DELETE_KEYWORDS` Liste
 
@@ -145,8 +148,6 @@ Nach Abschluss fragt das Skript: `VL-Zielordner oeffnen? (j/n):`. Bei `j`:
 - **Windows** → `os.startfile(str(destination_folder))`
 - **macOS** → `subprocess.run(["open", str(destination_folder)])`
 - **Linux/andere** → `subprocess.run(["xdg-open", str(destination_folder)])`
-
----
 
 ## Lizenz
 

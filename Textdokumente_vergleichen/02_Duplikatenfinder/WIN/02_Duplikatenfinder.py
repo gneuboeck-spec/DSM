@@ -696,7 +696,7 @@ def perform_deletion(duplicate_groups, base_dir, log_dir):
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         print("❌ Fehler: Quellverzeichnis und Log-Verzeichnis fehlen.")
-        print("Verwendung: python 01_dublikatenfinder.py <quellverzeichnis> <log_verzeichnis>")
+        print("Verwendung: python 01_Duplikatenfinder.py <quellverzeichnis> <log_verzeichnis>")
         input("Drücken Sie die Eingabetaste, um dieses Fenster zu schließen...")
         sys.exit(1)
 
