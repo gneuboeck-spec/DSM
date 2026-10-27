@@ -10,12 +10,13 @@ from datetime import datetime
 from pathlib import Path
 import shutil
 import time      # Für Warteschleifen
-import glob      # Zum Finden der PDFs (Löst das Problem mit den Punkten)
+import glob      # Zum Finden der PDFs
 import tempfile 
-import mailbox   # NEU: Für MBOX/DBX Verarbeitung
-import email     # NEU: Für E-Mail Parsing
+import mailbox   # Für MBOX/DBX Verarbeitung
+import email     # Für E-Mail Parsing
 import email.utils
 from email.header import decode_header
+import email.header # Explizit für Header-Typ-Checking
 
 # ==============================================================================
 # 🔧 DYNAMISCHE PFADERMITTLUNG FÜR EXTERNE TOOLS
@@ -23,16 +24,13 @@ from email.header import decode_header
 
 def find_executable(tool_name, fallback_path):
     """Findet eine ausführbare Datei im System-PATH oder nutzt den Fallback-Pfad."""
-    # 1. Versuche: Tool im PATH finden (z.B. wenn über Installer zum PATH hinzugefügt)
     exe_path = shutil.which(tool_name)
     if exe_path:
         return exe_path
     
-    # 2. Fallback: Hardcodierter Pfad (für den alten Rechner)
     if Path(fallback_path).exists():
         return fallback_path
     
-    # 3. Wenn nichts gefunden wird, gib den Fallback zurück (Skript wirft dann Fehlermeldung)
     return fallback_path
 
 # ==============================================================================
@@ -93,8 +91,6 @@ conversion_errors = []
 # ==============================================================================
 
 def setup_and_validate_paths(ac_number, disk_archive_id, project_base_path_override=None):
-    # NEU: Wenn ein Pfad aus dem Menü übergeben wurde, nutzen wir diesen.
-    # Andernfalls greift der alte Fallback-Pfad.
     if project_base_path_override:
         project_base_path = Path(project_base_path_override)
     else:
@@ -107,7 +103,6 @@ def setup_and_validate_paths(ac_number, disk_archive_id, project_base_path_overr
     if not paths["source_folder"].is_dir():
         print(f"\033[91mFehler: Der Quell-Ordner wurde nicht gefunden:\n{paths['source_folder']}\033[0m"); return None
 
-    # NEU: DBX_CONV_PATH zur Liste der benötigten Tools hinzugefügt
     required_tools = [ FFMPEG_PATH, FFPROBE_PATH, IMAGEMAGICK_PATH, INKSCAPE_PATH, GHOSTSCRIPT_PATH, LIBREOFFICE_PATH, DBX_CONV_PATH ]
     missing_tools = [tool for tool in required_tools if not shutil.which(tool)]
     
@@ -125,11 +120,21 @@ def setup_and_validate_paths(ac_number, disk_archive_id, project_base_path_overr
 LOG_FILE_HANDLE = None
 
 def log(message):
-    timestamp = datetime.now().strftime("[%Y-%m-%d %H:%M:%S] "); full_message = timestamp + message
+    # NEU: Robuste Bereinigung der aktuellen Konsolenzeile vor jeder Ausgabe
+    sys.stdout.write('\r') 
+    sys.stdout.write(' ' * 150) 
+    sys.stdout.write('\r') 
+    sys.stdout.flush()
+
+    timestamp = datetime.now().strftime("[%Y-%m-%d %H:%M:%S] ")
+    full_message = timestamp + message
     print(full_message)
+    
     if LOG_FILE_HANDLE:
-        try: LOG_FILE_HANDLE.write(full_message + "\n")
-        except Exception as e: print(f"\033[91mKRITISCHER FEHLER: Konnte nicht in Log-Datei schreiben: {e}\033[0m")
+        try: 
+            LOG_FILE_HANDLE.write(full_message + "\n")
+        except Exception as e: 
+            print(f"\033[91mKRITISCHER FEHLER: Konnte nicht in Log-Datei schreiben: {e}\033[0m")
 
 def run_generic_command(command, cwd=None):
     try:
@@ -150,7 +155,21 @@ def run_generic_command(command, cwd=None):
 
 def sanitize_filename(text):
     """Bereinigt Dateinamen für Windows-Kompatibilität."""
-    if text is None: return "Unbenannt"
+    if text is None: 
+        return "Unbenannt"
+    
+    try:
+        if isinstance(text, email.header.Header):
+            text = str(text)
+    except:
+        pass
+    
+    if not isinstance(text, str):
+        try:
+            text = str(text)
+        except:
+            return "Unbenannt"
+    
     try:
         decoded_parts = decode_header(text)
         clean_text = ""
@@ -165,7 +184,8 @@ def sanitize_filename(text):
     
     text = re.sub(r'[<>:"/\\|?*]', '_', text)
     text = re.sub(r'\s+', '_', text.strip())
-    if text.startswith('.'): text = text[1:]
+    if text.startswith('.'): 
+        text = text[1:]
     return text[:100] or "Unbenannt"
 
 # ==============================================================================
@@ -173,18 +193,11 @@ def sanitize_filename(text):
 # ==============================================================================
 
 def is_already_pdfa(filepath):
-    """
-    Prüft heuristisch, ob eine PDF-Datei bereits PDF/A-konform ist.
-    Durchsucht die ersten 2 MB der Datei nach typischen XMP-Metadaten-Markern für PDF/A.
-    """
     try:
         with open(filepath, 'rb') as f:
-            # Lese einen großen Block vom Anfang (XMP steht oft im Header oder kurz danach)
-            chunk = f.read(2097152) # 2 MB
-            # Typische Marker für PDF/A im XMP Packet
+            chunk = f.read(2097152) 
             if b'pdfaid:part' in chunk or b'pdfaid:conformance' in chunk:
                 return True
-            # Alternativer Marker
             if b'PDF/A' in chunk:
                 return True
     except Exception:
@@ -201,12 +214,11 @@ def extract_emails_from_dbx(dbx_path, output_dir):
     mbx_temp_path = root / f"{dbx_path.stem}.mbx"
     mbox_path = root / f"{dbx_path.stem}.mbox"
     
-    # Cleanup alter Dateien
-    if mbx_temp_path.exists(): mbx_temp_path.unlink()
-    if mbox_path.exists(): mbox_path.unlink()
+    if mbx_temp_path.exists(): 
+        mbx_temp_path.unlink()
+    if mbox_path.exists(): 
+        mbox_path.unlink()
     
-    # DbxConv aufrufen
-    # Parameter: -mbxrd (MBOX Format), -dn (Datum im Namen), -ic (Ignoriere Fehler), -senddate (Sendedatum nutzen)
     cmd = [DBX_CONV_PATH, "-mbxrd", "-dn", "-ic", "-senddate", str(dbx_path)]
     
     log(f"         Führe DbxConv aus...")
@@ -217,14 +229,12 @@ def extract_emails_from_dbx(dbx_path, output_dir):
         conversion_errors.append((dbx_path.name, "DBX Konvertierung fehlgeschlagen."))
         return
 
-    # Umbenennen in .mbox für Python mailbox Modul
     try:
         mbx_temp_path.rename(mbox_path)
     except Exception as e:
         log(f"         [FEHLER] Rename zu .mbox fehlgeschlagen: {e}")
         return
 
-    # Extraktion
     output_dir.mkdir(parents=True, exist_ok=True)
     try:
         mbox = mailbox.mbox(str(mbox_path))
@@ -232,18 +242,30 @@ def extract_emails_from_dbx(dbx_path, output_dir):
         for msg in mbox:
             count += 1
             
-            # Metadaten parsen
             date_str = "0000-00-00-00-00"
             try:
-                date_obj = email.utils.parsedate_to_datetime(msg.get("Date"))
-                date_str = date_obj.strftime("%Y-%m-%d-%H-%M-%S")
-            except Exception:
+                date_header = msg.get("Date")
+                if date_header is not None:
+                    if hasattr(date_header, '__str__') and not isinstance(date_header, str):
+                        date_header = str(date_header)
+                    date_obj = email.utils.parsedate_to_datetime(date_header)
+                    date_str = date_obj.strftime("%Y-%m-%d-%H-%M-%S")
+            except Exception as e:
+                log(f"         [WARNUNG] Datum konnte nicht geparst werden: {e}")
                 pass
             
-            subject_str = sanitize_filename(msg.get("Subject"))
+            try:
+                subject_header = msg.get("Subject")
+                if subject_header is not None:
+                    subject_str = sanitize_filename(subject_header)
+                else:
+                    subject_str = "Kein_Subject"
+            except Exception as e:
+                log(f"         [WARNUNG] Subject konnte nicht extrahiert werden: {e}")
+                subject_str = "Fehlerhaftes_Subject"
+            
             base_name = f"{date_str}_{subject_str}"
             
-            # EML speichern
             eml_path = output_dir / f"{base_name}.eml"
             try:
                 with open(eml_path, "w", encoding="utf-8", errors="replace") as f:
@@ -251,24 +273,22 @@ def extract_emails_from_dbx(dbx_path, output_dir):
             except Exception as e:
                 log(f"         [FEHLER] Konnte EML nicht speichern: {e}")
             
-            # Anhänge speichern
             for part in msg.walk():
                 if part.get_content_maintype() == 'multipart' or part.get('Content-Disposition') is None:
                     continue
                 
                 att_filename_raw = part.get_filename()
                 if att_filename_raw:
-                    att_filename = sanitize_filename(att_filename_raw)
-                    # Eindeutigen Namen erstellen: Datum_Subject_Anhangsname
-                    final_att_name = f"{base_name}_{att_filename}"
-                    att_path = output_dir / final_att_name
-                    
                     try:
+                        att_filename = sanitize_filename(att_filename_raw)
+                        final_att_name = f"{base_name}_{att_filename}"
+                        att_path = output_dir / final_att_name
+                        
                         with open(att_path, "wb") as f:
                             f.write(part.get_payload(decode=True))
                         log(f"         [ANHANG] Extrahiert: {final_att_name}")
                     except Exception as e:
-                        log(f"         [FEHLER] Anhang Fehler: {e}")
+                        log(f"         [FEHLER] Anhang Fehler bei '{att_filename_raw}': {e}")
                         
         log(f"         [OK] {count} E-Mails und Anhänge aus {dbx_path.name} extrahiert.")
         
@@ -293,19 +313,39 @@ def convert_audio_with_progress(input_path, output_path, codec_options=None):
     command = [FFMPEG_PATH, "-y", "-i", input_path]
     if codec_options: command.extend(codec_options)
     command.extend([output_path, "-progress", "pipe:1", "-nostats", "-loglevel", "error"])
+    
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, encoding='utf-8', errors='replace')
+    
+    last_progress = 0.0
     while True:
-        line = process.stdout.readline();
+        line = process.stdout.readline()
         if not line: break
         match = re.search(r'out_time_ms=(\d+)', line)
         if match:
-            progress = min(int(match.group(1)) / (duration * 1_000_000), 1.0) if duration > 0 else 1.0
-            bar = "#" * int(progress * 40); sys.stdout.write(f"\r[{bar:<40}] {progress*100:.1f}%"); sys.stdout.flush()
-    process.wait(); sys.stdout.write('\r' + ' ' * 80 + '\r'); sys.stdout.flush()
-    if process.returncode == 0: log(f"         [OK] Erfolgreich konvertiert: {os.path.basename(output_path)} Primär."); return True
+            current_progress = min(int(match.group(1)) / (duration * 1_000_000), 1.0) if duration > 0 else 1.0
+            last_progress = current_progress
+            bar = "#" * int(current_progress * 40)
+            sys.stdout.write(f"\r[{bar:<40}] {current_progress*100:.1f}%")
+            sys.stdout.flush()
+
+    process.wait()
+    
+    if process.returncode == 0 and last_progress < 1.0:
+        sys.stdout.write(f"\r[{'#' * 40}] 100.0%")
+        sys.stdout.flush()
+        time.sleep(0.1) 
+
+    sys.stdout.write('\r' + ' ' * 80 + '\r')
+    sys.stdout.flush()
+    
+    if process.returncode == 0: 
+        log(f"         [OK] Erfolgreich konvertiert: {os.path.basename(output_path)} Primär.")
+        return True
     else:
-        stderr_output = process.stderr.read(); log(f"         [FEHLER] Konvertierung fehlgeschlagen für: {os.path.basename(input_path)}")
-        if stderr_output: log(f"                  FFmpeg-Fehler: {stderr_output.strip()}");
+        stderr_output = process.stderr.read()
+        log(f"         [FEHLER] Konvertierung fehlgeschlagen für: {os.path.basename(input_path)}")
+        if stderr_output: 
+            log(f"                  FFmpeg-Fehler: {stderr_output.strip()}")
         return False
 
 def process_audio_file(filepath):
@@ -364,43 +404,56 @@ def process_text_file(filepath):
     ext = ext.lower()
     target_odf_ext, pdf_export_filter = CONVERSION_MAP[ext]
     
-    # ODF Name bleibt gleich
-    odf_filename = f"{name}{ext}.{target_odf_ext}"
-    odf_path_target = os.path.join(root, odf_filename)
+    # NEU: Definition der nativen LibreOffice-Formate
+    native_lo_formats = {".odt", ".ods", ".odp", ".ott", ".ots", ".otp"}
     
-    # NEU: Sauberer Name für PDF-Derivate (vermeidet .pdf.pdf)
+    # Bestimmung des PDF-Namens
     if ext == ".pdf":
         pdf_filename = f"{name}pdf.pdf"
+    elif ext in native_lo_formats:
+        # Bei nativen Formaten: dateiname.pdf (kein doppeltes .odt.pdf)
+        pdf_filename = f"{name}.pdf"
     else:
+        # Bei Fremdfomaten: dateiname.ext.pdf
         pdf_filename = f"{name}{ext}.pdf"
         
     pdf_path = os.path.join(root, pdf_filename)
     
-    if os.path.exists(odf_path_target): os.remove(odf_path_target)
-    if os.path.exists(pdf_path): os.remove(pdf_path)
+    # Altes PDF löschen, falls vorhanden
+    if os.path.exists(pdf_path): 
+        try:
+            os.remove(pdf_path)
+        except:
+            pass
 
     source_for_pdf_export = ""
     
-    # SCHRITT 1: ODF (oder PDF-Check)
     if ext == ".pdf": 
-        # NEU: Prüfen ob bereits PDF/A
         if is_already_pdfa(filepath):
             log(f"         [OK] Datei ist bereits PDF/A. Überspringe Konvertierung.")
             return
-            
+        source_for_pdf_export = filepath
+    elif ext in native_lo_formats:
+        # NEU: Kein Zwischenschritt für native Formate!
+        log(f"         [INFO] Natives LibreOffice-Format erkannt. Direkter PDF/A-Export.")
         source_for_pdf_export = filepath
     else:
+        # Fremdfomate brauchen den ODF-Zwischenschritt
+        odf_filename = f"{name}{ext}.{target_odf_ext}"
+        odf_path_target = os.path.join(root, odf_filename)
+        
+        if os.path.exists(odf_path_target): 
+            try: os.remove(odf_path_target)
+            except: pass
+
         log(f"         -> Schritt 1: Konvertiere zu ODF ({odf_filename})")
         
-        # 1. Versuch: Standard-Konvertierung
         subprocess.run([LIBREOFFICE_PATH, "--headless", "--convert-to", target_odf_ext, "--outdir", root, filepath], capture_output=True)
         
-        # 2. Versuch: Wenn .sdw erkannt wird, versuche StarWriter-Filter explizit
         if not any(f.startswith(name) and f.endswith(f".{target_odf_ext}") for f in os.listdir(root)) and ext == ".sdw":
             log(f"         [INFO] Standard-Filter fehlgeschlagen, erzwinge StarWriter-Import...")
             subprocess.run([LIBREOFFICE_PATH, "--headless", "--infilter=StarWriter 5.0", "--convert-to", target_odf_ext, "--outdir", root, filepath], capture_output=True)
         
-        # 3. Versuch: Wenn immer noch nichts da ist, .doc Auto-Detection (für getarnte Dateien)
         if not any(f.startswith(name) and f.endswith(f".{target_odf_ext}") for f in os.listdir(root)):
             log(f"         [INFO] Filter fehlgeschlagen, versuche .doc Auto-Detection...")
             temp_doc = os.path.join(root, f"{name}_temp.doc")
@@ -408,7 +461,6 @@ def process_text_file(filepath):
             subprocess.run([LIBREOFFICE_PATH, "--headless", "--convert-to", target_odf_ext, "--outdir", root, temp_doc], capture_output=True)
             if os.path.exists(temp_doc): os.remove(temp_doc)
 
-        # Suche nach der Datei
         generated_files = [f for f in os.listdir(root) if f.startswith(name) and f.endswith(f".{target_odf_ext}")]
         
         if generated_files:
@@ -416,12 +468,10 @@ def process_text_file(filepath):
             os.replace(best_match, odf_path_target)
             source_for_pdf_export = odf_path_target
         else: 
-            # NEU: FALLBACK für Draw-Dateien und andere falsch benannte Formate
             log(f"         [WARNUNG] ODF-Erstellung fehlgeschlagen (vermutlich Draw/Impress o.ä.).")
             log(f"         [INFO] Versuche direkten PDF/A-Export aus Originaldatei (Fallback)...")
-            source_for_pdf_export = filepath  # Verwende die Originaldatei direkt
+            source_for_pdf_export = filepath 
     
-    # SCHRITT 2: PDF/A
     log(f"         -> Schritt 2: Konvertiere zu PDF/A ({pdf_filename})")
     temp_output_dir = os.path.join(tempfile.gettempdir(), "lo_conversion_work")
     if os.path.exists(temp_output_dir): shutil.rmtree(temp_output_dir, ignore_errors=True)
@@ -455,16 +505,13 @@ def process_video_file(filepath):
     path_obj = Path(filepath)
     ext = path_obj.suffix.lower()
     
-    # 1. Intelligente Prüfung: Ist es bereits eine MKV mit den richtigen Codecs?
     if ext == ".mkv":
         try:
-            # Video-Codec prüfen
             v_codec = subprocess.run(
                 [FFPROBE_PATH, "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_name", "-of", "default=noprint_wrappers=1:nokey=1", str(filepath)],
                 capture_output=True, text=True, check=True
             ).stdout.strip()
             
-            # Audio-Codec prüfen (erster Audio-Stream)
             a_codec = subprocess.run(
                 [FFPROBE_PATH, "-v", "error", "-select_streams", "a:0", "-show_entries", "stream=codec_name", "-of", "default=noprint_wrappers=1:nokey=1", str(filepath)],
                 capture_output=True, text=True, check=True
@@ -480,19 +527,16 @@ def process_video_file(filepath):
             log(f"         [WARNUNG] Codec-Prüfung fehlgeschlagen ({e}). Datei wird sicherheitshalber neu konvertiert.")
             mkv_target_path = os.path.join(root, f"{filename}")
     else:
-        # Bei allen anderen Formaten: dateiname.originalendung.mkv
         mkv_target_path = os.path.join(root, f"{filename}.mkv")
     
     log(f"         Starte Konvertierung: {filename} → {os.path.basename(mkv_target_path)}")
     
-    # WICHTIG: Absolute Pfade mit Windows Long-Path-Präfix (\\?\) erstellen
     abs_input = os.path.abspath(filepath)
     abs_output = os.path.abspath(mkv_target_path)
     if os.name == 'nt':
         abs_input = "\\\\?\\" + abs_input
         abs_output = "\\\\?\\" + abs_output
 
-    # Sicherheitsmaßnahme: Verhindert Korruption, falls Quelle und Ziel identisch sind
     if abs_input == abs_output:
         temp_target_path = "\\\\?\\" + os.path.abspath(os.path.join(root, f"{path_obj.stem}_temp_convert.mkv"))
         final_target_path = abs_output
@@ -531,7 +575,6 @@ if __name__ == "__main__":
         ac_number_input = sys.argv[1]
         disk_archive_id_input = sys.argv[2]
         
-        # NEU: Datenpfad aus menu.py übernehmen (sys.argv[3] oder Umgebungsvariable DATA_PATH)
         if len(sys.argv) >= 4:
             data_path_input = Path(sys.argv[3])
         else:
@@ -554,41 +597,96 @@ if __name__ == "__main__":
         
         log("Starte kombiniertes Konvertierungsskript.")
         
-        # --- NEU: DBX PRE-PROCESSING STUFE ---
         log("\n--- Stufe 0: Suche und Entpacke DBX-Container ---")
         dbx_files = list(source_folder.rglob("*.dbx"))
         if dbx_files:
             for dbx_file in dbx_files:
                 log(f"Verarbeite Container: {dbx_file.name}")
-                # Erstelle Unterordner für Extraktion, damit die Dateien im Walk gefunden werden
                 target_dir = dbx_file.parent / f"{dbx_file.stem}_extracted"
                 extract_emails_from_dbx(dbx_file, target_dir)
         else:
             log("Keine DBX-Container gefunden.")
-        # -------------------------------------
 
         all_valid_extensions = SOURCE_AUDIO_EXTENSIONS.union(VALID_IMAGE_EXTENSIONS).union(VALID_TEXT_EXTENSIONS).union(SOURCE_VIDEO_EXTENSIONS)
         
+        # --- DATEI-FILTER UND DERIVAT-ERKENNUNG (STRENGE LOGIK) ---
         files_to_process = []
+        
+        def is_derivative_of_existing_source(filepath, all_files_in_root):
+            """
+            Prüft, ob eine Datei ein Derivat ist, dessen Originalquelle noch im Ordner liegt.
+            """
+            name = filepath.stem.lower() 
+            ext = filepath.suffix.lower() 
+            
+            target_formats = {".odt", ".ods", ".odp", ".pdf", ".mp3", ".wav", ".tiff", ".mkv"}
+            if ext not in target_formats:
+                return False
+
+            for src_ext in all_valid_extensions:
+                if name.endswith(src_ext):
+                    potential_source_name = name 
+                    for f in all_files_in_root:
+                        if f.lower() == potential_source_name:
+                            return True
+            return False
+
+        folder_contents = {}
+        for root, _, files in os.walk(source_folder):
+            folder_contents[root] = set(files)
+
         for root, _, files in os.walk(source_folder):
             for filename in files:
-                if filename.startswith('.') or filename.startswith('~'): continue
-                ext = Path(filename).suffix.lower()
-                if ext in all_valid_extensions:
-                    name_part = Path(filename).stem
-                    is_derivative = False
-                    for source_ext in all_valid_extensions:
-                        if name_part.lower().endswith(source_ext): is_derivative = True; break
-                    if is_derivative and ext != '.pdf': continue
-                    if is_derivative and ext == '.pdf' and '.' in name_part: continue
-                    files_to_process.append(Path(root) / filename)
+                if filename.startswith('.') or filename.startswith('~'): 
+                    continue
+                
+                filepath = Path(root) / filename
+                ext = filepath.suffix.lower()
+                
+                if ext not in all_valid_extensions:
+                    continue
+                
+                if is_derivative_of_existing_source(filepath, folder_contents[root]):
+                    log(f"         [SKIP] Derivat von vorhandener Quelle übersprungen: {filename}")
+                    continue
+
+                files_to_process.append(filepath)
         
-        if not files_to_process: log("Keine zu verarbeitenden Dateien gefunden.")
+        if not files_to_process: 
+            log("Keine zu verarbeitenden Dateien gefunden.")
         else:
             total = len(files_to_process)
             for idx, filepath in enumerate(files_to_process, 1):
-                ext = filepath.suffix.lower(); percent = (idx / total) * 100
+                ext = filepath.suffix.lower()
+                percent = (idx / total) * 100
+                
+                name_part = filepath.stem
+                root_dir = filepath.parent
+                
+                derivatives_to_clean = [
+                    root_dir / f"{filepath.name}.mp3",
+                    root_dir / f"{filepath.name}.wav",
+                    root_dir / f"{filepath.name}.tiff",
+                    root_dir / f"{filepath.name}.pdf",
+                    root_dir / f"{filepath.name}.mkv"
+                ]
+                
+                if ext in VALID_TEXT_EXTENSIONS:
+                     target_odf_ext, _ = CONVERSION_MAP[ext]
+                     # Nur löschen, wenn es sich um ein Fremdfomat handelt
+                     if ext not in {".odt", ".ods", ".odp"}:
+                         derivatives_to_clean.append(root_dir / f"{filepath.name}.{target_odf_ext}")
+
+                for deriv in derivatives_to_clean:
+                    if deriv.exists():
+                        try:
+                            deriv.unlink()
+                            log(f"         [INFO] Altes Derivat gelöscht: {deriv.name}")
+                        except Exception:
+                            pass
+
                 log(f"\n--- [{idx}/{total}] {percent:.2f}% Verarbeite '{filepath.name}' ---")
+                
                 if ext in SOURCE_AUDIO_EXTENSIONS: process_audio_file(filepath)
                 elif ext in VALID_IMAGE_EXTENSIONS: process_image_file(filepath)
                 elif ext in VALID_TEXT_EXTENSIONS: process_text_file(filepath)
@@ -598,23 +696,17 @@ if __name__ == "__main__":
             log("VERARBEITUNG ABGESCHLOSSEN")
             log("="*60)
 
-            # --- EXKLUSIVE FEHLER-ZUSAMMENFASSUNG ---
             if conversion_errors:
                 summary = "\n🚨 ACHTUNG: Folgende Dateien konnten NICHT korrekt konvertiert werden:\n"
                 summary += "!" * 70 + "\n"
                 for fname, reason in conversion_errors:
                     summary += f" Datei: {fname}\n Grund: {reason}\n" + "-"*70 + "\n"
                 
-                # Ausgabe in Rot im Terminal
                 print(f"\033[91m{summary}\033[0m")
-                # Ins Log schreiben
                 if LOG_FILE_HANDLE: LOG_FILE_HANDLE.write(summary)
             else:
                 log("\n✅ Alle Dateien wurden erfolgreich ohne Fehler konvertiert.")
 
-        # ==============================================================================
-        # --- NEU: Tree-Generierung für den Transfer-Ordner (am Ende, damit alle Derivate enthalten sind)
-        # ==============================================================================
         transfer_dir = validated_paths["source_folder"].parent
         transfer_files_dir = validated_paths["source_folder"]
         tree_filename = f"3_{disk_archive_id_input}_for-transfer_tree.txt"
@@ -634,9 +726,7 @@ if __name__ == "__main__":
             log(f"--- FEHLER beim Ausführen von 'tree.exe': Befehl schlug fehl mit Code {e.returncode}. ---")
         except Exception as e:
             log(f"--- FEHLER beim manuellen Erstellen von '{tree_filename}': {e} ---")
-        # ==============================================================================
-        # JETZT erst wird die Log-Datei geschlossen, nachdem ALLE log()-Aufrufe erledigt sind
-        # ==============================================================================
+
         LOG_FILE_HANDLE.close()
 
         destination_folder = transfer_dir
