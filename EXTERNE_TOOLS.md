@@ -1,147 +1,198 @@
-# Externe Tools & Abhängigkeiten
+# SETUP_WINDOWS.md - Vollständige Installationsanleitung für Neue Rechner (Windows 10/11)
 
-Diese Datei dokumentiert alle **externen Programme**, die von den Skripten dieser Sammlung aufgerufen werden und **nicht** über `pip` installierbar sind.
+Diese Anleitung richtet die exakte Umgebung von Rechner A/B auf einem neuen Windows-Rechner ein. 
+Bitte befolge die Schritte strikt in dieser Reihenfolge. Abweichungen führen zu versteckten Fehlern (insb. Tkinter, PATH-Konflikte mit LibreOffice/Inkscape, fehlende Signaturen).
 
-Sie ist **kein Ersatz** für die `requirements.txt`. Die Aufteilung ist bewusst:
+## Phase 1: Vorbereitung & Bereinigung
+Ziel: Eine saubere Basis schaffen, bevor irgendetwas installiert wird.
 
-| Datei | Inhalt | Installation |
-|-------|--------|--------------|
-| `requirements.txt` | Python-Pakete (pip) | `pip install -r requirements.txt` |
-| `EXTERNE_TOOLS.md` | Externe Programme und Interpreter | manuell, siehe unten |
+1. Windows Store Alias deaktivieren (KRITISCH!):
+   - Öffne Einstellungen -> Apps -> Erweiterte App-Einstellungen -> Anwendungsalias.
+   - Schalte 'python.exe' und 'python3.exe' auf AUS.
+   - (Sonst fängt Windows jeden Aufruf von python ab und öffnet den Store, statt dein lokales Python zu starten.)
 
-## Referenz-Rechner
+2. Alte Python-Reste entfernen (Falls bereits vorhanden):
+   - Einstellungen -> Apps -> Installierte Apps.
+   - Deinstalliere ALLE Einträge mit "Python" im Namen (inkl. Launcher).
+   - Falls Fehler beim Deinstallieren ("Error 0x80070643"):
+     a) Lade den "Microsoft Program Install and Uninstall troubleshooter" herunter.
+     b) Wähle "Deinstallation", suche nach Python und lasse es bereinigen.
+   - Lösche manuell folgende Ordner im Explorer:
+     C:\Users\[DeinUser]\AppData\Local\Programs\Python
+     C:\Program Files\Python313 (falls vorhanden)
+     C:\Program Files (x86)\Python313 (falls vorhanden)
 
-Alle Pfad- und Versionsangaben in dieser Datei beziehen sich auf **Rechner A** (Entwicklungs- und Referenzrechner). Neue Rechner sollen bei den externen Tools **denselben Pfaden folgen**, damit die Skripte ohne Anpassung laufen.
+3. Neustart:
+   - Starte den PC neu. Dies ist zwingend, um Registry-Caches und gesperrte DLLs freizugeben.
 
----
+## Phase 2: Software-Installation (Grundgerüst)
+Ziel: Die Kernkomponenten installieren.
 
-## Python-Interpreter
+4. Git for Windows installieren:
+   - Download: https://git-scm.com/download/win
+   - Installiere mit Standard-Einstellungen ("Use Git from the Windows Command Prompt").
 
-| Eigenschaft | Wert |
-|-------------|------|
-| Version | **3.13.7** |
-| Installationspfad (A) | `C:\Users\digit\AppData\Local\Programs\Python\Python313\` |
-| Fallback-Pfad (B) | `C:\Program Files\Python313\` |
-| Launcher | `py -3.13` |
-| Im PATH (A) | nein – `where python` liefert andere Pythons zuerst |
+5. Python 3.13.x (64-bit) installieren:
+   - Download: https://www.python.org/downloads/windows/
+   - Wähle die neueste stabile 3.13er Version (z.B. 3.13.16 oder höher). NICHT 3.14 oder 3.15!
+   - Starte den Installer.
+   - ✅ Hake ganz unten "Add python.exe to PATH" an.
+   - Klicke auf "Customize installation".
+   - Lass ALLE Häkchen aktiviert (besonders "tcl/tk and IDLE" und "pip"). Weiter.
+   - Bei Advanced Options:
+     - ❌ Haken bei "Install for all users" NICHT setzen (User-Installation ist sicherer).
+     - ✅ Haken bei "Precompile standard library" setzen (empfohlen für Performance).
+   - Installieren klicken.
 
-**Wichtig:** Der Interpreter wird **nicht** über einen PATH-Eintrag gefunden, sondern über die Fallback-Kette in den `Start.bat`-Dateien:
+6. Externe Tools installieren (Pflicht für volle Funktionalität):
+   Diese Tools müssen in den Standardpfaden liegen, damit die Skripte sie finden.
 
-1. `C:\Program Files\Python313\python.exe` (systemweite Installation)
-2. `%LOCALAPPDATA%\Programs\Python\Python313\python.exe` (User-Installation, auf A aktiv)
-3. `py -3.13` (Launcher)
+   a) Siegfried:
+      - Download: https://github.com/richardlehane/siegfried/releases
+      - Entpacke sf.exe nach: C:\Program Files\Siegfried\
 
-Die `Menu.py`-Dateien geben den laufenden Interpreter per `sys.executable` an die Subskripte weiter. Details siehe Root-`README.md`.
+   b) ClamAV:
+      - Download: https://www.clamav.net/downloads (Wähle .msi x64)
+      - Installiere nach: C:\Program Files\ClamAV\
 
----
+   c) FFmpeg:
+      - Download: https://ffmpeg.org/download.html (Empfohlen: Gyan.dev Builds)
+      - Entpacke bin-Ordner-Inhalt nach: C:\Program Files\FFmpeg\bin\
 
-## Python-Pakete
+   d) ImageMagick:
+      - Download: https://imagemagick.org/script/download.php#windows
+      - Installiere nach: C:\Program Files\ImageMagick-[Version]-Q16-HDRI\
+      - Wichtig: Während Installation "Add application directory to your system path" anhaken.
 
-Alle Python-Pakete (z. B. `lxml`, `requests`, `openpyxl`, `pypdf`, `python-docx`, `PyMuPDF`, `pdfplumber`, `sentence-transformers`, `rapidfuzz`, `tqdm`, `yara-python`, `chardet`, `mutagen`, `bagit`, `colorama`, `brunnhilde`, `hachoir`) sind in der zentralen **`requirements.txt`** gelistet.
+   e) Ghostscript:
+      - Download: https://ghostscript.com/releases/gsdnld.html
+      - Installiere nach: C:\Program Files\gs\gs[Version]\bin\
+      - Wichtig: Während Installation "Add to PATH" anhaken.
 
-Installation:
+   f) Inkscape (Optional, falls SVG/PDF Konvertierung genutzt wird):
+      - Download: https://inkscape.org/release/
+      - Installiere nach: C:\Program Files\Inkscape\bin\
 
-    pip install -r requirements.txt
+   g) LibreOffice (Für Dokumentkonvertierungen):
+      - Download: https://de.libreoffice.org/download/download/
+      - Installiere nach: C:\Program Files\LibreOffice\program\
 
-Der Befehl verwendet den Interpreter, der im aktuellen Menü läuft. Details siehe Root-`README.md`.
+   h) ExifTool (Metadaten):
+      - Download: https://exiftool.org/
+      - Entpacke exiftool(-k).exe umbenannt zu exiftool.exe nach: C:\Program Files\ExifTool\
 
----
+   i) DbxConv (Outlook PST/DBX Converter):
+      - Download: https://www.ukrebs-software.de/english/dbxconv/dbxconv.html
+      - Entpacke nach: C:\Program Files\dbxconv\
 
-## Externe Programme
+## Phase 3: System-PATH konfigurieren (KRITISCH!)
+Ziel: Sicherstellen, dass Windows IMMER das richtige Python findet und die externen Tools aufrufen kann.
 
-Alle Programme sind auf **Rechner A im Windows-PATH** eingetragen. Der Aufruf-Name (siehe Tabelle) genügt daher. Auf einem neuen Rechner müssen die Programme ebenfalls im PATH eingetragen sein – oder, wo angegeben, am Fallback-Pfad liegen, den die Skripte automatisch prüfen.
+7. Umgebungsvariablen öffnen:
+   - Win + R -> sysdm.cpl -> Erweitert -> Umgebungsvariablen.
 
-| # | Programm | Aufruf | Pfad auf A | Version | Quelle |
-|---|----------|--------|------------|---------|--------|
-| 1 | Siegfried | `sf` | `C:\Program Files\siegfried\` | 1.11.9 | <https://github.com/richardlehane/siegfried/releases> |
-| 2 | ClamAV | `clamscan` / `freshclam` | `C:\Program Files\ClamAV\` | 1.5.4 | <https://www.clamav.net/downloads> |
-| 3 | FFmpeg | `ffmpeg` / `ffprobe` | `C:\Program Files\ffmpeg\` | git-c1dc2e2b7c (2025-09-10, Gyan Build) | <https://ffmpeg.org/download.html> |
-| 4 | ImageMagick | `magick` | `C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\` | 7.1.2-3 | <https://imagemagick.org/download/> |
-| 5 | Ghostscript | `gswin64c` | `C:\Program Files\gs\gs10.06.0\bin\` | 10.06.0 | <https://ghostscript.com/releases/gsdnld.html> |
-| 6 | Inkscape | `inkscape` | `C:\Program Files\Inkscape\bin\` | 1.3.2 | <https://inkscape.org/release/> |
-| 7 | LibreOffice | `soffice` | `C:\Program Files\LibreOffice\program\` | 26.2.6.3 | <https://de.libreoffice.org/download/download/> |
-| 8 | ExifTool | `exiftool` | `C:\Program Files\ExifTool\` | 13.38 | <https://exiftool.org/> |
-| 9 | DbxConv | `DbxConv` | `C:\Program Files\dbxconv\` | 1.3.4 | <https://www.ukrebs-software.de/english/dbxconv/dbxconv.html> |
-| 10 | Hachoir | `hachoir-metadata` | `%LOCALAPPDATA%\Programs\Python\Python313\Scripts\` | siehe `requirements.txt` | <https://pypi.org/project/hachoir/> |
+8. Benutzer-Pfad bearbeiten:
+   - Wähle im oberen Bereich ("Benutzervariablen für [User]") die Variable Path -> Bearbeiten.
 
-### Hinweise zu einzelnen Programmen
+9. Pfade hinzufügen UND priorisieren:
+   Füge diese Pfade hinzu (falls noch nicht vorhanden) und schiebe sie GANZ NACH OBEN:
+   
+   a) C:\Users\[DeinUser]\AppData\Local\Programs\Python\Python313\
+   b) C:\Users\[DeinUser]\AppData\Local\Programs\Python\Python313\Scripts\
+   
+   Stelle sicher, dass diese beiden Einträge über allen anderen stehen (insbesondere vor LibreOffice, Inkscape, WindowsApps).
 
-**Siegfried** wird von den Skripten A, C, G und K verwendet. Die Skripte suchen ihn erst per `shutil.which("sf")` und fallen dann auf `C:\Program Files\Siegfried\` zurück.
+10. Tool-Pfade prüfen/hinzufügen:
+    Prüfe, ob folgende Pfade im PATH sind. Falls nicht, füge sie hinzu (Position egal, solange sie da sind):
+    - C:\Program Files\Siegfried
+    - C:\Program Files\ClamAV
+    - C:\Program Files\FFmpeg\bin
+    - C:\Program Files\ImageMagick-[Version]-Q16-HDRI
+    - C:\Program Files\gs\gs[Version]\bin
+    - C:\Program Files\Inkscape\bin
+    - C:\Program Files\LibreOffice\program
+    - C:\Program Files\ExifTool
+    - C:\Program Files\dbxconv
 
-**ClamAV** wird von den Skripten A und D verwendet. Die Skripte suchen `clamscan` erst per `shutil.which()` und fallen dann auf `C:\Program Files\ClamAV\` zurück. `freshclam.exe` liegt im selben Ordner und wird bei veralteten Signaturen aufgerufen.
+11. Bestätigen und Neues CMD öffnen:
+    - OK klicken.
+    - Schließe alle alten CMD-Fenster.
+    - Öffne ein brandneues CMD-Fenster.
 
-**FFmpeg/FFprobe** wird von den Skripten C, D, G und K verwendet. Pflicht: **im PATH**.
+## Phase 4: Repository & Python-Pakete
+Ziel: Code holen und Bibliotheken installieren.
 
-**ImageMagick, Ghostscript** werden von Skript D verwendet. Pflicht: **im PATH**.
+12. Repo klonen:
+    cd /d C:\Users\[DeinUser]\Desktop
+    if exist Skripte rmdir /s /q Skripte
+    git clone https://github.com/ChristianeFritze/DSM.git Skripte
+    cd Skripte
 
-**Inkscape** wird von Skript D verwendet. Fallback-Pfad im Skript: `C:\Program Files\Inkscape\bin\inkscape.exe`. Es liegt außerdem eine eigene `gswin64c.exe` unter `C:\Program Files\Inkscape\bin\` – diese wird **nicht** verwendet; die Skripte nutzen die systemweite Ghostscript-Installation.
+13. Pip sicherstellen (Workaround):
+    Auch wenn "Add to PATH" gehakt wurde, erkennt cmd pip manchmal nicht sofort. Nutze diesen Befehl zur Sicherheit:
+    python -m ensurepip --upgrade
 
-**LibreOffice** wird von Skript D sowie den Skripten 01, 02 und 05 des Bereichs `Textdokumente_vergleichen` verwendet. Fallback-Pfad im Skript: `C:\Program Files\LibreOffice\program\soffice.exe`. Es liegt außerdem ein eigenes `python.exe` unter `C:\Program Files\LibreOffice\program\` – dieses wird **nicht** verwendet.
+14. Alle Anforderungen installieren:
+    python -m pip install -r requirements.txt
+    (Hinweis: Dies dauert einige Minuten. Warte bis "Successfully installed" erscheint. Ignoriere Warnungen bezüglich Scripts not on PATH.)
 
-**ExifTool** wird von den Skripten G und K verwendet. Fallback-Pfad: `C:\Program Files\ExifTool\`.
+## Phase 5: Externe Tools initialisieren (SIGNATUREN!)
+Ziel: Brunnhilde/Siegfried und ClamAV benötigen lokale Datenbanken, sonst stürzen sie ab.
 
-**DbxConv** wird von Skript D verwendet. Pflicht: **im PATH** – kein Fallback-Pfad im Skript. Beim Aufruf über `"C:\Program Files\dbxconv\DbxConv.exe"` ist der Ordner in den PATH einzutragen.
+15. Siegfried-Signaturen aktualisieren:
+    Öffne ein CMD (beliebiges Verzeichnis) und führe aus:
+    "C:\Program Files\Siegfried\sf.exe" -update
+    
+    Erwartete Ausgabe: "... writing C:\Users\[DeinUser]\AppData\Local\siegfried\default.sig ..."
+    
+    (Alternative: Falls kein Internetzugriff möglich ist, kopiere die Datei default.sig vom Referenzrechner A nach C:\Users\[DeinUser]\AppData\Local\siegfried\)
 
-**Hachoir** ist ein Grenzfall: Es ist als Python-Paket (`hachoir`) in `requirements.txt` gelistet, stellt aber gleichzeitig das Kommando `hachoir-metadata` bereit, das die Skripte G und K direkt aufrufen. Nach `pip install -r requirements.txt` liegt `hachoir-metadata.exe` im `Scripts\`-Ordner des verwendeten Python-Interpreters. Dieses Verzeichnis muss im PATH sein.
+16. ClamAV-Signaturen aktualisieren:
+    Öffne ein CMD als Administrator und führe aus:
+    cd /d "C:\Program Files\ClamAV"
+    freshclam.exe
+    
+    Erwartete Ausgabe: Update successful. Die Dateien main.cvd etc. sollten aktualisiert sein.
 
----
+## Phase 6: Finaler Funktionstest
 
-## Nicht in dieser Datei: YARA
-
-**YARA** wird von den Skripten G und K als **Python-Paket** (`yara-python`) verwendet – also über `import yara`. Die offiziellen YARA-Binaries (`yara.exe`, `yarac64.exe`, z. B. unter `C:\Program Files\YARA\`) werden von den Skripten **nicht** aufgerufen. Falls YARA-Binaries auf einem Rechner installiert sind, ist das kein Fehler – sie sind für die Skripte aber nicht erforderlich.
-
-Die Regeldatei `rules.yar` liegt im Skript-Ordner selbst und wird dynamisch über `SCRIPT_DIR` gefunden.
-
----
-
-## Aufsetzen auf einem neuen Rechner
-
-Empfohlene Reihenfolge:
-
-1. **Python 3.13 installieren** – systemweit unter `C:\Program Files\Python313\` **oder** user-spezifisch unter `%LOCALAPPDATA%\Programs\Python\Python313\`. Die `Start.bat`-Fallback-Kette findet beides.
-2. **`pip install -r requirements.txt`** mit dem installierten Interpreter.
-3. **Git installieren** – für die Repo-Verwaltung.
-4. **Externe Programme installieren** – gemäß der Tabelle oben. Wenn möglich, dieselben Versionen und Pfade wie auf Rechner A. Alle Programme, deren Aufruf in der Spalte „Aufruf" steht, müssen im **PATH** liegen.
-5. **Neue Konsole öffnen** – PATH-Änderungen werden erst in neuen Sitzungen wirksam.
-6. **`git-sync.bat` ausführen** – um den aktuellen Stand vom Server zu holen.
-7. **Optional: `setup-check.bat` ausführen** – prüft, welche der externen Tools auf diesem Rechner fehlen.
-8. **`Start.bat` doppelklicken** – und die Bereiche testen.
-
----
-
-## Prüfen, ob ein Programm gefunden wird
-
-In der Eingabeaufforderung:
-
+17. Verifizierung der Kernkomponenten:
+    Führe diese Befehle im neuen CMD aus:
+    
+    :: 1. Python & Tkinter
+    python -c "import tkinter; print('TKINTER OK')"
+    
+    :: 2. Brunnhilde
+    python -c "import brunnhilde; print('BRUNNHILDE OK')"
+    
+    :: 3. Externe Tools gefunden?
     where sf
     where clamscan
     where ffmpeg
-    where ffprobe
     where magick
     where gswin64c
-    where inkscape
     where soffice
+    where inkscape
     where exiftool
-    where hachoir-metadata
-    where DbxConv
+    
+    Jede Zeile sollte einen gültigen Pfad unter C:\Program Files\... zurückgeben.
 
-Jedes Programm, das gefunden wird, gibt seinen vollständigen Pfad aus. Fehlt eines, wird es nicht aufgelistet.
+18. Starttest des Menüs:
+    cd /d C:\Users\[DeinUser]\Desktop\Skripte
+    Start.bat
+    
+    Drücke d (Datenaufbereitung).
+    Wähle Skript 1 (A_Analyse_Skript_Brunnhilde_Fixity.py).
+    
+    ERWARTUNG:
+    - Es öffnet sich ein grafisches Fenster zur AC-Ordner-Auswahl (danke Tkinter!).
+    - Nach Auswahl eines Testordners startet die Analyse.
+    - Keine Fehlermeldung regarding signature files or missing executables.
 
----
+## Wichtige Hinweise für die Wartung
 
-## Was passiert, wenn ein Programm fehlt
-
-Die Skripte prüfen ihre externen Abhängigkeiten beim Start. Fehlt ein Programm, wird es mit einer klaren Fehlermeldung quittiert – z. B.
-
-    Fehler: Die folgenden benötigten Programme wurden nicht gefunden:
-    - DbxConv.exe
-
-    Bitte installieren Sie die Programme und/oder fügen Sie deren Ordner zum Windows PATH hinzu.
-
-Die Installation ist dann wie in der Tabelle oben beschrieben nachzuholen. Nach einer PATH-Änderung muss die Konsole neu geöffnet werden.
-
----
-
-## Änderungshistorie
-
-Wenn ein neues externes Tool in einem Skript hinzukommt, wird es **hier** nachgetragen – nicht in der `requirements.txt`.
+- start.bat Dateien: Enthalten dynamische Suchlogik. Nicht hartcodiert anpassen. Sie funktionieren auf allen Rechnern gleich.
+- Requirements: Immer nur vom Master-Rechner (A) via pip freeze > requirements.txt aktualisieren und pushen. Installiere nie Pakete manuell auf Zielrechnern, außer du testest etwas kurzfristig.
+- Pfade: Alle externen Tools müssen zwingend in C:\Program Files\<ToolName> liegen, damit die automatische Erkennung in den Skripten funktioniert.
+- PATH-Hygiene: Prüfe nach Updates von Inkscape/LibreOffice/Git, ob sich deren python.exe wieder vorgedrängelt hat. Dein User-Python (AppData...) muss immer an Position 1 und 2 im PATH stehen.
+- Firewall/Antivirus: Manche Antivirenprogramme blockieren den automatischen Download der Siegfried/ClamAV Signaturen. Falls Step 15/16 fehlschlagen, deaktiviere AV kurzzeitig oder lade die .sig/.cvd Dateien manuell herunter und kopiere sie in die jeweiligen AppData-Ordner.
