@@ -158,17 +158,13 @@ echo [4/5] Lade Aenderungen hoch...
 
 if %FORCE_PUSH_REQUIRED%==1 (
     echo.
-    echo ACHTUNG: Fuehre Force-Push aus (ueberschreibt Remote-Repository)!
-    
-    REM Hole den aktuellen Branch-Namen sicher
-    for /f "delims=" %%i in ('git branch --show-current') do set CURRENT_BRANCH=%%i
-    if "%CURRENT_BRANCH%"=="" set CURRENT_BRANCH=main
-    
-    echo Befehl: git push --force --set-upstream origin %CURRENT_BRANCH%
+    echo ACHTUNG: Fuehre Force-Push auf Branch 'main' aus!
     echo.
+    echo DRUECKEN SIE EINE TASTE, um den Befehl jetzt auszufuehren:
+    echo git push --force --set-upstream origin main
+    pause
     
-    REM Der Push-Befehl mit --set-upstream ist hier entscheidend!
-    git push --force --set-upstream origin "%CURRENT_BRANCH%"
+    git push --force --set-upstream origin main
     
     echo.
     echo --- Git-Ausgabe beendet. Druecken Sie eine Taste, um fortzufahren ---
@@ -177,7 +173,6 @@ if %FORCE_PUSH_REQUIRED%==1 (
     if errorlevel 1 (
         echo.
         echo KRITISCHER FEHLER beim Force-Push!
-        echo Bitte pruefen Sie die obige Fehlermeldung.
         if %USE_CUSTOM_USER%==1 call :RESTORE_CONFIG
         pause
         exit /b 1
