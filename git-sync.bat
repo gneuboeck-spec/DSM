@@ -111,40 +111,18 @@ if errorlevel 1 (
     exit /b 1
 )
 
-set FORCE_PUSH_REQUIRED=0
-
 echo [1/2] Hole aktuelle Aenderungen vom Server...
 git pull
 if errorlevel 1 (
     echo.
-    echo WARNUNG: Pull fehlgeschlagen!
+    echo FEHLER beim Pull! 
     echo Moegliche Ursache: Das neue Repository ist leer oder hat eine unverknuepfte Historie.
-    echo.
-    choice /C JN /M "Moechten Sie trotzdem fortfahren und das Remote-Repository mit Ihrem lokalen Stand ueberschreiben (Force Push)?"
-    if errorlevel 2 (
-        echo Vorgang abgebrochen.
-        if %USE_CUSTOM_USER%==1 call :RESTORE_CONFIG
-        pause
-        exit /b 1
-    )
-    echo Fortfahren mit lokalem Stand. Force-Push wird ausgefuehrt.
-    set FORCE_PUSH_REQUIRED=1
-)
-
-if %FORCE_PUSH_REQUIRED%==1 (
-    echo.
-    echo ACHTUNG: Fuehre Force-Push aus (ueberschreibt Remote-Repository)!
-    for /f "delims=" %%i in ('git branch --show-current') do set CURRENT_BRANCH=%%i
-    if "%CURRENT_BRANCH%"=="" set CURRENT_BRANCH=main
-    git push --force origin "%CURRENT_BRANCH%"
+    echo DA DIES EIN NUR-PULL-SKRIPT IST, WIRD KEIN PUSH AUSGEFUEHRT.
+    echo Bitte loesen Sie das Problem manuell oder nutzen Sie git-update.bat.
     
-    if errorlevel 1 (
-        echo.
-        echo FEHLER beim Force-Push!
-        if %USE_CUSTOM_USER%==1 call :RESTORE_CONFIG
-        pause
-        exit /b 1
-    )
+    if %USE_CUSTOM_USER%==1 call :RESTORE_CONFIG
+    pause
+    exit /b 1
 )
 
 echo.
