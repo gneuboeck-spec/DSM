@@ -9,8 +9,8 @@ Zentrale Arbeitsumgebung für die digitale Datenrettung und Langzeitarchivierung
     |-- Menu.py                            <-- Zentrales Auswahlmenü
     |-- requirements.txt                   <-- Python-Abhängigkeiten (optional, siehe unten)
     |-- EXTERNE_TOOLS.md                   <-- Externe Programme (nicht über pip installierbar)
-    |-- git-sync.bat                       <-- Nur Pull (Stand holen)
-    |-- git-update.bat                     <-- Pull + Commit + Push (Änderungen hochladen)
+    |-- git-sync.bat                       <-- Nur Pull (Stand holen) mit erweiterten Sicherheitsfunktionen
+    |-- git-update.bat                     <-- Pull + Commit + Push (Änderungen hochladen) mit intelligenter Fehlerbehandlung
     |-- README.md                          <-- Diese Datei
     |
     |-- Datenaufbereitung/                 <-- Haupt-Workflow (Skripte A-L)
@@ -233,20 +233,29 @@ Diese Dokumentation ist die **verbindliche Referenz** für das Einrichten neuer 
 
 ### git-sync.bat
 
-Holt den aktuellen Stand vom Server (nur `git pull`, keine eigenen Änderungen). Diese Datei ist auf allen Rechnern der Standard, auf denen nur mit der Skriptsammlung gearbeitet wird. Sie kann nichts versehentlich hochladen.
+Sicheres Skript zum Holen des aktuellen Standes vom Server (nur `git pull`). Es ist auf allen Rechnern der Standard, auf denen nur mit der Skriptsammlung gearbeitet wird, da es keine eigenen Änderungen hochladen kann.
+
+**Erweiterte Sicherheitsfunktionen:**
+- **Automatische Sicherung:** Erstellt vor der Operation optional ein Backup der lokalen Dateien (ohne den `.git`-Ordner) in einem zeitgestempelten Ordner im übergeordneten Verzeichnis.
+- **Optionale URL-Änderung:** Ermöglicht das sichere Umleiten des Repositories auf eine neue Remote-URL (z. B. bei einem Umzug).
+- **Optionaler Benutzerwechsel:** Ermöglicht das temporäre Ändern von `user.name` und `user.email` für Commits. Gespeicherte Credentials werden dabei gezielt gelöscht, um eine saubere, erneute Authentifizierung (z. B. via Browser) zu erzwingen.
+- **Sicherer Abbruch:** Falls der Pull fehlschlägt (z. B. wegen unverknüpfter Historien bei einem neuen Repository), bricht das Skript sicher ab und führt **keinen** Push aus.
 
 ### git-update.bat
 
 Automatisiertes Git-Update-Skript zum Hochladen eigener Änderungen. Führt folgende Schritte aus:
 
-1. **Pull**: Holt aktuelle Änderungen vom Server
-2. **Add**: Fügt alle lokalen Änderungen hinzu (`git add -A`)
-3. **Commit**: Erstellt Commit mit Zeitstempel (nur wenn es tatsächlich Änderungen gibt)
-4. **Push**: Lädt Änderungen hoch
+1. **Pull**: Holt aktuelle Änderungen vom Server.
+2. **Add**: Fügt alle lokalen Änderungen hinzu (`git add -A`).
+3. **Commit**: Erstellt Commit mit Zeitstempel (nur wenn es tatsächlich Änderungen gibt).
+4. **Push**: Lädt Änderungen hoch.
 
-Bei Fehlern wird eine entsprechende Meldung angezeigt und das Skript pausiert.
+**Erweiterte Sicherheits- und Komfortfunktionen:**
+- **Automatische Sicherung:** Wie bei `git-sync.bat` wird optional ein vollständiges Backup vor Änderungen erstellt.
+- **Optionale URL- & Benutzeränderung:** Bietet dieselben sicheren Umschaltmöglichkeiten für Remote-URL und Git-Identität wie das Sync-Skript.
+- **Intelligenter Force-Push-Fallback:** Erkennt das Skript, dass `git pull` fehlschlägt (typischerweise, weil das Ziel-Repository auf dem Server neu und leer ist oder eine unverknüpfte Historie hat), bricht es nicht einfach ab. Stattdessen warnt es den Benutzer und bietet einen geführten, sicheren `git push --force --set-upstream origin main` an, um das leere Remote-Repository mit dem lokalen Stand zu initialisieren. Dies verhindert stille Abstürze und macht Repository-Umzüge kinderleicht.
 
-Verwendung:
+**Verwendung:**
 - Auf dem Test-Rechner (Rechner A), um geprüfte Änderungen zentral bereitzustellen.
 - Auf anderen Rechnern nur dann, wenn dort bewusst Änderungen gepusht werden sollen.
 
@@ -293,7 +302,7 @@ Nach einer PATH-Änderung muss die Konsole neu geöffnet werden, damit der Eintr
 5. **Externe Programme installieren** – gemäß der Anleitung in `EXTERNE_TOOLS.md`. Wenn möglich, dieselben Versionen und Installationspfade wie auf dem Referenzrechner (A).
 6. **Neue Konsole öffnen**, damit PATH-Änderungen wirksam werden.
 7. **Optional: `setup-check.bat` ausführen** – prüft, welche der externen Programme auf diesem Rechner fehlen.
-8. `git-sync.bat` ausführen, um den aktuellen Stand zu holen.
+8. `git-sync.bat` ausführen, um den aktuellen Stand zu holen (bei erstem Umzug ggf. die URL-Änderungsfunktion nutzen).
 9. `Start.bat` doppelklicken und Bereiche testen.
 
 ## Lizenz
