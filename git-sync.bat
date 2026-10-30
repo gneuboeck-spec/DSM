@@ -3,7 +3,12 @@ chcp 65001 >nul
 setlocal
 title Git Sync (nur Pull)
 
-cd /d "%~dp0"
+REM Wenn ein Pfad übergeben wurde (vom Starter), nutze diesen, sonst den eigenen Ordner
+if "%~1"=="" (
+    cd /d "%~dp0"
+) else (
+    cd /d "%~1"
+)
 
 echo ========================================
 echo   Git Sync: Nur Pull (keine eigenen Aenderungen)

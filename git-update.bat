@@ -3,7 +3,12 @@ chcp 65001 >nul
 setlocal
 title Git Update (Pull, Add, Commit, Push)
 
-cd /d "%~dp0"
+REM Wenn ein Pfad übergeben wurde (vom Starter), nutze diesen, sonst den eigenen Ordner
+if "%~1"=="" (
+    cd /d "%~dp0"
+) else (
+    cd /d "%~1"
+)
 
 echo ========================================
 echo   Git Update: Pull, Add, Commit, Push
@@ -213,4 +218,4 @@ echo Stelle originale Git-Benutzerkonfiguration wieder her...
 if not "%ORIGINAL_USER_NAME%"=="NICHT_GEFUNDEN" git config user.name "%ORIGINAL_USER_NAME%"
 if not "%ORIGINAL_USER_EMAIL%"=="NICHT_GEFUNDEN" git config user.email "%ORIGINAL_USER_EMAIL%"
 echo Fertig.
-exit /b 0
+exit /b 0-
