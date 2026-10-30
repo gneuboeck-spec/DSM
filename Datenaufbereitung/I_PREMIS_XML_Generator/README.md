@@ -19,14 +19,15 @@ Das Skript verfügt über eine intelligente "Medien-Weiche", die automatisch erk
   * **Redumper-Parser:** Liest Metadaten aus Audio-CD/DVD-Rips (Redumper) und übernimmt die Hardware-Kennung des optischen Laufwerks.
   * **Greaseweazle-Parser:** Dokumentiert Flux-Stream-Parameter, Heads/Cylinders und Host-Tools für Disketten-Images.
   * **ddrescue-Support:** Erkennt HDD-Clones anhand von Mapfiles.
-* **Normdaten-Integration (GND & LOBID):**
+* **Normdaten-Integration (GND & LOBID) mit erweiterter manueller Eingabe:**
   * Interaktive Suche nach Urhebern in der Deutschen Nationalbibliothek (DNB) via SRU-Schnittstelle.
   * **LOBID-Fallback:** Nutzt bei Erreichbarkeitsproblemen der DNB automatisch die lobid-gnd API (hbz), um Namen, Lebensdaten und Berufe zur Identifikation zu verknüpfen.
+  * **Manueller Eintrag:** Erlaubt das Anlegen von Urhebern ohne GND-Nummer (generiert lokale IDs) und mit optionalem Sterbejahr zur automatischen Berechnung der urheberrechtlichen Schutzfrist.
 * **Hierarchische PREMIS-Struktur:**
   * **Objects:** Dokumentiert Träger-Fotos (Stufe 0), Disk-Images (Stufe 1), extrahierte Originaldateien (Stufe 2) und den technischen Index (Stufe 3).
   * **Events:** Protokolliert Imaging, Extraktion, Metadaten-Erfassung, Virus-Check, Konvertierung und Packaging.
   * **Agents:** Verknüpft Software-Tools (Siegfried, Brunnhilde, ClamAV, Python-Skripte), Hardware und Personen (Urheber).
-  * **Rights:** Erstellt Copyright-Statements basierend auf den Urheberdaten.
+  * **Rights:** Erstellt Copyright-Statements basierend auf den Urheberdaten, inklusive automatischer Berechnung der Schutzfrist (70 Jahre post mortem auctoris, endend am 31.12. des 70. Folgejahres) und XSD-konformer Ausgabe von `copyrightNote` gefolgt von `copyrightApplicableDates` (`startDate`/`endDate`).
 * **ClamAV-Virus-Check-Integration:**
   * Liest `viruscheck-log.txt` aus Stufe 2 (Brunnhilde-Report) oder Stufe 5.
   * Erstellt ein PREMIS-Event `virus check` mit ClamAV-Agent (Engine-Version, gescannte und infizierte Dateien).
@@ -85,7 +86,7 @@ Das Skript erwartet zwingend mindestens zwei Argumente (AC-Nummer, Datenträger-
 
 ### Ablauf der Ausführung
 
-1. **Urheber-Wahl:** Das Skript bittet um die Eingabe eines Namens und sucht diesen in der GND. Ein passender Eintrag kann interaktiv ausgewählt werden.
+1. **Urheber-Wahl:** Das Skript bittet um die Eingabe eines Namens und sucht diesen in der GND. Ein passender Eintrag kann interaktiv ausgewählt werden. Bei manueller Eingabe sind GND-Nummer und Sterbejahr optional; bei Angabe des Sterbejahres wird die Schutzfrist automatisch berechnet.
 2. **Referenz-Analyse:** Imaging-Logs in Stufe 1 werden gescannt, um den Medientyp (USB, CD, Floppy, HDD) zu bestimmen.
 3. **Objekt-Erstellung:** Hashes und Metadaten aller Objekte (aus Stufe 0, 1, 2 und 3) werden als PREMIS-Objekte angelegt.
 4. **Virus-Check:** Sofern eine `viruscheck-log.txt` existiert, wird ein `virus check`-Event erstellt und die Log-Datei als Objekt verknüpft.
@@ -141,7 +142,12 @@ Das Skript analysiert den `logfiles`-Ordner in Stufe 1 in folgender Reihenfolge:
 
 **Extrahiert bei lobid:** GND-ID, Name, Geburts-/Todesdatum, Berufe (aus `professionOrOccupation`).
 
-**Fallback:** Bei `x` wird `creator_gnd_id = None` gesetzt, Agent-ID wird aus dem eingegebenen Namen generiert.
+**Manueller Eintrag (`m`):**
+* **Name:** Erforderlich (Format: Familienname, Vorname).
+* **GND-Nummer:** Optional. Wenn leer gelassen, wird eine lokale ID generiert (z. B. `local_Max_Mustermann`) und `creator_gnd_id` bleibt `None`.
+* **Sterbejahr:** Optional (4-stellig, z. B. 1950). Wenn angegeben, wird das `copyright_end_date` automatisch auf den 31.12. des 70. Folgejahres berechnet. Dies führt zur korrekten Generierung von `<copyrightApplicableDates>` mit `startDate` und `endDate` im PREMIS-XML.
+
+**Fallback (`x`):** Bei `x` wird `creator_gnd_id = None` gesetzt, Agent-ID wird aus dem eingegebenen Namen generiert, keine automatische Schutzfristberechnung.
 
 ### PREMIS-Objekt-Typen
 
@@ -176,6 +182,13 @@ Innerhalb von `event`:
 4. `eventOutcomeInformation`
 5. `linkingAgentIdentifier`
 6. `linkingObjectIdentifier`
+
+Innerhalb von `copyrightInformation` (Rights):
+
+1. `copyrightStatus`
+2. `copyrightJurisdiction`
+3. `copyrightNote` (MUSS vor `copyrightApplicableDates` stehen laut XSD)
+4. `copyrightApplicableDates` (enthält `startDate` und `endDate`, falls Sterbejahr bekannt)
 
 ### Erzeugte Events (Übersicht)
 

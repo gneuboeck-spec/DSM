@@ -9,13 +9,20 @@
 #
 # Autor: Gregor Neuböck / DSM
 # Datum: 2025-12-15
-# Version: 22.4.1 - CLAMAV FIX
-#                 1. BUGFIX: relatedObjectIdentifier ist in PREMIS relationship zwingend.
-#                 2. CLAMAV-PARSER: Liest viruscheck-log.txt aus Stufe 2 oder 5.
-#                 3. PREMIS-EVENT: Erstellt valides 'virus check' Event mit ClamAV-Agent.
-#                 4. DATUMS-FIX: Normalisiert ClamAV-Datumsformate (2026:08:12 -> ISO-8601).
-#                 5. LOGFILE-OBJEKT: Speichert den Virenscan-Report selbst als PREMIS-Artefakt.
-#                 6. VALIDIERUNG: Filtert FileTrove-Warnungen, zeigt nur echte Fehler.
+# Version: 22.4.5 - COMPLETE SCRIPT WITH OPTIONAL GND & COPYRIGHT FIX
+#                 1. NEU: Manuelles Eingabefeld für das Sterbejahr hinzugefügt.
+#                 2. NEU: GND-Nummer bei manueller Eingabe ist nun OPTIONAL.
+#                 3. RECHTLICH: Berechnung der Schutzfrist endet immer am 31.12. 
+#                    des 70. Folgejahres (gemäß § 60 UrhG / EU-Richtlinie).
+#                 4. FIX: Reihenfolge in copyrightInformation korrigiert 
+#                    (copyrightNote MUSS vor copyrightApplicableDates stehen laut XSD).
+#                 5. FIX: startDate hinzugefügt, um "Expected startDate" Fehler zu vermeiden.
+#                 6. BUGFIX: relatedObjectIdentifier ist in PREMIS relationship zwingend.
+#                 7. CLAMAV-PARSER: Liest viruscheck-log.txt aus Stufe 2 oder 5.
+#                 8. PREMIS-EVENT: Erstellt valides 'virus check' Event mit ClamAV-Agent.
+#                 9. DATUMS-FIX: Normalisiert ClamAV-Datumsformate (2026:08:12 -> ISO-8601).
+#                 10. LOGFILE-OBJEKT: Speichert den Virenscan-Report selbst als PREMIS-Artefakt.
+#                 11. VALIDIERUNG: Filtert FileTrove-Warnungen, zeigt nur echte Fehler.
 #
 # Benötigt: lxml (pip install lxml), requests (pip install requests)
 # ==============================================================================
@@ -279,7 +286,7 @@ def analyze_source_media(logfiles_path):
     """
     Sucht nach Imaging-Logs. 
     NEU: Falls der 'logfiles'-Ordner fehlt, sucht es im Hauptordner, 
-    erstellt den Ordner und verschiebt die Log-Datei dorthin.
+    erstellt den Ordner und verschiebt die Log-Datei dorthin für zukünftige Konsistenz.
     """
     # 1. Prüfen, ob der logfiles-Ordner existiert
     if not logfiles_path.exists():
@@ -392,6 +399,8 @@ class PremisGenerator:
         self.creator_gnd_id = None
         self.creator_name = None
         self.creator_agent_id = None
+        self.creator_death_year = None  # NEU: Für Schutzfristberechnung
+        self.copyright_end_date = None  # NEU: Berechnetes Enddatum (YYYY-MM-DD)
 
         self.AGENT_DEFS = {
             "PYTHON_CONVERSION": ("SW_InternalPythonScripts_Conversion", "Internal Python Conversion Scripts", "software"),
@@ -403,7 +412,7 @@ class PremisGenerator:
         self.root = etree.Element(PREMIS + 'premis', nsmap=NSMAP, version="3.0")
         self.root.set(XSI + 'schemaLocation', SCHEMA_LOCATION)
 
-        print(f"INFO: PREMIS Generator V22.4.1 (Staging-Aware + ClamAV) für '{self.disk_id}' initialisiert.")
+        print(f"INFO: PREMIS Generator V22.4.5 (Optional GND & Copyright) für '{self.disk_id}' initialisiert.")
         if not self.path_step5_lza.exists():
             print(f"FATALER FEHLER: Archiv-Staging-Ordner (5) nicht gefunden: {self.path_step5_lza}")
             sys.exit(1)
@@ -418,6 +427,16 @@ class PremisGenerator:
             self.creator_gnd_id = gnd_data['id']
             self.creator_name = gnd_data['name']
             self.creator_agent_id = f"creator_{self.creator_gnd_id}"
+            self.creator_death_year = gnd_data.get('death_year') # NEU
+            
+            # NEU: Automatische Berechnung der Schutzfrist (70 Jahre p.m.a.)
+            if self.creator_death_year:
+                try:
+                    end_year = int(self.creator_death_year) + 70
+                    self.copyright_end_date = f"{end_year}-12-31"
+                except ValueError:
+                    pass # Falls das Jahr kein gültiges Format hat
+
             print(f"\033[92m -> Urheber '{self.creator_name}' mit GND-ID {self.creator_gnd_id} ausgewählt.\033[0m")
         else:
             if not raw_input_name:
@@ -444,7 +463,7 @@ class PremisGenerator:
             return elem
         return None
 
-    # --- VERBESSERTE GND SUCHE MIT LOBID-GND FALLBACK (V22.3) ---
+    # --- VERBESSERTE GND SUCHE MIT LOBID-GND FALLBACK (V22.4.5) ---
     def _search_dnb_sru(self, query_str, session, headers):
         try:
             print(f"Suche bei DNB nach: {query_str} ...")
@@ -476,7 +495,17 @@ class PremisGenerator:
                     n = name_node.text
                     
                     d = rec.find('./marc:datafield[@tag="100"]/marc:subfield[@code="d"]', ns)
-                    ds = f"({d.text})" if (d is not None and d.text) else ""
+                    death_year = None
+                    if d is not None and d.text:
+                        ds = f"({d.text})"
+                        # Versuche, das Todesjahr zu extrahieren (z.B. "1850-1920" oder "*1850, †1920")
+                        years = re.findall(r'\b(\d{4})\b', d.text)
+                        if len(years) >= 2:
+                            death_year = years[-1] # Das letzte gefundene 4-stellige Jahr ist meist das Todesjahr
+                        elif len(years) == 1 and ('†' in d.text or 'gest' in d.text.lower() or '-' in d.text):
+                            death_year = years[0]
+                    else:
+                        ds = ""
                     
                     type_label = "Unbekannt"
                     f075 = rec.find('./marc:datafield[@tag="075"]/marc:subfield[@code="b"]', ns)
@@ -503,7 +532,12 @@ class PremisGenerator:
                     info_str = ", ".join(infos[:2])
                     if info_str: info_str = f" | Info: {info_str}"
                     
-                    results.append({'id': gid, 'name': n, 'display': f"{n} {ds} | [Typ: {type_label}]{info_str} [ID: {gid}]"})
+                    results.append({
+                        'id': gid, 
+                        'name': n, 
+                        'death_year': death_year, # NEU
+                        'display': f"{n} {ds} | [Typ: {type_label}]{info_str} [ID: {gid}]"
+                    })
                 except Exception:
                     continue
             
@@ -552,6 +586,9 @@ class PremisGenerator:
                     death = get_first_val('dateOfDeath')
                     dates = f" ({birth}-{death})" if (birth or death) else ""
                     
+                    # NEU: Todesjahr extrahieren für Schutzfrist
+                    death_year = death[:4] if death and len(str(death)) >= 4 else None
+                    
                     info_list = []
                     professions = item.get('professionOrOccupation', [])
                     if isinstance(professions, list):
@@ -567,6 +604,7 @@ class PremisGenerator:
                     results.append({
                         'id': gid, 
                         'name': name, 
+                        'death_year': death_year, # NEU
                         'display': f"{name}{dates}{info_str} [ID: {gid}]"
                     })
                 except Exception as e:
@@ -620,7 +658,7 @@ class PremisGenerator:
             print("\nOptionen:")
             if results:
                 print("  1-N: Eintrag auswählen")
-            print("  m:   Manuellen Eintrag erstellen (Familienname, Vorname + GND-Nummer)")
+            print("  m:   Manuellen Eintrag erstellen (Familienname, Vorname + GND-Nummer (optional) + Sterbejahr (optional))")
             print("  s:   Neue Suche (Tippfehler korrigieren)")
             print("  x:   Ohne GND fortfahren (Lokal)")
             
@@ -632,19 +670,28 @@ class PremisGenerator:
             elif choice == 'm':
                 print("\n--- Manueller Eintrag ---")
                 manual_name = input("Name (Format: Familienname, Vorname): ").strip()
-                manual_gnd = input("GND-Nummer: ").strip()
+                manual_gnd = input("GND-Nummer (LEER LASSEN, falls nicht vorhanden): ").strip()
+                manual_death_year = input("Sterbejahr (4-stellig, z.B. 1950, oder LEER LASSEN): ").strip()
                 
-                if manual_name and manual_gnd:
-                    return {'id': manual_gnd, 'name': manual_name}
+                if manual_name:
+                    # Validiere das Sterbejahr, falls eingegeben
+                    valid_death_year = None
+                    if manual_death_year and len(manual_death_year) == 4 and manual_death_year.isdigit():
+                        valid_death_year = manual_death_year
+                    
+                    # Wenn keine GND angegeben wurde, erstelle eine lokale ID
+                    final_id = manual_gnd if manual_gnd else f"local_{re.sub(r'[^a-zA-Z0-9_]', '_', manual_name.replace(' ', '_'))}"
+                    
+                    return {'id': final_id, 'name': manual_name, 'death_year': valid_death_year}
                 else:
-                    print("Ungültige Eingabe. Name und GND-Nummer sind erforderlich.")
+                    print("Ungültige Eingabe. Name ist erforderlich.")
                     continue
             elif choice == 'x':
                 return None
             elif choice.isdigit():
                 idx = int(choice)
                 if results and 0 < idx <= len(results):
-                    return {'id': results[idx-1]['id'], 'name': results[idx-1]['name']}
+                    return {'id': results[idx-1]['id'], 'name': results[idx-1]['name'], 'death_year': results[idx-1].get('death_year')}
                 else:
                     print("Ungültige Nummer.")
             else:
@@ -1222,9 +1269,25 @@ class PremisGenerator:
         self._add_simple(ci, 'copyrightStatus', 'copyrighted')
         self._add_simple(ci, 'copyrightJurisdiction', 'AT')
         
+        # 1. ZUERST den Text (copyrightNote) aufbauen und einfügen (XSD-Reihenfolge!)
         txt = "Urheberrechtlich geschützt."
-        if self.creator_name: txt += f" Rechte bei {self.creator_name}."
+        if self.creator_name: 
+            txt += f" Rechte bei {self.creator_name}."
+        
+        if self.copyright_end_date:
+            readable_date = f"{self.copyright_end_date[8:10]}.{self.copyright_end_date[5:7]}.{self.copyright_end_date[:4]}"
+            txt += f" Schutzfrist endet am {readable_date} (70 Jahre post mortem auctoris)."
+            
         self._add_simple(ci, 'copyrightNote', txt)
+
+        # 2. DANACH die Datumsangaben (copyrightApplicableDates) einfügen
+        if self.copyright_end_date:
+            cad = etree.SubElement(ci, PREMIS + 'copyrightApplicableDates')
+            # startDate: 01.01. des Sterbejahres (Beginn der post-mortem Periode)
+            if self.creator_death_year:
+                self._add_simple(cad, 'startDate', f"{self.creator_death_year}-01-01")
+            # endDate: 31.12. des 70. Folgejahres
+            self._add_simple(cad, 'endDate', self.copyright_end_date)
         
         loi = etree.SubElement(rs, PREMIS + 'linkingObjectIdentifier')
         self._add_simple(loi, 'linkingObjectIdentifierType', 'local')
