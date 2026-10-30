@@ -18,13 +18,11 @@ choice /C JN /M "Automatische Sicherung erstellen"
 if errorlevel 2 goto :SKIP_BACKUP
 
 echo Erstelle Sicherung...
-REM Timestamp generieren (Format: JJJJMMTT_HHMMSS)
 set TIMESTAMP=%date:~-4%%date:~-7,2%%date:~-10,2%_%time:~0,2%%time:~3,2%%time:~6,2%
 set TIMESTAMP=%TIMESTAMP: =0%
 set BACKUP_DIR=%~dp0..\Sicherung_Git_%TIMESTAMP%
 
 mkdir "%BACKUP_DIR%" 2>nul
-REM Kopiere alle Dateien, schliesse aber .git und alte Sicherungen aus
 robocopy "%~dp0." "%BACKUP_DIR%" /E /XD .git Sicherung_* /NFL /NDL /NJH /NJS
 echo Sicherung erfolgreich erstellt in: %BACKUP_DIR%
 echo.
@@ -129,7 +127,7 @@ if errorlevel 1 (
         pause
         exit /b 1
     )
-    echo Fortfahren mit lokalem Stand. Force-Push wird spaeter ausgefuehrt.
+    echo Fortfahren mit lokalem Stand. Force-Push wird ausgefuehrt.
     set FORCE_PUSH_REQUIRED=1
 )
 
@@ -157,21 +155,42 @@ if errorlevel 1 (
 :PUSH_ONLY
 echo.
 echo [4/5] Lade Aenderungen hoch...
+
 if %FORCE_PUSH_REQUIRED%==1 (
+    echo.
     echo ACHTUNG: Fuehre Force-Push aus (ueberschreibt Remote-Repository)!
+    
+    REM Hole den aktuellen Branch-Namen sicher
     for /f "delims=" %%i in ('git branch --show-current') do set CURRENT_BRANCH=%%i
     if "%CURRENT_BRANCH%"=="" set CURRENT_BRANCH=main
-    git push --force origin "%CURRENT_BRANCH%"
+    
+    echo Befehl: git push --force --set-upstream origin %CURRENT_BRANCH%
+    echo.
+    
+    REM Der Push-Befehl mit --set-upstream ist hier entscheidend!
+    git push --force --set-upstream origin "%CURRENT_BRANCH%"
+    
+    echo.
+    echo --- Git-Ausgabe beendet. Druecken Sie eine Taste, um fortzufahren ---
+    pause
+    
+    if errorlevel 1 (
+        echo.
+        echo KRITISCHER FEHLER beim Force-Push!
+        echo Bitte pruefen Sie die obige Fehlermeldung.
+        if %USE_CUSTOM_USER%==1 call :RESTORE_CONFIG
+        pause
+        exit /b 1
+    )
 ) else (
     git push
-)
-
-if errorlevel 1 (
-    echo.
-    echo FEHLER beim Push!
-    if %USE_CUSTOM_USER%==1 call :RESTORE_CONFIG
-    pause
-    exit /b 1
+    if errorlevel 1 (
+        echo.
+        echo FEHLER beim Push!
+        if %USE_CUSTOM_USER%==1 call :RESTORE_CONFIG
+        pause
+        exit /b 1
+    )
 )
 
 :SYNC_SUCCESS
