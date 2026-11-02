@@ -11,6 +11,8 @@ Zentrale Arbeitsumgebung für die digitale Datenrettung und Langzeitarchivierung
     |-- EXTERNE_TOOLS.md                   <-- Externe Programme (nicht über pip installierbar)
     |-- git-sync.bat                       <-- Nur Pull (Stand holen) mit erweiterten Sicherheitsfunktionen
     |-- git-update.bat                     <-- Pull + Commit + Push (Änderungen hochladen) mit intelligenter Fehlerbehandlung
+    |-- git-sync-starter.bat               <-- Starter für git-sync.bat (vermeidet Dateisperren bei Selbst-Updates)
+    |-- git-update-starter.bat             <-- Starter für git-update.bat (vermeidet Dateisperren bei Selbst-Updates)
     |-- README.md                          <-- Diese Datei
     |
     |-- Datenaufbereitung/                 <-- Haupt-Workflow (Skripte A-L)
@@ -259,6 +261,18 @@ Automatisiertes Git-Update-Skript zum Hochladen eigener Änderungen. Führt folg
 - Auf dem Test-Rechner (Rechner A), um geprüfte Änderungen zentral bereitzustellen.
 - Auf anderen Rechnern nur dann, wenn dort bewusst Änderungen gepusht werden sollen.
 
+### git-sync-starter.bat & git-update-starter.bat
+
+Um das Problem zu umgehen, dass Windows eine laufende `.bat`-Datei sperrt und sie sich daher nicht selbst per `git pull` aktualisieren kann (das sogenannte "Henne-Ei-Problem"), wurden diese Starter-Skripte eingeführt.
+
+**Funktionsweise:**
+1. Die Starter-Datei kopiert die eigentliche `git-sync.bat` oder `git-update.bat` in den temporären Windows-Ordner (`%TEMP%`).
+2. Sie führt die Kopie von dort aus.
+3. Da die Originaldatei im Projektordner während der Ausführung nicht gesperrt ist, kann sie von `git pull` problemlos überschrieben werden, falls sie auf dem Server aktualisiert wurde.
+4. Nach der Ausführung wird die temporäre Kopie automatisch gelöscht.
+
+**Wichtig:** Auf allen Rechnern sollten ab sofort **ausschließlich** die `*-starter.bat` Dateien per Doppelklick gestartet werden, um einen reibungslosen, sperrfreien Workflow über mehrere Rechner hinweg zu gewährleisten.
+
 ## Python-Interpreter
 
 Die Skriptsammlung nutzt eine Fallback-Kette, um auf jedem Rechner den passenden Python-Interpreter zu finden. Die `Start.bat`-Dateien suchen in dieser Reihenfolge:
@@ -302,7 +316,7 @@ Nach einer PATH-Änderung muss die Konsole neu geöffnet werden, damit der Eintr
 5. **Externe Programme installieren** – gemäß der Anleitung in `EXTERNE_TOOLS.md`. Wenn möglich, dieselben Versionen und Installationspfade wie auf dem Referenzrechner (A).
 6. **Neue Konsole öffnen**, damit PATH-Änderungen wirksam werden.
 7. **Optional: `setup-check.bat` ausführen** – prüft, welche der externen Programme auf diesem Rechner fehlen.
-8. `git-sync.bat` ausführen, um den aktuellen Stand zu holen (bei erstem Umzug ggf. die URL-Änderungsfunktion nutzen).
+8. `git-sync-starter.bat` ausführen, um den aktuellen Stand zu holen (bei erstem Umzug ggf. die URL-Änderungsfunktion nutzen).
 9. `Start.bat` doppelklicken und Bereiche testen.
 
 ## Lizenz
