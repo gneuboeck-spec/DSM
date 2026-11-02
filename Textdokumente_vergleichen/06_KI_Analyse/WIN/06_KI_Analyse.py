@@ -370,7 +370,7 @@ def run_ki_analysis(root_path, rows, threshold, min_len, max_len):
         if base_row:
             base_path = root_path / base_row['Relativer_Pfad']
             if base_path.exists():
-                full_txt = extract_text_simple(base_path)
+                full_txt = extract_text_simple(base_path, cache_dir)
                 group_bases[grp] = get_ai_text_sample(full_txt, MAX_CHARS_FOR_AI)
     
     if not group_bases:
@@ -397,7 +397,7 @@ def run_ki_analysis(root_path, rows, threshold, min_len, max_len):
                 continue
                 
             is_trigger = any(word in row['Dateiname'].lower() for word in TRIGGER_WORDS)
-            text = extract_text_simple(doc_path)
+            text = extract_text_simple(doc_path, cache_dir)
             
             # HIER: Verwendung der dynamischen Längenwerte statt fest codierter 100 und 5000
             is_short = min_len < len(text) < max_len
