@@ -263,15 +263,20 @@ Automatisiertes Git-Update-Skript zum Hochladen eigener Änderungen. Führt folg
 
 ### git-sync-starter.bat & git-update-starter.bat
 
-Um das Problem zu umgehen, dass Windows eine laufende `.bat`-Datei sperrt und sie sich daher nicht selbst per `git pull` aktualisieren kann (das sogenannte "Henne-Ei-Problem"), wurden diese Starter-Skripte eingeführt.
+Um das Problem zu umgehen, dass Windows eine laufende `.bat`-Datei sperrt und sie sich daher nicht selbst per `git pull` aktualisieren kann (das sogenannte "Henne-Ei-Problem" bei den Hauptskripten), wurden diese Starter-Skripte eingeführt.
 
 **Funktionsweise:**
 1. Die Starter-Datei kopiert die eigentliche `git-sync.bat` oder `git-update.bat` in den temporären Windows-Ordner (`%TEMP%`).
 2. Sie führt die Kopie von dort aus.
-3. Da die Originaldatei im Projektordner während der Ausführung nicht gesperrt ist, kann sie von `git pull` problemlos überschrieben werden, falls sie auf dem Server aktualisiert wurde.
+3. Da die Original-Hauptdatei im Projektordner während der Ausführung nicht gesperrt ist, kann sie von `git pull` problemlos überschrieben werden, falls sie auf dem Server aktualisiert wurde.
 4. Nach der Ausführung wird die temporäre Kopie automatisch gelöscht.
 
-**Wichtig:** Auf allen Rechnern sollten ab sofort **ausschließlich** die `*-starter.bat` Dateien per Doppelklick gestartet werden, um einen reibungslosen, sperrfreien Workflow über mehrere Rechner hinweg zu gewährleisten.
+**Wichtiger Hinweis zur Selbst-Aktualisierung der Starter-Dateien:**
+Die Haupt-`.bat`-Dateien können sich dank dieses Tricks vollautomatisch aktualisieren. Falls jedoch die `*-starter.bat`-Dateien *selbst* geändert und auf den Server gepusht werden, kann Windows diese spezifische Datei auf dem Zielrechner während ihrer Ausführung nicht überschreiben (Dateisperre). 
+- **Symptom:** Beim ersten Ausführen auf dem neuen Rechner zeigt Git eine harmlose "Permission denied"-Meldung speziell für die Starter-Datei an. Alle anderen Dateien werden trotzdem erfolgreich aktualisiert.
+- **Lösung:** Da sich die Starter-Dateien in der Praxis extrem selten ändern, ist die Lösung ein einmaliger manueller Eingriff: Öffnen Sie auf dem Zielrechner einmalig die CMD im Projektordner und führen Sie `git pull` aus. Da kein Skript läuft, gibt es keine Sperre, und die neuen Starter-Dateien werden sauber heruntergeladen. Ab diesem einen Moment funktioniert der vollautomatische Workflow wieder einwandfrei.
+
+**Wichtig:** Auf allen Rechnern sollten ab sofort **ausschließlich** die `*-starter.bat` Dateien per Doppelklick gestartet werden.
 
 ## Python-Interpreter
 
