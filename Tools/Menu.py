@@ -1,6 +1,20 @@
+# SPDX-FileCopyrightText: 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 import subprocess
 import sys
 from pathlib import Path
+
+# ==============================================================================
+# 🔧 FARB-INITIALISIERUNG (Konsistenz mit allen anderen Skripten)
+# ==============================================================================
+try:
+    from colorama import init, Fore, Style
+    init(autoreset=True)
+except ImportError:
+    class Fore: GREEN = RED = YELLOW = CYAN = MAGENTA = WHITE = ""
+    class Style: RESET_ALL = ""
 
 # =====================================================
 # Grundeinstellungen
@@ -50,12 +64,12 @@ if Path(PYTHON_EXECUTABLE).name.lower() == "pythonw.exe":
 # =====================================================
 
 def print_header(current_path):
-    """Zeigt den Header für das Tools-Menü an (ohne AC/Disk-ID)."""
-    print("===================================================")
-    print("           PYTHON SKRIPTE TOOLS")
-    print("===================================================")
-    print(f" Aktueller Ordner:        {current_path}")
-    print("---------------------------------------------------")
+    """Zeigt den farbigen Header für das Tools-Menü an (ohne AC/Disk-ID)."""
+    print(f"{Fore.MAGENTA}==================================================={Style.RESET_ALL}")
+    print(f"{Fore.CYAN}           PYTHON SKRIPTE TOOLS{Style.RESET_ALL}")
+    print(f"{Fore.MAGENTA}==================================================={Style.RESET_ALL}")
+    print(f"{Fore.WHITE} Aktueller Ordner:        {Fore.GREEN}{current_path}{Style.RESET_ALL}")
+    print(f"{Fore.MAGENTA}---------------------------------------------------{Style.RESET_ALL}")
 
 
 def is_excluded_folder(script_path: Path) -> bool:
@@ -161,13 +175,13 @@ def start_submenu(folder_name: str):
     start_bat = submenu_path / "start.bat"
     
     if not start_bat.exists():
-        print(f"\n[FEHLER] start.bat nicht gefunden in: {submenu_path}")
-        input("Drücken Sie Enter, um fortzufahren.")
+        print(f"\n{Fore.RED}[FEHLER] start.bat nicht gefunden in: {submenu_path}{Style.RESET_ALL}")
+        input(f"{Fore.YELLOW}Drücken Sie Enter, um fortzufahren.{Style.RESET_ALL}")
         return
     
-    print(f"\n--- Starte Unterordner: {folder_name} ---")
-    print(f"Die start.bat wird als separater Prozess gestartet.")
-    print(f"Nach dem Beenden kehren Sie automatisch zum Tools-Menü zurück.\n")
+    print(f"\n{Fore.CYAN}--- Starte Unterordner: {folder_name} ---{Style.RESET_ALL}")
+    print(f"{Fore.WHITE}Die start.bat wird als separater Prozess gestartet.{Style.RESET_ALL}")
+    print(f"{Fore.WHITE}Nach dem Beenden kehren Sie automatisch zum Tools-Menü zurück.{Style.RESET_ALL}\n")
     
     subprocess.run(
         [str(start_bat)],
@@ -175,8 +189,8 @@ def start_submenu(folder_name: str):
         shell=True
     )
     
-    print(f"\n--- Unterordner {folder_name} wurde beendet. ---")
-    input("Drücken Sie Enter, um zum Tools-Menü zurückzukehren.")
+    print(f"\n{Fore.GREEN}--- Unterordner '{folder_name}' wurde beendet. ---{Style.RESET_ALL}")
+    input(f"{Fore.YELLOW}Drücken Sie Enter, um zum Tools-Menü zurückzukehren.{Style.RESET_ALL}")
 
 
 # =====================================================
@@ -204,33 +218,35 @@ def main():
 
         # === Normale Skripte (zuerst) ===
         if scripts:
-            print("\n   --- Tools ---")
+            print(f"\n{Fore.CYAN}   --- Tools ---{Style.RESET_ALL}")
             for script_path in scripts:
-                print(f"   {entry_num:3} - {script_path.name}")
+                print(f"   {Fore.GREEN}{entry_num:3}{Style.RESET_ALL} - {Fore.WHITE}{script_path.name}{Style.RESET_ALL}")
                 entry_num += 1
 
         # === Untermenü-Ordner (danach, mit Buchstaben-Shortcut) ===
         if submenu_entries:
-            print("\n   --- Ordner ---")
+            print(f"\n{Fore.CYAN}   --- Ordner ---{Style.RESET_ALL}")
             for folder_name in submenu_entries:
                 shortcut = get_folder_shortcut(folder_name)
-                print(f"   {shortcut}   - [ORDNER] {folder_name}")
+                print(f"   {Fore.GREEN}{shortcut}{Style.RESET_ALL}   - {Fore.WHITE}[ORDNER] {folder_name}{Style.RESET_ALL}")
 
         if not submenu_entries and not scripts:
-            print("\n   Keine Einträge gefunden.")
+            print(f"\n{Fore.YELLOW}   Keine Einträge gefunden.{Style.RESET_ALL}")
 
-        print("\n---------------------------------------------------")
+        print(f"\n{Fore.MAGENTA}---------------------------------------------------{Style.RESET_ALL}")
         if current_submenu is not None:
-            print("   B - Zurück zum Tools-Hauptmenü")
-        print("   Q - Beenden")
-        print("===================================================")
+            print(f"   {Fore.GREEN}B{Style.RESET_ALL} - {Fore.WHITE}Zurück zum Tools-Hauptmenü{Style.RESET_ALL}")
+        print(f"   {Fore.RED}Q{Style.RESET_ALL} - {Fore.WHITE}Beenden{Style.RESET_ALL}")
+        print(f"{Fore.MAGENTA}==================================================={Style.RESET_ALL}")
 
-        choice = input("\nBitte Nummer oder Buchstaben eingeben: ").strip().lower()
+        choice = input(f"\n{Fore.YELLOW}Bitte Nummer oder Buchstaben eingeben: {Style.RESET_ALL}").strip().lower()
 
         if choice == "q":
+            print(f"\n{Fore.CYAN}Menü wird beendet. Auf Wiedersehen!{Style.RESET_ALL}")
             break
 
         elif choice == "b" and current_submenu is not None:
+            print(f"\n{Fore.CYAN}Zurück zum Tools-Hauptmenü...{Style.RESET_ALL}")
             current_submenu = None
             continue
 
@@ -242,8 +258,8 @@ def main():
                     start_submenu(folder_name)
                     break
             else:
-                print("\nUngueltige Eingabe.")
-                input("Druecken Sie Enter, um fortzufahren.")
+                print(f"\n{Fore.RED}[FEHLER] Ungueltige Eingabe.{Style.RESET_ALL}")
+                input(f"{Fore.YELLOW}Druecken Sie Enter, um fortzufahren.{Style.RESET_ALL}")
             continue
 
         # Ansonsten versuche als Nummer zu interpretieren
@@ -253,8 +269,8 @@ def main():
             if 0 <= choice_index < len(scripts):
                 script_to_run = scripts[choice_index]
 
-                print(f"\n--- Starte Tool: {script_to_run.name} ---")
-                print(f"Keine AC/Disk-ID Übergabe (Tool-spezifisch).\n")
+                print(f"\n{Fore.CYAN}--- Starte Tool: {script_to_run.name} ---{Style.RESET_ALL}")
+                print(f"{Fore.WHITE}Keine AC/Disk-ID Übergabe (Tool-spezifisch).{Style.RESET_ALL}\n")
 
                 subprocess.run(
                     [
@@ -264,20 +280,20 @@ def main():
                     cwd=script_to_run.parent
                 )
 
-                print("\n----------------------------------------------------")
-                input("Tool-Ausfuehrung beendet. Druecken Sie Enter, um zum Menue zurueckzukehren.")
+                print(f"\n{Fore.MAGENTA}----------------------------------------------------{Style.RESET_ALL}")
+                input(f"{Fore.YELLOW}Tool-Ausfuehrung beendet. Druecken Sie Enter, um zum Menue zurueckzukehren.{Style.RESET_ALL}")
 
             else:
-                print("\nUngueltige Auswahl.")
-                input("Druecken Sie Enter, um fortzufahren.")
+                print(f"\n{Fore.RED}[FEHLER] Ungueltige Auswahl.{Style.RESET_ALL}")
+                input(f"{Fore.YELLOW}Druecken Sie Enter, um fortzufahren.{Style.RESET_ALL}")
 
         except ValueError:
-            print("\nUngueltige Eingabe. Bitte eine Nummer, einen Buchstaben oder B/Q eingeben.")
-            input("Druecken Sie Enter, um fortzufahren.")
+            print(f"\n{Fore.RED}[FEHLER] Ungueltige Eingabe. Bitte eine Nummer, einen Buchstaben oder B/Q eingeben.{Style.RESET_ALL}")
+            input(f"{Fore.YELLOW}Druecken Sie Enter, um fortzufahren.{Style.RESET_ALL}")
 
         except Exception as e:
-            print(f"\nEin unerwarteter Fehler ist aufgetreten: {e}")
-            input("Druecken Sie Enter, um fortzufahren.")
+            print(f"\n{Fore.RED}[FEHLER] Ein unerwarteter Fehler ist aufgetreten: {e}{Style.RESET_ALL}")
+            input(f"{Fore.YELLOW}Druecken Sie Enter, um fortzufahren.{Style.RESET_ALL}")
 
 
 if __name__ == "__main__":

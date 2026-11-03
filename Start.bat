@@ -3,20 +3,40 @@ chcp 65001 >nul
 title Python Arbeitsumgebung - Hauptmenü
 setlocal
 
+REM ==============================================================================
+REM 🔧 ANSI ESCAPE CODES FÜR FARBEN (Konsistenz mit Python-Skripten)
+REM ==============================================================================
+for /F %%a in ('echo prompt $E ^| cmd') do set "ESC=%%a"
+set "RED=%ESC%[91m"
+set "GREEN=%ESC%[92m"
+set "YELLOW=%ESC%[93m"
+set "BLUE=%ESC%[94m"
+set "MAGENTA=%ESC%[95m"
+set "CYAN=%ESC%[96m"
+set "WHITE=%ESC%[97m"
+set "RESET=%ESC%[0m"
+
 REM --- In den Ordner wechseln, in dem diese Batch-Datei liegt ---
 cd /d "%~dp0"
 
-REM --- Pruefung: Gibt es die Menu.py? ---
+REM --- Farbiger Header ---
+echo %MAGENTA%===================================================%RESET%
+echo %CYAN%       Python Arbeitsumgebung - Hauptmenü%RESET%
+echo %MAGENTA%===================================================%RESET%
+echo.
+
+REM --- Prüfung: Gibt es die Menu.py? ---
 if not exist "%~dp0Menu.py" (
-    echo FEHLER: Menu.py wurde im Hauptverzeichnis nicht gefunden.
-    pause
+    echo %RED%[FEHLER] Menu.py wurde im Hauptverzeichnis nicht gefunden.%RESET%
+    echo %YELLOW%Drücken Sie eine Taste zum Beenden...%RESET%
+    pause >nul
     exit /b 1
 )
 
 REM --- Dynamische Suche nach Python ---
 set "PY_EXE="
 
-REM 1. PRIORITAET: Systemweite Installation
+REM 1. PRIORITÄT: Systemweite Installation
 if exist "C:\Program Files\Python313\python.exe" (
     set "PY_EXE=C:\Program Files\Python313\python.exe"
     goto :RUN_MENU
@@ -35,14 +55,17 @@ if %errorlevel%==0 (
     goto :RUN_MENU
 )
 
-echo [FEHLER] Kein geeignetes Python gefunden!
+echo %RED%[FEHLER] Kein geeignetes Python gefunden!%RESET%
+echo %YELLOW%Bitte installieren Sie Python 3.13 oder fügen Sie es zum PATH hinzu.%RESET%
 pause
 exit /b 1
 
 :RUN_MENU
-echo Starte Hauptmenue mit: %PY_EXE%
+echo %GREEN%[OK]%RESET% %CYAN%Starte Hauptmenü mit:%RESET% %WHITE%%PY_EXE%%RESET%
+echo %MAGENTA%---------------------------------------------------%RESET%
 "%PY_EXE%" "%~dp0Menu.py"
 
 echo.
-echo Das Hauptmenü wurde beendet.
-pause
+echo %GREEN%Das Hauptmenü wurde beendet.%RESET%
+echo %YELLOW%Drücken Sie eine Taste zum Schließen...%RESET%
+pause >nul

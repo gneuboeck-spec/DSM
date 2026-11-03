@@ -1,6 +1,20 @@
+# SPDX-FileCopyrightText: 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 import subprocess
 import sys
 from pathlib import Path
+
+# ==============================================================================
+# 🔧 FARB-INITIALISIERUNG (Konsistenz mit allen anderen Skripten)
+# ==============================================================================
+try:
+    from colorama import init, Fore, Style
+    init(autoreset=True)
+except ImportError:
+    class Fore: GREEN = RED = YELLOW = CYAN = MAGENTA = WHITE = ""
+    class Style: RESET_ALL = ""
 
 # =====================================================
 # Grundeinstellungen
@@ -26,12 +40,12 @@ FOLDER_SHORTCUTS = {
 # Hilfsfunktionen
 # =====================================================
 def print_header(current_path):
-    """Zeigt den Header an."""
-    print("===================================================")
-    print("       Skriptsammlung WIENBIBLIOTHEK")
-    print("===================================================")
-    print(f" Aktueller Bereich: {current_path}")
-    print("---------------------------------------------------")
+    """Zeigt den farbigen Header an."""
+    print(f"{Fore.MAGENTA}==================================================={Style.RESET_ALL}")
+    print(f"{Fore.CYAN}       Skriptsammlung WIENBIBLIOTHEK{Style.RESET_ALL}")
+    print(f"{Fore.MAGENTA}==================================================={Style.RESET_ALL}")
+    print(f"{Fore.WHITE} Aktueller Bereich: {current_path}{Style.RESET_ALL}")
+    print(f"{Fore.MAGENTA}---------------------------------------------------{Style.RESET_ALL}")
 
 def start_submenu(folder_name: str):
     """Startet die start.bat eines Unterordners."""
@@ -39,18 +53,18 @@ def start_submenu(folder_name: str):
     start_bat = submenu_path / "start.bat"
     
     if not start_bat.exists():
-        print(f"\n[FEHLER] start.bat nicht gefunden in: {submenu_path}")
-        input("Drücken Sie Enter, um fortzufahren.")
+        print(f"\n{Fore.RED}[FEHLER] start.bat nicht gefunden in: {submenu_path}{Style.RESET_ALL}")
+        input(f"{Fore.YELLOW}Drücken Sie Enter, um fortzufahren.{Style.RESET_ALL}")
         return
     
-    print(f"\n--- Starte Bereich: {folder_name} ---")
-    print(f"Das Fenster bleibt geöffnet und kehrt danach hierher zurück.\n")
+    print(f"\n{Fore.CYAN}--- Starte Bereich: {folder_name} ---{Style.RESET_ALL}")
+    print(f"{Fore.WHITE}Das Fenster bleibt geöffnet und kehrt danach hierher zurück.{Style.RESET_ALL}\n")
     
     # Startet die start.bat des Unterordners
     subprocess.run([str(start_bat)], cwd=str(submenu_path), shell=True)
     
-    print(f"\n--- Bereich {folder_name} wurde beendet. ---")
-    input("Drücken Sie Enter, um zum Hauptmenü zurückzukehren.")
+    print(f"\n{Fore.GREEN}--- Bereich '{folder_name}' wurde erfolgreich beendet. ---{Style.RESET_ALL}")
+    input(f"{Fore.YELLOW}Drücken Sie Enter, um zum Hauptmenü zurückzukehren.{Style.RESET_ALL}")
 
 # =====================================================
 # Hauptprogramm
@@ -59,20 +73,23 @@ def main():
     while True:
         print_header("Hauptmenü")
         
-        print("\n   --- Bereiche ---")
+        print(f"\n{Fore.CYAN}   --- Bereiche ---{Style.RESET_ALL}")
         folder_list = sorted(list(SUBMENU_DIRS))
         
         for folder_name in folder_list:
             shortcut = FOLDER_SHORTCUTS.get(folder_name, folder_name[0].upper())
-            print(f"   {shortcut}   - [ORDNER] {folder_name}")
+            # Format: [D] - [ORDNER] Datenaufbereitung (mit farbiger Hervorhebung)
+            print(f"   {Fore.GREEN}[{shortcut}]{Style.RESET_ALL}   - {Fore.WHITE}[ORDNER] {folder_name}{Style.RESET_ALL}")
 
-        print("\n---------------------------------------------------")
-        print("   Q - Beenden")
-        print("===================================================")
+        print(f"\n{Fore.MAGENTA}---------------------------------------------------{Style.RESET_ALL}")
+        print(f"   {Fore.RED}Q{Style.RESET_ALL} - {Fore.WHITE}Beenden{Style.RESET_ALL}")
+        print(f"{Fore.MAGENTA}==================================================={Style.RESET_ALL}")
 
-        choice = input("\nBitte Buchstaben eingeben: ").strip().lower()
+        # Gelbe, klare Eingabeaufforderung
+        choice = input(f"\n{Fore.YELLOW}Bitte Buchstaben eingeben: {Style.RESET_ALL}").strip().lower()
 
         if choice == "q":
+            print(f"\n{Fore.CYAN}Menü wird beendet. Auf Wiedersehen!{Style.RESET_ALL}")
             break
 
         choice_upper = choice.upper()
@@ -85,8 +102,8 @@ def main():
                 break
         
         if not matched:
-            print("\nUngueltige Eingabe.")
-            input("Druecken Sie Enter, um fortzufahren.")
+            print(f"\n{Fore.RED}[FEHLER] Ungültige Eingabe. Bitte versuchen Sie es erneut.{Style.RESET_ALL}")
+            input(f"{Fore.YELLOW}Drücken Sie Enter, um fortzufahren.{Style.RESET_ALL}")
 
 if __name__ == "__main__":
     main()
