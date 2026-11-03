@@ -40,7 +40,7 @@ def run_staging_workflow(ac_number, disk_id, project_base_path_override=None):
 
     print(f"\n{Fore.MAGENTA}===================================================")
     print(f"{Fore.WHITE}   STAGING-WORKFLOW V11 (REDUZIERT): VL & LZA")
-    print(f"{Fore.MAGENTA}==================================================={Fore.RESET}")
+    print(f"{Fore.MAGENTA}==================================================={Style.RESET_ALL}")
 
     # Suche nach dem 'files' Ordner in Stufe 3 (wird für LZA-Umzug benötigt)
     src_files_dir = None
@@ -52,7 +52,9 @@ def run_staging_workflow(ac_number, disk_id, project_base_path_override=None):
 
     # Sicherheits-Abfrage
     print(f"{Fore.YELLOW}[!] HINWEIS: Dieses Skript strukturiert Stufe 5 für den Master-Index.")
-    if input(" Staging jetzt starten? (j/n): ").lower() != 'j': return
+    if input(f"{Fore.YELLOW} Staging jetzt starten? (j/n): {Style.RESET_ALL}").lower() != 'j': 
+        print(f"{Fore.CYAN}Abgebrochen.{Style.RESET_ALL}")
+        return
 
     # --- HILFSFUNKTIONEN ---
     def safe_move_item(src, dest_dir, rename_to=None):
@@ -64,11 +66,11 @@ def run_staging_workflow(ac_number, disk_id, project_base_path_override=None):
                 if target.exists():
                     if target.is_dir(): shutil.rmtree(target)
                     else: os.remove(target)
-                shutil.move(str(src), str(target))
+                shutil.move(src, target)
                 print(f"{Fore.GREEN} [Move] -> {src.name} verschoben nach {dest_dir.name}/{target_name}")
                 return True
             except Exception as e:
-                print(f"{Fore.RED} [!] Fehler bei {src.name}: {e}")
+                print(f"{Fore.RED} [FEHLER] Fehler bei {src.name}: {e}{Style.RESET_ALL}")
         return False
 
     # --- SCHRITT 1: VL-EXPORT VERVOLLSTÄNDIGEN ---
@@ -96,7 +98,7 @@ def run_staging_workflow(ac_number, disk_id, project_base_path_override=None):
     if (f4_vl / index_name).exists():
         print(f"{Fore.GREEN} [OK] Technischer Index bereits in VL vorhanden.")
     else:
-        print(f"{Fore.YELLOW} [!] Hinweis: Index {index_name} wurde noch nicht in VL gefunden.")
+        print(f"{Fore.YELLOW} [WARNUNG] Index {index_name} wurde noch nicht in VL gefunden.{Style.RESET_ALL}")
 
     # --- SCHRITT 2: LZA-STAGING (ORDNER 5 STRUKTURIEREN) ---
     print(f"\n{Fore.CYAN}--- SCHRITT 2: LZA-Staging (Stufe 5 strukturieren) ---")
@@ -119,8 +121,8 @@ def run_staging_workflow(ac_number, disk_id, project_base_path_override=None):
         sub_log = source_stage / "logfiles"
         if sub_log.exists() and sub_log.is_dir():
             for item in sub_log.iterdir():
-                shutil.move(str(item), str(lza_logs_dir / item.name))
-            try: sub_log.rmdir()
+                shutil.move(item, lza_logs_dir / item.name)
+            try: shutil.rmtree(sub_log, ignore_errors=True)
             except: pass
 
     # B) Bilder aus Ordner 0 (Originale) in logfiles verschieben
@@ -169,8 +171,8 @@ def run_staging_workflow(ac_number, disk_id, project_base_path_override=None):
 
     print(f"\n{Fore.MAGENTA}===================================================")
     print(f"{Fore.GREEN} STAGING ERFOLGREICH BEENDET")
-    print(f" Die Stufen 0, 1, 2 und 3 sind nun bereit für den Master-Index (Skript L)")
-    print(f" und die PREMIS-Erstellung (Skript J).")
+    print(f"{Fore.WHITE} Die Stufen 0, 1, 2 und 3 sind nun bereit für den Master-Index (Skript L)")
+    print(f"{Fore.WHITE} und die PREMIS-Erstellung (Skript J).")
     print(f"{Fore.MAGENTA}==================================================={Style.RESET_ALL}")
 
 if __name__ == "__main__":
@@ -190,4 +192,4 @@ if __name__ == "__main__":
                 
         run_staging_workflow(ac_number, disk_id, project_base_path_override=data_path_input)
     else:
-        print(f"{Fore.RED}Fehler: AC-Nummer und ID fehlen.")
+        print(f"{Fore.RED}[FEHLER] AC-Nummer und ID fehlen.{Style.RESET_ALL}")

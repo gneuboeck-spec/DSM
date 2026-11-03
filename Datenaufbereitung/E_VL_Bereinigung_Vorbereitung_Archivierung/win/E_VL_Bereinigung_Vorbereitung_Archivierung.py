@@ -11,6 +11,13 @@ from collections import defaultdict
 from pathlib import Path
 from datetime import datetime
 
+try:
+    from colorama import init, Fore, Style
+    init(autoreset=True)
+except ImportError:
+    class Fore: GREEN = RED = YELLOW = CYAN = MAGENTA = WHITE = ""
+    class Style: RESET_ALL = ""
+
 # ==============================================================================
 # 🔧 KONFIGURATION
 # ==============================================================================
@@ -49,17 +56,17 @@ def setup_and_validate_paths(ac_number, disk_archive_id, project_base_path_overr
 
     # Überprüfung des Quellverzeichnisses
     if not paths["base_directory"].is_dir():
-        print(f"\033[91mFehler: Der zu bereinigende Ordner (VL) wurde nicht gefunden:\n{paths['base_directory']}\033[0m")
+        print(f"{Fore.RED}Fehler: Der zu bereinigende Ordner (VL) wurde nicht gefunden:\n{paths['base_directory']}{Style.RESET_ALL}")
         return None
 
     # Sicherstellen, dass der Log-Ordner im LZA-Verzeichnis existiert
     try:
         lza_log_folder.mkdir(parents=True, exist_ok=True)
     except Exception as e:
-        print(f"\033[91mFehler: Konnte Log-Ordner in LZA nicht erstellen: {e}\033[0m")
+        print(f"{Fore.RED}Fehler: Konnte Log-Ordner in LZA nicht erstellen: {e}{Style.RESET_ALL}")
         return None
 
-    print("\033[92mAlle Pfade wurden erfolgreich gefunden und validiert.\033[0m")
+    print(f"{Fore.GREEN}Alle Pfade wurden erfolgreich gefunden und validiert.{Style.RESET_ALL}")
     return paths
 
 # ==============================================================================
@@ -92,9 +99,9 @@ def write_log_file(log_path, mode, extensions_counter, files_list, dirs_list):
             f.write(f"\n\n--- Detaillierte Liste der {len(dirs_list)} leeren Ordner ---\n")
             for dir_path in sorted(dirs_list):
                 f.write(f"{dir_path}\n")
-        print(f"[OK] {mode.capitalize()}-Log-Datei erfolgreich erstellt.")
+        print(f"{Fore.GREEN}[OK] {mode.capitalize()}-Log-Datei erfolgreich erstellt.{Style.RESET_ALL}")
     except Exception as e:
-        print(f"[FEHLER] {mode.capitalize()}-Log-Datei konnte nicht erstellt werden: {e}")
+        print(f"{Fore.RED}[FEHLER] {mode.capitalize()}-Log-Datei konnte nicht erstellt werden: {e}{Style.RESET_ALL}")
 
 def find_unwanted_items(base_dir):
     """Durchsucht ein Verzeichnis und gibt Listen der zu löschenden Elemente zurück."""
@@ -179,7 +186,7 @@ if __name__ == "__main__":
             data_path_input = Path(os.environ.get("DATA_PATH", Path.home() / "Documents/data" / ac_number_input / disk_archive_id_input))
             
     except IndexError:
-        print("FEHLER: AC-Nummer und Datenträger-ID wurden nicht übergeben.")
+        print(f"{Fore.RED}FEHLER: AC-Nummer und Datenträger-ID wurden nicht übergeben.{Style.RESET_ALL}")
         sys.exit(1)
 
     # --- ANFANG DER ERWEITERUNG: KOPIERVORGANG VON 3 NACH 4 ---
@@ -196,12 +203,12 @@ if __name__ == "__main__":
                 shutil.rmtree(target_files_path)
             
             shutil.copytree(source_files_path, target_files_path)
-            print(f"\033[92m[OK] Files-Ordner erfolgreich von Stufe 3 nach Stufe 4 kopiert.\033[0m")
+            print(f"{Fore.GREEN}[OK] Files-Ordner erfolgreich von Stufe 3 nach Stufe 4 kopiert.{Style.RESET_ALL}")
         except Exception as e:
-            print(f"\033[91m[FEHLER] Kopievorgang fehlgeschlagen: {e}\033[0m")
+            print(f"{Fore.RED}[FEHLER] Kopievorgang fehlgeschlagen: {e}{Style.RESET_ALL}")
             sys.exit(1)
     else:
-        print(f"\033[91mFehler: Quell-Ordner in Stufe 3 nicht gefunden: {source_files_path}\033[0m")
+        print(f"{Fore.RED}Fehler: Quell-Ordner in Stufe 3 nicht gefunden: {source_files_path}{Style.RESET_ALL}")
         sys.exit(1)
     # --- ENDE DER ERWEITERUNG ---
 
@@ -233,10 +240,10 @@ if __name__ == "__main__":
                     ext = next((ext for ext in DELETE_EXTENSIONS if f.lower().endswith(ext)), "Andere")
                     preview_extensions_count[ext] += 1
                 write_log_file(preview_log_file_path, 'preview', preview_extensions_count, files_to_delete, empty_dirs_to_delete)
-                print(f"\n\033[93mBITTE PRÜFEN: Eine Vorschau wurde im LZA-Logordner gespeichert.\033[0m")
+                print(f"\n{Fore.YELLOW}BITTE PRÜFEN: Eine Vorschau wurde im LZA-Logordner gespeichert.{Style.RESET_ALL}")
 
             if not DRY_RUN:
-                confirm = input("\nMöchten Sie den Löschvorgang in der VL-Stufe wirklich starten? (j/n): ").lower()
+                confirm = input(f"\n{Fore.YELLOW}Möchten Sie den Löschvorgang in der VL-Stufe wirklich starten? (j/n): {Style.RESET_ALL}").lower()
                 if confirm != 'j':
                     print("Löschvorgang vom Benutzer abgebrochen.")
                     sys.exit(0)
@@ -260,7 +267,7 @@ if __name__ == "__main__":
         # Zielordner der VL-Stufe öffnen
         destination_folder = validated_paths["base_directory"].parent
         print("")
-        open_folder = input("VL-Zielordner oeffnen? (j/n): ").lower()
+        open_folder = input(f"{Fore.YELLOW}VL-Zielordner oeffnen? (j/n): {Style.RESET_ALL}").lower()
         if open_folder == 'j':
             if sys.platform == "win32":
                 os.startfile(str(destination_folder))
@@ -268,7 +275,7 @@ if __name__ == "__main__":
                 subprocess.run(["open", str(destination_folder)])
             else:
                 subprocess.run(["xdg-open", str(destination_folder)])
-            print("\033[92mZielordner geoeffnet\033[0m")
+            print(f"{Fore.GREEN}Zielordner geoeffnet{Style.RESET_ALL}")
 
     else:
         print("\nSkript wird aufgrund von Konfigurationsfehlern beendet.")

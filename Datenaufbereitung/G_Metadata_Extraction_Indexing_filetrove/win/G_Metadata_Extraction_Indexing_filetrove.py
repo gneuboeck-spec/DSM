@@ -24,6 +24,13 @@ import zipfile
 import tempfile
 import shutil  # Für das Entfernen temporärer Verzeichnisse
 
+try:
+    from colorama import init, Fore, Style
+    init(autoreset=True)
+except ImportError:
+    class Fore: GREEN = RED = YELLOW = CYAN = MAGENTA = WHITE = ""
+    class Style: RESET_ALL = ""
+
 # ==============================================================================
 # 🔧 DYNAMISCHE PFADERMITTLUNG FÜR EXTERNE TOOLS
 # ==============================================================================
@@ -175,7 +182,7 @@ def setup_and_validate_paths(ac_number, disk_archive_id, project_base_path_overr
 
     # Validierung der Ordner
     if not paths["base_dir"].is_dir():
-        print(f"\033[91mFehler: Der Eingabe-Ordner (VL) wurde nicht gefunden:\n{paths['base_dir']}\033[0m")
+        print(f"{Fore.RED}Fehler: Der Eingabe-Ordner (VL) wurde nicht gefunden:\n{paths['base_dir']}{Style.RESET_ALL}")
         return None
     
     # Validierung der externen Tools
@@ -188,10 +195,10 @@ def setup_and_validate_paths(ac_number, disk_archive_id, project_base_path_overr
     }
     for tool_name, tool_path in tools_to_check.items():
         if not Path(tool_path).exists():
-            print(f"\033[91mFehler: {tool_name} wurde nicht gefunden unter:\n{tool_path}\033[0m")
+            print(f"{Fore.RED}Fehler: {tool_name} wurde nicht gefunden unter:\n{tool_path}{Style.RESET_ALL}")
             return None
 
-    print("\033[92mAlle Pfade (Analyse in VL, Index in LZA) wurden erfolgreich validiert.\033[0m")
+    print(f"{Fore.GREEN}Alle Pfade (Analyse in VL, Index in LZA) wurden erfolgreich validiert.{Style.RESET_ALL}")
     return paths
 
 # --- 3. Haupt-Ausführungsblock zur Pfad-Initialisierung ---
@@ -1284,12 +1291,12 @@ def process_file(file_path, relative_path):
                 errors.append(f"MD5 (Soll: {ref_data['md5'][:10]}... Ist: {current_md5[:10]}...)")
 
         if matches and not errors:
-            print(f"  \033[92m[MATCH] Integritaet verifiziert gegen: {', '.join(matches)}\033[0m")
+            print(f"  {Fore.GREEN}[MATCH] Integritaet verifiziert gegen: {', '.join(matches)}{Style.RESET_ALL}")
             all_raw_metadata["integrity_status"] = "verified"
             INTEGRITY_SUCCESS.append(str(relative_path))
         elif errors:
             error_msg = " | ".join(errors)
-            print(f"  \033[91m[ALARM] HASH-ABWEICHUNG bei {file_path.name}!\033[0m")
+            print(f"  {Fore.RED}[ALARM] HASH-ABWEICHUNG bei {file_path.name}!{Style.RESET_ALL}")
             print(f"          Details: {error_msg}")
             all_raw_metadata["integrity_status"] = "CORRUPTED_OR_MODIFIED"
             INTEGRITY_ERRORS.append({
@@ -1580,9 +1587,9 @@ def main():
                 for item in sorted(INTEGRITY_SUCCESS):
                     f.write(f"[OK] {item}\n")
 
-            print(f"\033[94mIntegritaets-Protokoll erstellt: {integrity_log_path.name}\033[0m")
+            print(f"{Fore.CYAN}Integritaets-Protokoll erstellt: {integrity_log_path.name}{Style.RESET_ALL}")
         except Exception as e:
-            print(f"\033[91mFehler beim Schreiben des Integritaets-Logs: {e}\033[0m")
+            print(f"{Fore.RED}Fehler beim Schreiben des Integritaets-Logs: {e}{Style.RESET_ALL}")
         
         # 3. Dateien nach Stufe 4 (VL) kopieren
         try:
@@ -1593,9 +1600,9 @@ def main():
             vl_log_dest = Path(validated_paths["vl_output_xml"]).parent / integrity_log_name
             shutil.copy2(integrity_log_path, vl_log_dest)
             
-            print(f"\033[92mIndex-Datei und Log erfolgreich nach Stufe 4 kopiert.\033[0m")
+            print(f"{Fore.GREEN}Index-Datei und Log erfolgreich nach Stufe 4 kopiert.{Style.RESET_ALL}")
         except Exception as e:
-            print(f"\033[91mFehler beim Kopieren nach Stufe 4: {e}\033[0m")
+            print(f"{Fore.RED}Fehler beim Kopieren nach Stufe 4: {e}{Style.RESET_ALL}")
             
         print(f"\n{processed_count} Dateien erfolgreich verarbeitet.")
     else:
@@ -1604,7 +1611,7 @@ def main():
     # 4. Zielordner optional öffnen
     destination_folder = Path(OUTPUT_XML).parent
     print("")
-    open_folder = input("Zielordner oeffnen? (j/n): ").lower()
+    open_folder = input(f"{Fore.YELLOW}Zielordner oeffnen? (j/n): {Style.RESET_ALL}").lower()
     if open_folder == 'j':
         if sys.platform == "win32":
             os.startfile(destination_folder)
@@ -1612,7 +1619,7 @@ def main():
             subprocess.run(["open", destination_folder])
         else:
             subprocess.run(["xdg-open", destination_folder])
-        print("\033[92mZielordner geoeffnet\033[0m")
+        print(f"{Fore.GREEN}Zielordner geoeffnet{Style.RESET_ALL}")
 
 
 if __name__ == "__main__":

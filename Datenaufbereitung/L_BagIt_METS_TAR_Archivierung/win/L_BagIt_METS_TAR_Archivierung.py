@@ -66,15 +66,16 @@ def run_final_archiving(ac_number, disk_id, project_base_path_override=None):
 
     print(f"\n{Fore.MAGENTA}===================================================")
     print(f"{Fore.WHITE}   FINALISIERUNG: BAGIT (mit Teil-Komprimierung)")
-    print(f"{Fore.MAGENTA}==================================================={Fore.RESET}")
+    print(f"{Fore.MAGENTA}==================================================={Style.RESET_ALL}")
 
     if not f5_lza.exists():
         print(f"{Fore.RED}[FEHLER] Ordner {f5_lza.name} nicht gefunden!")
         return
 
     # Sicherheits-Check
-    print(f"{Fore.YELLOW}[!] HINWEIS: Explorer-Fenster von {f5_lza.name} schliessen.")
-    if input(" Komprimierung, Bagging und Archivierung jetzt starten? (j/n): ").lower() != 'j': 
+    print(f"{Fore.YELLOW}[WARNUNG] Explorer-Fenster von {f5_lza.name} schliessen.{Style.RESET_ALL}")
+    if input(f"{Fore.YELLOW} Komprimierung, Bagging und Archivierung jetzt starten? (j/n): {Style.RESET_ALL}").lower() != 'j': 
+        print(f"{Fore.CYAN}Abgebrochen.{Style.RESET_ALL}")
         return
 
     try:
@@ -105,7 +106,7 @@ def run_final_archiving(ac_number, disk_id, project_base_path_override=None):
         if expected_index_path.exists():
             print(f"{Fore.GREEN} [OK] Master-Index '{master_index_name}' verbleibt korrekt in data/logfiles/.")
         else:
-            print(f"{Fore.YELLOW} [!] Hinweis: Master-Index '{master_index_name}' nicht in data/logfiles/ gefunden.")
+            print(f"{Fore.YELLOW} [WARNUNG] Master-Index '{master_index_name}' nicht in data/logfiles/ gefunden.{Style.RESET_ALL}")
 
         # --- SCHRITT 3: BAGIT AKTUALISIEREN ---
         print(f"\n{Fore.CYAN}--- SCHRITT 3: BagIt Manifeste aktualisieren ---")
@@ -156,12 +157,13 @@ def run_final_archiving(ac_number, disk_id, project_base_path_override=None):
         
         print(f"{Fore.GREEN} [Cleanup] {deleted_count} von {len(stages_to_delete)} alten Stufen gelöscht.")
 
-        print(f"\n{Fore.GREEN}===================================================")
-        print(f" ARCHIVIERUNG ERFOLGREICH ABGESCHLOSSEN")
-        print(f"==================================================={Style.RESET_ALL}")
+        print(f"\n{Fore.MAGENTA}===================================================")
+        print(f"{Fore.GREEN} ✅ ARCHIVIERUNG ERFOLGREICH ABGESCHLOSSEN")
+        print(f"{Fore.CYAN} 📦 Fertiges Archiv (AIP): {final_archive_path}")
+        print(f"{Fore.MAGENTA}==================================================={Style.RESET_ALL}")
 
     except Exception as e:
-        print(f"{Fore.RED} [!] KRITISCHER FEHLER: {e}")
+        print(f"{Fore.RED} [FEHLER] KRITISCHER FEHLER: {e}{Style.RESET_ALL}")
         import traceback
         traceback.print_exc()
 

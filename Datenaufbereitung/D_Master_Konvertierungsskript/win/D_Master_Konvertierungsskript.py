@@ -18,6 +18,13 @@ import email.utils
 from email.header import decode_header
 import email.header # Explizit für Header-Typ-Checking
 
+try:
+    from colorama import init, Fore, Style
+    init(autoreset=True)
+except ImportError:
+    class Fore: GREEN = RED = YELLOW = CYAN = MAGENTA = WHITE = ""
+    class Style: RESET_ALL = ""
+
 # ==============================================================================
 # 🔧 DYNAMISCHE PFADERMITTLUNG FÜR EXTERNE TOOLS
 # ==============================================================================
@@ -101,17 +108,17 @@ def setup_and_validate_paths(ac_number, disk_archive_id, project_base_path_overr
     paths = { "source_folder": transfer_folder / "files", "log_file": transfer_folder / f"3_{disk_archive_id}_for-transfer_all-conversions.log" }
 
     if not paths["source_folder"].is_dir():
-        print(f"\033[91mFehler: Der Quell-Ordner wurde nicht gefunden:\n{paths['source_folder']}\033[0m"); return None
+        print(f"{Fore.RED}Fehler: Der Quell-Ordner wurde nicht gefunden:\n{paths['source_folder']}{Style.RESET_ALL}"); return None
 
     required_tools = [ FFMPEG_PATH, FFPROBE_PATH, IMAGEMAGICK_PATH, INKSCAPE_PATH, GHOSTSCRIPT_PATH, LIBREOFFICE_PATH, DBX_CONV_PATH ]
     missing_tools = [tool for tool in required_tools if not shutil.which(tool)]
     
     if missing_tools:
-        print("\033[91mFehler: Die folgenden benötigten Programme wurden nicht gefunden:\033[0m")
+        print(f"{Fore.RED}Fehler: Die folgenden benötigten Programme wurden nicht gefunden:{Style.RESET_ALL}")
         for tool in missing_tools: print(f"- {tool}")
-        print("\nBitte installieren Sie die Programme und/oder fügen Sie deren Ordner zum Windows PATH hinzu."); return None
+        print(f"\n{Fore.YELLOW}Bitte installieren Sie die Programme und/oder fügen Sie deren Ordner zum Windows PATH hinzu.{Style.RESET_ALL}"); return None
 
-    print("\033[92mAlle Pfade und Programme wurden erfolgreich gefunden und validiert.\033[0m"); return paths
+    print(f"{Fore.GREEN}Alle Pfade und Programme wurden erfolgreich gefunden und validiert.{Style.RESET_ALL}"); return paths
 
 # ==============================================================================
 # --- HELPER-FUNKTIONEN
@@ -134,7 +141,7 @@ def log(message):
         try: 
             LOG_FILE_HANDLE.write(full_message + "\n")
         except Exception as e: 
-            print(f"\033[91mKRITISCHER FEHLER: Konnte nicht in Log-Datei schreiben: {e}\033[0m")
+            print(f"{Fore.RED}KRITISCHER FEHLER: Konnte nicht in Log-Datei schreiben: {e}{Style.RESET_ALL}")
 
 def run_generic_command(command, cwd=None):
     try:
@@ -702,7 +709,7 @@ if __name__ == "__main__":
                 for fname, reason in conversion_errors:
                     summary += f" Datei: {fname}\n Grund: {reason}\n" + "-"*70 + "\n"
                 
-                print(f"\033[91m{summary}\033[0m")
+                print(f"{Fore.RED}{summary}{Style.RESET_ALL}")
                 if LOG_FILE_HANDLE: LOG_FILE_HANDLE.write(summary)
             else:
                 log("\n✅ Alle Dateien wurden erfolgreich ohne Fehler konvertiert.")
@@ -727,11 +734,13 @@ if __name__ == "__main__":
         except Exception as e:
             log(f"--- FEHLER beim manuellen Erstellen von '{tree_filename}': {e} ---")
 
+        log(f"📝 Detailliertes Konvertierungs-Log gespeichert unter: {LOG_FILE}")
+
         LOG_FILE_HANDLE.close()
 
         destination_folder = transfer_dir
         print("")
-        if input("Zielordner oeffnen? (j/n): ").lower() == 'j':
+        if input(f"{Fore.YELLOW}Zielordner oeffnen? (j/n): {Style.RESET_ALL}").lower() == 'j':
             os.startfile(destination_folder)
 
     print("\nSkript beendet.")

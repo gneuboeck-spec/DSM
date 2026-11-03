@@ -44,6 +44,13 @@ from lxml import etree
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+try:
+    from colorama import init, Fore, Style
+    init(autoreset=True)
+except ImportError:
+    class Fore: GREEN = RED = YELLOW = CYAN = MAGENTA = WHITE = ""
+    class Style: RESET_ALL = ""
+
 # --- UTF-8 für Windows-Konsole ---
 if sys.platform == "win32":
     try:
@@ -419,7 +426,7 @@ class PremisGenerator:
 
         # --- URHEBER AUSWAHL ---
         print("\n--- URHEBER AUSWAHL ---")
-        raw_input_name = input("Bitte Namen des Urhebers eingeben (z.B. 'Brigitte Hamann'): ")
+        raw_input_name = input(f"{Fore.YELLOW}Bitte Namen des Urhebers eingeben (z.B. 'Brigitte Hamann'): {Style.RESET_ALL}")
         
         gnd_data = self._search_and_select_gnd_agent(raw_input_name)
         
@@ -437,7 +444,7 @@ class PremisGenerator:
                 except ValueError:
                     pass # Falls das Jahr kein gültiges Format hat
 
-            print(f"\033[92m -> Urheber '{self.creator_name}' mit GND-ID {self.creator_gnd_id} ausgewählt.\033[0m")
+            print(f"{Fore.GREEN} -> Urheber '{self.creator_name}' mit GND-ID {self.creator_gnd_id} ausgewählt.{Style.RESET_ALL}")
         else:
             if not raw_input_name:
                 raw_input_name = "Unknown Creator"
@@ -446,7 +453,7 @@ class PremisGenerator:
             clean_name = re.sub(r'[^a-zA-Z0-9_]', '_', self.creator_name.replace(' ', '_'))
             self.creator_agent_id = f"creator_{clean_name}"
             self.creator_gnd_id = None  # Explizit auf None setzen
-            print(f"\033[93m -> WARNUNG: Kein GND-Eintrag gewählt. Lokal: {self.creator_agent_id}\033[0m")
+            print(f"{Fore.YELLOW} -> WARNUNG: Kein GND-Eintrag gewählt. Lokal: {self.creator_agent_id}{Style.RESET_ALL}")
 
     def _get_sha256(self, path):
         if not path.exists(): return None
@@ -653,7 +660,7 @@ class PremisGenerator:
                 for i, res in enumerate(results):
                     print(f"  {i+1}: {res['display']}")
             else:
-                print(f"\033[91mKeine Treffer für '{current_search_term}' (weder DNB noch lobid-gnd).\033[0m")
+                print(f"{Fore.RED}Keine Treffer für '{current_search_term}' (weder DNB noch lobid-gnd).{Style.RESET_ALL}")
             
             print("\nOptionen:")
             if results:
@@ -662,16 +669,16 @@ class PremisGenerator:
             print("  s:   Neue Suche (Tippfehler korrigieren)")
             print("  x:   Ohne GND fortfahren (Lokal)")
             
-            choice = input("Deine Wahl: ").strip().lower()
+            choice = input(f"{Fore.YELLOW}Deine Wahl: {Style.RESET_ALL}").strip().lower()
             
             if choice == 's':
-                current_search_term = input("\nNeuer Suchbegriff: ")
+                current_search_term = input(f"\n{Fore.YELLOW}Neuer Suchbegriff: {Style.RESET_ALL}")
                 continue 
             elif choice == 'm':
                 print("\n--- Manueller Eintrag ---")
-                manual_name = input("Name (Format: Familienname, Vorname): ").strip()
-                manual_gnd = input("GND-Nummer (LEER LASSEN, falls nicht vorhanden): ").strip()
-                manual_death_year = input("Sterbejahr (4-stellig, z.B. 1950, oder LEER LASSEN): ").strip()
+                manual_name = input(f"{Fore.YELLOW}Name (Format: Familienname, Vorname): {Style.RESET_ALL}").strip()
+                manual_gnd = input(f"{Fore.YELLOW}GND-Nummer (LEER LASSEN, falls nicht vorhanden): {Style.RESET_ALL}").strip()
+                manual_death_year = input(f"{Fore.YELLOW}Sterbejahr (4-stellig, z.B. 1950, oder LEER LASSEN): {Style.RESET_ALL}").strip()
                 
                 if manual_name:
                     # Validiere das Sterbejahr, falls eingegeben
@@ -1433,22 +1440,22 @@ class PremisGenerator:
             
             # Ausgabe der Ergebnisse
             if is_valid and len(real_errors) == 0:
-                print(f"\033[92m [ERFOLG] Die Datei ist valide nach dem offiziellen PREMIS-Schema.\033[0m")
+                print(f"{Fore.GREEN} [ERFOLG] Die Datei ist valide nach dem offiziellen PREMIS-Schema.{Style.RESET_ALL}")
                 if ignored_count > 0:
-                    print(f"\033[94m [INFO] {ignored_count} erwartete FileTrove-Erweiterungs-Warnungen wurden ignoriert.\033[0m")
+                    print(f"{Fore.CYAN} [INFO] {ignored_count} erwartete FileTrove-Erweiterungs-Warnungen wurden ignoriert.{Style.RESET_ALL}")
                 return True
             else:
-                print(f"\033[91m [FEHLER] Die XML-Datei entspricht nicht dem Schema!\033[0m")
+                print(f"{Fore.RED} [FEHLER] Die XML-Datei entspricht nicht dem Schema!{Style.RESET_ALL}")
                 if real_errors:
-                    print(f"\033[91m {len(real_errors)} echte(r) PREMIS-Fehler gefunden:\033[0m")
+                    print(f"{Fore.RED} {len(real_errors)} echte(r) PREMIS-Fehler gefunden:{Style.RESET_ALL}")
                     for err in real_errors:
                         print(err)
                 if ignored_count > 0:
-                    print(f"\033[94m [INFO] {ignored_count} erwartete FileTrove-Erweiterungs-Warnungen wurden ignoriert.\033[0m")
+                    print(f"{Fore.CYAN} [INFO] {ignored_count} erwartete FileTrove-Erweiterungs-Warnungen wurden ignoriert.{Style.RESET_ALL}")
                 return False
 
         except Exception as e:
-            print(f"\033[91m [FEHLER] Validierung konnte nicht durchgeführt werden: {e}\033[0m")
+            print(f"{Fore.RED} [FEHLER] Validierung konnte nicht durchgeführt werden: {e}{Style.RESET_ALL}")
             return False
 
     def run(self):
@@ -1470,8 +1477,8 @@ class PremisGenerator:
 
         # --- VALIDIERUNGS-CHECK: PREMIS benötigt zwingend mindestens ein Object ---
         if not self.xml_objects:
-            print("\033[91m [WARNUNG] Keine Objekte (Dateien/Images) gefunden!")
-            print(" Ein valides PREMIS-Dokument benötigt mindestens ein 'object'.\033[0m")
+            print(f"{Fore.RED} [WARNUNG] Keine Objekte (Dateien/Images) gefunden!")
+            print(" Ein valides PREMIS-Dokument benötigt mindestens ein 'object'.{Style.RESET_ALL}")
             self.create_xml_object(obj_type="representation", identifier_val=f"{self.disk_id}_LZA_Package")
 
         # 2. In der EXAKTEN Reihenfolge laut XSD-Schema an den Root hängen
@@ -1537,7 +1544,7 @@ if __name__ == "__main__":
         gen = PremisGenerator(ac, did, project_base_path_override=data_path_input)
         gen.run()
         
-        antwort = input("\nOrdner öffnen? (j/n): ").strip().lower()
+        antwort = input(f"\n{Fore.YELLOW}Ordner öffnen? (j/n): {Style.RESET_ALL}").strip().lower()
         if antwort.startswith('j') or antwort == 'y':
             target_path = gen.path_step5_lza
             print(f"Versuche Explorer zu öffnen für: {target_path}")

@@ -24,6 +24,13 @@ import zipfile
 import tempfile
 import shutil  # Für das Entfernen temporärer Verzeichnisse
 
+try:
+    from colorama import init, Fore, Style
+    init(autoreset=True)
+except ImportError:
+    class Fore: GREEN = RED = YELLOW = CYAN = MAGENTA = WHITE = ""
+    class Style: RESET_ALL = ""
+
 # ==============================================================================
 # 🔧 DYNAMISCHE PFADERMITTLUNG FÜR EXTERNE TOOLS
 # ==============================================================================
@@ -1326,12 +1333,12 @@ def process_file(file_path, relative_path):
                 errors.append(f"MD5 (Abweichung Siegfried)")
 
         if not errors and matches:
-            print(f"  \033[92m[MATCH] Integritaet verifiziert gegen: {', '.join(matches)}\033[0m")
+            print(f"  {Fore.GREEN}[MATCH] Integritaet verifiziert gegen: {', '.join(matches)}{Style.RESET_ALL}")
             all_raw_metadata["integrity_status"] = "verified"
             INTEGRITY_SUCCESS.append(str(relative_path))
         elif errors:
             err_msg = " | ".join(errors)
-            print(f"  \033[91m[ALARM] HASH-ABWEICHUNG bei {file_path.name}!\033[0m")
+            print(f"  {Fore.RED}[ALARM] HASH-ABWEICHUNG bei {file_path.name}!{Style.RESET_ALL}")
             print(f"          Details: {err_msg}")
             all_raw_metadata["integrity_status"] = "CORRUPTED_OR_MODIFIED"
             INTEGRITY_ERRORS.append({"file": str(relative_path), "ref_data": ref_data, "found_sha256": current_sha256, "details": err_msg})
@@ -1608,9 +1615,9 @@ def main():
                 for item in sorted(INTEGRITY_SUCCESS):
                     f.write(f"[OK] {item}\n")
 
-            print(f"\033[94mIntegritaets-Protokoll erstellt: {integrity_log_path.name}\033[0m")
+            print(f"{Fore.CYAN}Integritaets-Protokoll erstellt: {integrity_log_path.name}{Style.RESET_ALL}")
         except Exception as e:
-            print(f"\033[91mFehler beim Schreiben des Integritaets-Logs: {e}\033[0m")
+            print(f"{Fore.RED}Fehler beim Schreiben des Integritaets-Logs: {e}{Style.RESET_ALL}")
             
         print(f"\n{processed_count} Dateien erfolgreich verarbeitet.")
     else:
@@ -1619,7 +1626,7 @@ def main():
     # 4. Zielordner optional öffnen
     destination_folder = Path(OUTPUT_XML).parent
     print("")
-    open_folder = input("Zielordner oeffnen? (j/n): ").lower()
+    open_folder = input(f"{Fore.YELLOW}Zielordner oeffnen? (j/n): {Style.RESET_ALL}").lower()
     if open_folder == 'j':
         if sys.platform == "win32":
             os.startfile(destination_folder)
@@ -1627,7 +1634,7 @@ def main():
             subprocess.run(["open", destination_folder])
         else:
             subprocess.run(["xdg-open", destination_folder])
-        print("\033[92mZielordner geoeffnet\033[0m")
+        print(f"{Fore.GREEN}Zielordner geoeffnet{Style.RESET_ALL}")
 
 
 if __name__ == "__main__":

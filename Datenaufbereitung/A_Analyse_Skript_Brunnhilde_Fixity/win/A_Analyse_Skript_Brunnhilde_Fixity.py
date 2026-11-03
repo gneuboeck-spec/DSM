@@ -15,6 +15,13 @@ import hashlib
 import ctypes
 from pathlib import Path
 
+try:
+    from colorama import init, Fore, Style
+    init(autoreset=True)
+except ImportError:
+    class Fore: GREEN = RED = YELLOW = CYAN = MAGENTA = WHITE = ""
+    class Style: RESET_ALL = ""
+
 # ==============================================================================
 # 🔧 KONFIGURATION (Dynamische Pfadermittlung für Portabilität)
 # ==============================================================================
@@ -76,28 +83,28 @@ def setup_and_validate_analysis_paths(ac_number, disk_archive_id, siegfried_dir,
     }
 
     if not paths["base_dir"].is_dir():
-        print(f"\033[91mFehler: Das Basis-Verzeichnis mit den Dateien wurde nicht gefunden:\n{paths['base_dir']}\033[0m")
+        print(f"{Fore.RED}Fehler: Das Basis-Verzeichnis mit den Dateien wurde nicht gefunden:\n{paths['base_dir']}{Style.RESET_ALL}")
         return None
     
     if not extracted_files_path.is_dir():
-        print(f"\033[91mFehler: Das Verzeichnis für die extrahierten Dateien wurde nicht gefunden:\n{extracted_files_path}\033[0m")
+        print(f"{Fore.RED}Fehler: Das Verzeichnis für die extrahierten Dateien wurde nicht gefunden:\n{extracted_files_path}{Style.RESET_ALL}")
         return None
 
     if paths["siegfried_dir"]:
         siegfried_exe = paths["siegfried_dir"] / "sf.exe"
         if not siegfried_exe.is_file():
-            print(f"\033[91mFehler: 'sf.exe' wurde nicht im Siegfried-Verzeichnis gefunden:\n{paths['siegfried_dir']}\033[0m")
+            print(f"{Fore.RED}Fehler: 'sf.exe' wurde nicht im Siegfried-Verzeichnis gefunden:\n{paths['siegfried_dir']}{Style.RESET_ALL}")
             return None
     else:
-        print("\033[93mWarnung: Kein Pfad für Siegfried (SIEGFRIED_DIR) angegeben.\033[0m")
+        print(f"{Fore.YELLOW}[WARNUNG] Kein Pfad für Siegfried (SIEGFRIED_DIR) angegeben.{Style.RESET_ALL}")
 
     if paths["clamav_dir"]:
         clamav_exe = paths["clamav_dir"] / "clamscan.exe"
         if not clamav_exe.is_file():
-            print(f"\033[91mFehler: 'clamscan.exe' wurde nicht im ClamAV-Verzeichnis gefunden:\n{paths['clamav_dir']}\033[0m")
+            print(f"{Fore.RED}Fehler: 'clamscan.exe' wurde nicht im ClamAV-Verzeichnis gefunden:\n{paths['clamav_dir']}{Style.RESET_ALL}")
             return None
 
-    print("\033[92mAlle Projekt-Pfade und Tools wurden erfolgreich gefunden und validiert.\033[0m")
+    print(f"{Fore.GREEN}Alle Projekt-Pfade und Tools wurden erfolgreich gefunden und validiert.{Style.RESET_ALL}")
     return paths
 
 # ==============================================================================
@@ -109,11 +116,11 @@ def trigger_clamav_admin_update():
     Öffnet ein separates CMD-Fenster mit Administratorrechten und führt
     darin das ClamAV-Update (freshclam.exe) automatisch aus.
     """
-    print("\n\033[93m" + "!" * 60)
-    print(" HINWEIS: Virendefinitionsdatei ist älter als 7 Tage!")
+    print(f"\n{Fore.YELLOW}" + "!" * 60)
+    print(" [HINWEIS] Virendefinitionsdatei ist älter als 7 Tage!")
     print(" Es öffnet sich jetzt ein eigenes Administrator-Fenster,")
     print(" in dem das Update (freshclam.exe) automatisch gestartet wird.")
-    print("!" * 60 + "\033[0m\n")
+    print("!" * 60 + f"{Style.RESET_ALL}\n")
 
     # Kleine Batch-Datei für das erhöhte Fenster erstellen
     bat_path = Path(tempfile.gettempdir()) / "freshclam_admin_update.bat"
@@ -205,7 +212,7 @@ def extract_brunnhilde_info(source_path, brunnhilde_output_dir):
     brunnhilde_metadata = {}
 
     # --- TEIL: SHA-256 GENERIERUNG ---
-    print(f"\n--- Generiere SHA-256 Prüfsummen für alle Dateien... ---")
+    print(f"\n{Fore.CYAN}--- Generiere SHA-256 Prüfsummen für alle Dateien... ---{Style.RESET_ALL}")
     sha_list = []
     for root, _, files in os.walk(source_path):
         for name in files:
@@ -273,7 +280,7 @@ def extract_brunnhilde_info(source_path, brunnhilde_output_dir):
 
         # Fallback: Wenn nichts anderes ging, nutze das aktuelle Python (wird wahrscheinlich fehlschlagen, aber verhindert Absturz beim Start)
         if not python_exe_for_brunnhilde:
-            print("[WARNUNG] Kein eindeutiges Python mit 'brunnhilde' gefunden. Nutze sys.executable.")
+            print(f"{Fore.YELLOW}[WARNUNG] Kein eindeutiges Python mit 'brunnhilde' gefunden. Nutze sys.executable.{Style.RESET_ALL}")
             python_exe_for_brunnhilde = sys.executable
 
         # 2. Baue den Befehl als Liste auf (KEIN String-Joining!)
@@ -284,13 +291,14 @@ def extract_brunnhilde_info(source_path, brunnhilde_output_dir):
             str(brunnhilde_report_path)
         ]
         
-        print(f"\n--- Führe Brunnhilde aus für {source_path}... ---")
         # Anzeige des Befehls für Debugging (mit Quoting für Leerzeichen)
         display_cmd = ' '.join(f'"{a}"' if ' ' in a else a for a in args_list)
-        print(f"Befehl: {display_cmd}")
         
         # 3. Direkter Aufruf via Popen mit shell=False
         # Dies umgeht das Problem, dass Windows Pfade mit Leerzeichen ("C:\Program Files...") zerlegt.
+        print(f"\n{Fore.CYAN}--- Führe Brunnhilde aus für {source_path}... ---{Style.RESET_ALL}")
+        print(f"Befehl: {display_cmd}")
+        
         process = subprocess.Popen(
             args_list,
             stdout=subprocess.PIPE,
@@ -325,13 +333,13 @@ def extract_brunnhilde_info(source_path, brunnhilde_output_dir):
         # ------------------------------------------------------------------
         
         print(f"Brunnhilde Exit Code: {returncode}")
-        print(f"--- Brunnhilde-Ausführung beendet ---")
+        print(f"{Fore.CYAN}--- Brunnhilde-Ausführung beendet ---{Style.RESET_ALL}")
         
         try:
             brunnhilde_report_path.mkdir(exist_ok=True)
             tree_output_file = brunnhilde_report_path / "tree.txt"
             
-            print(f"\n--- Erstelle 'tree.txt' manuell als Workaround... ---")
+            print(f"\n{Fore.CYAN}--- Erstelle 'tree.txt' manuell als Workaround... ---{Style.RESET_ALL}")
             
             tree_command = f'cmd /c tree "{str(source_path)}" /A /F > "{str(tree_output_file)}"'
             
@@ -339,13 +347,13 @@ def extract_brunnhilde_info(source_path, brunnhilde_output_dir):
             subprocess.run(tree_command, shell=True, check=True, text=True, encoding='utf-8', errors='replace')
             
             if tree_output_file.exists() and tree_output_file.stat().st_size > 0:
-                print(f"--- 'tree.txt' erfolgreich erstellt unter: {tree_output_file} ---")
+                print(f"{Fore.GREEN}--- [OK] 'tree.txt' erfolgreich erstellt unter: {tree_output_file} ---{Style.RESET_ALL}")
             else:
-                print(f"--- WARNUNG: 'tree.txt' konnte nicht manuell erstellt werden oder ist leer. ---")
+                print(f"{Fore.YELLOW}--- [WARNUNG] 'tree.txt' konnte nicht manuell erstellt werden oder ist leer. ---{Style.RESET_ALL}")
         except subprocess.CalledProcessError as e:
-            print(f"--- FEHLER beim Ausführen von 'tree.exe': Befehl schlug fehl mit Code {e.returncode}. ---")
+            print(f"{Fore.RED}--- [FEHLER] Beim Ausführen von 'tree.exe': Befehl schlug fehl mit Code {e.returncode}. ---{Style.RESET_ALL}")
         except Exception as e:
-            print(f"--- FEHLER beim manuellen Erstellen von 'tree.txt': {e} ---")
+            print(f"{Fore.RED}--- [FEHLER] Beim manuellen Erstellen von 'tree.txt': {e} ---{Style.RESET_ALL}")
 
         if not brunnhilde_report_path.exists():
             print(f"Fehler: Brunnhilde-Berichtsordner nicht gefunden unter {brunnhilde_report_path}.")
@@ -421,7 +429,7 @@ if __name__ == "__main__":
             data_path_input = Path(os.environ.get("DATA_PATH", Path.home() / "Documents/data" / ac_number_input / disk_archive_id_input))
             
     except IndexError:
-        print("FEHLER: AC-Nummer und Datenträger-ID wurden nicht übergeben.")
+        print(f"{Fore.RED}FEHLER: AC-Nummer und Datenträger-ID wurden nicht übergeben.{Style.RESET_ALL}")
         sys.exit(1)
 
     validated_paths = setup_and_validate_analysis_paths(
@@ -460,7 +468,7 @@ if __name__ == "__main__":
         destination_folder = validated_paths["base_dir"].parent
         
         print("")
-        open_folder = input("Zielordner oeffnen? (j/n): ").lower()
+        open_folder = input(f"{Fore.YELLOW}Zielordner oeffnen? (j/n): {Style.RESET_ALL}").lower()
         if open_folder == 'j':
             if sys.platform == "win32":
                 os.startfile(destination_folder)

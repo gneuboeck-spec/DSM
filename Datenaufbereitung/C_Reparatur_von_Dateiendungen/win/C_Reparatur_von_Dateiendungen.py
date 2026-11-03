@@ -15,6 +15,13 @@ import re
 from pathlib import Path
 from datetime import datetime
 
+try:
+    from colorama import init, Fore, Style
+    init(autoreset=True)
+except ImportError:
+    class Fore: GREEN = RED = YELLOW = CYAN = MAGENTA = WHITE = ""
+    class Style: RESET_ALL = ""
+
 # ==============================================================================
 # 🔧 KONFIGURATION & MAPPINGS
 # ==============================================================================
@@ -517,15 +524,15 @@ def main():
     # Automatischer Transfer von Stufe 2 nach Stufe 3
     if not target_stage3.exists():
         if source_stage2.exists():
-            print(f"\033[94mVorbereitung: Kopiere Dateien von Stufe 2 nach Stufe 3...\033[0m")
+            print(f"{Fore.CYAN}Vorbereitung: Kopiere Dateien von Stufe 2 nach Stufe 3...{Style.RESET_ALL}")
             try:
                 shutil.copytree(source_stage2, target_stage3)
-                print(f"\033[92m[OK] Dateien erfolgreich nach Stufe 3 kopiert.\033[0m")
+                print(f"{Fore.GREEN}[OK] Dateien erfolgreich nach Stufe 3 kopiert.{Style.RESET_ALL}")
             except Exception as e:
-                print(f"\033[91m[FEHLER] Kopieren fehlgeschlagen: {e}\033[0m")
+                print(f"{Fore.RED}[FEHLER] Kopieren fehlgeschlagen: {e}{Style.RESET_ALL}")
                 sys.exit(1)
         else:
-            print(f"\033[91mFehler: Quell-Daten in Stufe 2 nicht gefunden ({source_stage2})\033[0m")
+            print(f"{Fore.RED}Fehler: Quell-Daten in Stufe 2 nicht gefunden ({source_stage2}){Style.RESET_ALL}")
             sys.exit(1)
     
     # Logger initialisieren
@@ -639,7 +646,7 @@ def main():
     
     # Sicheres Öffnen des Ordners am Ende
     try:
-        open_q = input("\nAnalyse beendet. Zielordner öffnen? (j/n): ").lower()
+        open_q = input(f"\n{Fore.YELLOW}Analyse beendet. Zielordner öffnen? (j/n): {Style.RESET_ALL}").lower()
         if open_q == 'j':
             if sys.platform == "win32":
                 os.startfile(config["analysis_folder"])

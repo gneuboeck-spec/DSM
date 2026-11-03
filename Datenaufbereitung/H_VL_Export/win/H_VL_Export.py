@@ -46,12 +46,12 @@ def main():
                 data_path_input = Path.home() / "Documents" / "data" / ac_number / disk_archive_id
                 
     except IndexError:
-        print(Fore.RED + "FEHLER: AC-Nummer und Datenträger-ID wurden nicht übergeben.")
-        print(Fore.YELLOW + "Dieses Skript sollte über die 'start.bat'-Datei und das Menü gestartet werden.")
+        print(f"{Fore.RED}FEHLER: AC-Nummer und Datenträger-ID wurden nicht übergeben.{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}Dieses Skript sollte über die 'start.bat'-Datei und das Menü gestartet werden.{Style.RESET_ALL}")
         # Fallback auf manuelle Eingabe, wenn es direkt gestartet wird
-        print("\nBitte geben Sie die Daten manuell ein:")
-        ac_number = input("AC-Nummer eingeben: ")
-        disk_archive_id = input("Datenträger-ID eingeben: ")
+        print(f"\n{Fore.YELLOW}Bitte geben Sie die Daten manuell ein:{Style.RESET_ALL}")
+        ac_number = input(f"{Fore.YELLOW}AC-Nummer eingeben: {Style.RESET_ALL}")
+        disk_archive_id = input(f"{Fore.YELLOW}Datenträger-ID eingeben: {Style.RESET_ALL}")
         data_path_input = Path.home() / "Documents" / "data" / ac_number / disk_archive_id
 
     print("")
@@ -73,15 +73,15 @@ def main():
     print(Fore.WHITE + f"  DestinationFolder: {destination_folder}")
 
     # --- Pfadvalidierung ---
-    print("\n" + Fore.CYAN + "Pfade validieren")
+    print(f"\n{Fore.CYAN}Pfade validieren{Style.RESET_ALL}")
     if not base_path.is_dir():
-        print(Fore.RED + f"FEHLER: BasePath existiert nicht: {base_path}"); sys.exit(1)
+        print(f"{Fore.RED}FEHLER: BasePath existiert nicht: {base_path}{Style.RESET_ALL}"); sys.exit(1)
     if not main_folder.is_dir():
-        print(Fore.RED + f"FEHLER: MainFolder existiert nicht: {main_folder}"); sys.exit(1)
+        print(f"{Fore.RED}FEHLER: MainFolder existiert nicht: {main_folder}{Style.RESET_ALL}"); sys.exit(1)
     if not destination_folder.is_dir():
-        print(Fore.RED + f"FEHLER: Zielordner existiert nicht: {destination_folder}"); sys.exit(1)
+        print(f"{Fore.RED}FEHLER: Zielordner existiert nicht: {destination_folder}{Style.RESET_ALL}"); sys.exit(1)
     
-    print(Fore.GREEN + "Alle Pfade vorhanden")
+    print(f"{Fore.GREEN}Alle Pfade vorhanden{Style.RESET_ALL}")
     
     # --- Quelldateien und -ordner definieren ---
     source_picture_carrier = main_folder / f"0_{disk_archive_id}_picture-carrier"
@@ -98,14 +98,14 @@ def main():
             for tif_file in tif_files:
                 dest_file = destination_folder / tif_file.name
                 if dest_file.exists():
-                    print(Fore.YELLOW + f"  WARNUNG: Datei existiert bereits: {tif_file.name}")
+                    print(Fore.YELLOW + f"  [WARNUNG] Datei existiert bereits: {tif_file.name}")
                 else:
                     shutil.copy2(tif_file, dest_file)
-                    print(Fore.GREEN + f"  Kopiert: {tif_file.name}")
+                    print(Fore.GREEN + f"  [OK] Kopiert: {tif_file.name}")
         else:
-            print(Fore.YELLOW + f"  WARNUNG: Keine TIF-Dateien gefunden in {source_picture_carrier}")
+            print(Fore.YELLOW + f"  [WARNUNG] Keine TIF-Dateien gefunden in {source_picture_carrier}")
     else:
-        print(Fore.YELLOW + f"  WARNUNG: Ordner nicht gefunden: {source_picture_carrier}")
+        print(Fore.YELLOW + f"  [WARNUNG] Ordner nicht gefunden: {source_picture_carrier}")
 
     # --- 2. content-Datei kopieren ---
     print("\n" + Fore.CYAN + "2. content-Datei kopieren")
@@ -113,12 +113,12 @@ def main():
     if content_file.is_file():
         dest_file = destination_folder / content_file.name
         if dest_file.exists():
-            print(Fore.YELLOW + f"  WARNUNG: Datei existiert bereits: {content_file.name}")
+            print(Fore.YELLOW + f"  [WARNUNG] Datei existiert bereits: {content_file.name}")
         else:
             shutil.copy2(content_file, dest_file)
-            print(Fore.GREEN + f"  Kopiert: {content_file.name}")
+            print(Fore.GREEN + f"  [OK] Kopiert: {content_file.name}")
     else:
-        print(Fore.YELLOW + f"  WARNUNG: Datei nicht gefunden: {content_file}")
+        print(Fore.YELLOW + f"  [WARNUNG] Datei nicht gefunden: {content_file}")
 
     # --- 3. Tree-Datei aus extrahierten Dateien kopieren ---
     print("\n" + Fore.CYAN + "3. Tree-Datei aus extrahierten Dateien kopieren")
@@ -126,12 +126,12 @@ def main():
     if tree_file_extracted.is_file():
         dest_file = destination_folder / tree_file_extracted.name
         if dest_file.exists():
-            print(Fore.YELLOW + f"  WARNUNG: Datei existiert bereits: {tree_file_extracted.name}")
+            print(Fore.YELLOW + f"  [WARNUNG] Datei existiert bereits: {tree_file_extracted.name}")
         else:
             shutil.copy2(tree_file_extracted, dest_file)
-            print(Fore.GREEN + f"  Kopiert: {tree_file_extracted.name}")
+            print(Fore.GREEN + f"  [OK] Kopiert: {tree_file_extracted.name}")
     else:
-        print(Fore.YELLOW + f"  WARNUNG: Datei nicht gefunden: {tree_file_extracted}")
+        print(Fore.YELLOW + f"  [WARNUNG] Datei nicht gefunden: {tree_file_extracted}")
 
     # --- 4. Tree-Datei aus For-Transfer-Ordner kopieren ---
     print("\n" + Fore.CYAN + "4. Tree-Datei aus For-Transfer-Ordner kopieren")
@@ -140,16 +140,16 @@ def main():
     if tree_file_for_transfer.is_file():
         dest_file = destination_folder / tree_file_for_transfer.name
         if dest_file.exists():
-            print(Fore.YELLOW + f"  WARNUNG: Datei existiert bereits: {tree_file_for_transfer.name}")
+            print(Fore.YELLOW + f"  [WARNUNG] Datei existiert bereits: {tree_file_for_transfer.name}")
         else:
             shutil.copy2(tree_file_for_transfer, dest_file)
-            print(Fore.GREEN + f"  Kopiert: {tree_file_for_transfer.name}")
+            print(Fore.GREEN + f"  [OK] Kopiert: {tree_file_for_transfer.name}")
     else:
-        print(Fore.YELLOW + f"  WARNUNG: Datei nicht gefunden: {tree_file_for_transfer}")
+        print(Fore.YELLOW + f"  [WARNUNG] Datei nicht gefunden: {tree_file_for_transfer}")
 
     # --- Zielordner optional öffnen ---
     print("")
-    open_folder = input("Zielordner oeffnen? (j/n): ").lower()
+    open_folder = input(f"{Fore.YELLOW}Zielordner oeffnen? (j/n): {Style.RESET_ALL}").lower()
     if open_folder == 'j':
         if sys.platform == "win32":
             os.startfile(destination_folder)
