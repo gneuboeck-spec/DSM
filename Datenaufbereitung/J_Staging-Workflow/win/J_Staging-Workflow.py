@@ -56,7 +56,7 @@ def run_staging_workflow(ac_number, disk_id, project_base_path_override=None):
         print(f"{Fore.CYAN}Abgebrochen.{Style.RESET_ALL}")
         return
 
-    # --- HILFSFUNKTIONEN ---
+        # --- HILFSFUNKTIONEN ---
     def safe_move_item(src, dest_dir, rename_to=None):
         if src.exists():
             try:
@@ -65,9 +65,9 @@ def run_staging_workflow(ac_number, disk_id, project_base_path_override=None):
                 target = dest_dir / target_name
                 if target.exists():
                     if target.is_dir(): shutil.rmtree(target)
-                    else: os.remove(target)
-                shutil.move(src, target)
-                print(f"{Fore.GREEN} [Move] -> {src.name} verschoben nach {dest_dir.name}/{target_name}")
+                    else: target.unlink()  # pathlib statt os.remove
+                shutil.move(src, target)  # pathlib-Objekte werden direkt akzeptiert
+                print(f"{Fore.GREEN} [Move] -> {src.name} verschoben nach {dest_dir.name}/{target_name}{Style.RESET_ALL}")
                 return True
             except Exception as e:
                 print(f"{Fore.RED} [FEHLER] Fehler bei {src.name}: {e}{Style.RESET_ALL}")
@@ -78,12 +78,12 @@ def run_staging_workflow(ac_number, disk_id, project_base_path_override=None):
     if not f4_vl.exists():
         f4_vl.mkdir(parents=True)
 
-    # A) Fotos (.tif) aus Stufe 0 kopieren
+        # A) Fotos (.tif) aus Stufe 0 kopieren
     if f0.exists():
         for tif in f0.glob("*.tif"):
             if not (f4_vl / tif.name).exists():
                 shutil.copy2(tif, f4_vl)
-                print(f"{Fore.GREEN} [Kopie] -> Foto {tif.name} nach VL kopiert.")
+                print(f"{Fore.GREEN} [Kopie] -> Foto {tif.name} nach VL kopiert.{Style.RESET_ALL}")
     
     # B) Inhaltsübersichten aus Stufe 2 kopieren
     meta_f2 = [f"2_{disk_id}_extracted-files.content", f"2_{disk_id}_extracted-files_tree.txt"]
@@ -91,12 +91,12 @@ def run_staging_workflow(ac_number, disk_id, project_base_path_override=None):
         src_item = f2 / item
         if src_item.exists() and not (f4_vl / item).exists():
             shutil.copy2(src_item, f4_vl)
-            print(f"{Fore.GREEN} [Kopie] -> Übersicht {item} nach VL kopiert.")
+            print(f"{Fore.GREEN} [Kopie] -> Übersicht {item} nach VL kopiert.{Style.RESET_ALL}")
 
     # C) Technischen Index (erstellt von H1) verifizieren
     index_name = f"3_{disk_id}_for-transfer.index"
     if (f4_vl / index_name).exists():
-        print(f"{Fore.GREEN} [OK] Technischer Index bereits in VL vorhanden.")
+        print(f"{Fore.GREEN} [OK] Technischer Index bereits in VL vorhanden.{Style.RESET_ALL}")
     else:
         print(f"{Fore.YELLOW} [WARNUNG] Index {index_name} wurde noch nicht in VL gefunden.{Style.RESET_ALL}")
 
@@ -116,19 +116,19 @@ def run_staging_workflow(ac_number, disk_id, project_base_path_override=None):
     if not lza_images_dir.exists():
         lza_images_dir.mkdir(parents=True)
 
-    # A) Konsolidierung bereits vorhandener 'logfiles' Unterordner
+        # A) Konsolidierung bereits vorhandener 'logfiles' Unterordner
     for source_stage in [f0, f1, f2, f3]:
         sub_log = source_stage / "logfiles"
         if sub_log.exists() and sub_log.is_dir():
             for item in sub_log.iterdir():
-                shutil.move(item, lza_logs_dir / item.name)
+                shutil.move(item, lza_logs_dir / item.name)  # pathlib direkt
             try: shutil.rmtree(sub_log, ignore_errors=True)
             except: pass
 
     # B) Bilder aus Ordner 0 (Originale) in logfiles verschieben
     if f0.exists():
         for item in f0.iterdir():
-            if item.is_file(): shutil.move(str(item), str(lza_logs_dir / item.name))
+            if item.is_file(): shutil.move(item, lza_logs_dir / item.name)  # pathlib direkt
 
     # C) Nutzdaten verschieben und umbenennen in '3_files' (Falls vorhanden)
     if src_files_dir:
@@ -141,17 +141,17 @@ def run_staging_workflow(ac_number, disk_id, project_base_path_override=None):
                 ext = item.suffix.lower()
                 # GEÄNDERT: Images gehen in den 'image'-Unterordner (Singular)
                 if ext in [".img", ".raw", ".dmg", ".iso", ".e01", ".aff", ".dd", ".001"]:
-                    shutil.move(str(item), str(lza_images_dir / item.name))
-                    print(f"{Fore.GREEN} [Move] -> Image {item.name} nach image/ verschoben.")
+                    shutil.move(item, lza_images_dir / item.name)  # pathlib direkt
+                    print(f"{Fore.GREEN} [Move] -> Image {item.name} nach image/ verschoben.{Style.RESET_ALL}")
                 # NEU: Logs (csv, log) gehen in den 'logfiles'-Unterordner
                 elif ext in [".csv", ".log"]:
-                    shutil.move(str(item), str(lza_logs_dir / item.name))
-                    print(f"{Fore.GREEN} [Move] -> Log {item.name} nach logfiles/ verschoben.")
+                    shutil.move(item, lza_logs_dir / item.name)  # pathlib direkt
+                    print(f"{Fore.GREEN} [Move] -> Log {item.name} nach logfiles/ verschoben.{Style.RESET_ALL}")
                 # Andere Dateien (z.B. .dd, .001, .bin) bleiben im Hauptordner
                 else:
-                    shutil.move(str(item), str(f5_lza / item.name))
-                    print(f"{Fore.GREEN} [Move] -> {item.name} nach Stufe 5 (Hauptordner) verschoben.")
-        print(f"{Fore.GREEN} [Move] -> Inhalte aus Stufe 1 strukturiert nach Stufe 5 verschoben.")
+                    shutil.move(item, f5_lza / item.name)  # pathlib direkt
+                    print(f"{Fore.GREEN} [Move] -> {item.name} nach Stufe 5 (Hauptordner) verschoben.{Style.RESET_ALL}")
+        print(f"{Fore.GREEN} [Move] -> Inhalte aus Stufe 1 strukturiert nach Stufe 5 verschoben.{Style.RESET_ALL}")
 
     # E) Alle Berichte aus Ordner 2 (Inhalte) nach logfiles verschieben
     items_f2 = [f"2_{disk_id}_extracted-files.content", 
@@ -169,10 +169,10 @@ def run_staging_workflow(ac_number, disk_id, project_base_path_override=None):
             if item.is_file() and item.suffix in [".log", ".index", ".txt"]:
                 safe_move_item(item, lza_logs_dir)
 
-    print(f"\n{Fore.MAGENTA}===================================================")
-    print(f"{Fore.GREEN} STAGING ERFOLGREICH BEENDET")
-    print(f"{Fore.WHITE} Die Stufen 0, 1, 2 und 3 sind nun bereit für den Master-Index (Skript L)")
-    print(f"{Fore.WHITE} und die PREMIS-Erstellung (Skript J).")
+    print(f"\n{Fore.MAGENTA}==================================================={Style.RESET_ALL}")
+    print(f"{Fore.GREEN} STAGING ERFOLGREICH BEENDET{Style.RESET_ALL}")
+    print(f"{Fore.WHITE} Die Stufen 0, 1, 2 und 3 sind nun bereit für den Master-Index (Skript L){Style.RESET_ALL}")
+    print(f"{Fore.WHITE} und die PREMIS-Erstellung (Skript J).{Style.RESET_ALL}")
     print(f"{Fore.MAGENTA}==================================================={Style.RESET_ALL}")
 
 if __name__ == "__main__":

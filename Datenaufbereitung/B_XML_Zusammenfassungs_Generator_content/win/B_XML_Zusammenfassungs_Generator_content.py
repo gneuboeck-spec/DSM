@@ -10,6 +10,13 @@ import platform
 import sys  # HINZUGEFÜGT: sys wird für die Kommandozeilen-Argumente benötigt
 from bs4 import BeautifulSoup
 
+try:
+    from colorama import init, Fore, Style
+    init(autoreset=True)
+except ImportError:
+    class Fore: GREEN = RED = YELLOW = CYAN = MAGENTA = WHITE = ""
+    class Style: RESET_ALL = ""
+
 # ===== Konfiguration: Pfade definieren =====
 
 # <<< HIER IST DIE ANPASSUNG >>>
@@ -20,12 +27,12 @@ try:
     disk_archive_ID = sys.argv[2]
     print(f"Werte aus der Kommandozeile erhalten: AC={AC_number}, ID={disk_archive_ID}")
 except IndexError:
-    print("FEHLER: AC-Nummer und Datenträger-ID wurden nicht übergeben.")
-    print("Dieses Skript sollte über die 'start.bat'-Datei und das Menü gestartet werden.")
+    print(f"{Fore.RED}[FEHLER] AC-Nummer und Datenträger-ID wurden nicht übergeben.{Style.RESET_ALL}")
+    print(f"{Fore.YELLOW}Dieses Skript sollte über die 'start.bat'-Datei und das Menü gestartet werden.{Style.RESET_ALL}")
     # Fallback auf manuelle Eingabe, wenn es direkt gestartet wird
-    print("\nBitte geben Sie die Daten manuell ein:")
-    AC_number = input("AC-Nummer eingeben:")
-    disk_archive_ID = input("Datenträger-ID eingeben:")
+    print(f"\n{Fore.CYAN}Bitte geben Sie die Daten manuell ein:{Style.RESET_ALL}")
+    AC_number = input(f"{Fore.YELLOW}AC-Nummer eingeben: {Style.RESET_ALL}")
+    disk_archive_ID = input(f"{Fore.YELLOW}Datenträger-ID eingeben: {Style.RESET_ALL}")
 
 # NEU: Datenpfad aus menu.py übernehmen (sys.argv[3] oder Umgebungsvariable DATA_PATH)
 if len(sys.argv) >= 4:
@@ -38,18 +45,18 @@ input_HTML_path = base_path / f"2_{disk_archive_ID}_extracted-files/2_{disk_arch
 output_XML_path = base_path / f"2_{disk_archive_ID}_extracted-files/2_{disk_archive_ID}_extracted-files.content"
 
 if not base_path.exists():
-    print(f"\033[91mBasis-Verzeichnis nicht gefunden: {base_path}\033[0m")
-    exit()
+    print(f"{Fore.RED}[FEHLER] Basis-Verzeichnis nicht gefunden: {base_path}{Style.RESET_ALL}")
+    sys.exit(1)
 if not input_XML_path.exists():
-    print(f"\033[91mXML-Input-Datei nicht gefunden: {input_XML_path}\033[0m")
-    exit()
+    print(f"{Fore.RED}[FEHLER] XML-Input-Datei nicht gefunden: {input_XML_path}{Style.RESET_ALL}")
+    sys.exit(1)
 if not input_HTML_path.exists():
-    print(f"\033[91mHTML-Input-Datei nicht gefunden: {input_HTML_path}\033[0m")
-    exit()
+    print(f"{Fore.RED}[FEHLER] HTML-Input-Datei nicht gefunden: {input_HTML_path}{Style.RESET_ALL}")
+    sys.exit(1)
 transfer_folder = base_path / f"3_{disk_archive_ID}_for-transfer"
 if not transfer_folder.exists():
-    print(f"\033[91mfor-transfer-Ordner nicht gefunden: {transfer_folder}\033[0m")
-    exit()
+    print(f"{Fore.RED}[FEHLER] for-transfer-Ordner nicht gefunden: {transfer_folder}{Style.RESET_ALL}")
+    sys.exit(1)
 
 # ===== XML-Datei laden und parsen =====
 
@@ -200,28 +207,24 @@ ET.indent(tree, space="    ")
 
 # Prüfen ob Output-Datei bereits existiert
 if output_XML_path.exists():
-    print(f"\033[91mAusgabe-Datei existiert bereits und wird nicht überschrieben: {output_XML_path}\033[0m")
-    exit()
+    print(f"{Fore.RED}[FEHLER] Ausgabe-Datei existiert bereits und wird nicht überschrieben: {output_XML_path}{Style.RESET_ALL}")
+    sys.exit(1)
 
 # XML-Datei speichern
 tree.write(output_XML_path, encoding='UTF-8', xml_declaration=True)
-print(f"\033[92moutput_XML_Datei erstellt: {output_XML_path}\033[0m")
+print(f"{Fore.GREEN}[OK] XML-Datei erfolgreich erstellt: {output_XML_path}{Style.RESET_ALL}")
 
 # Der Zielordner ist das übergeordnete Verzeichnis der XML-Ausgabedatei
 destination_folder = output_XML_path.parent
 
 # --- Zielordner optional öffnen ---
 print("")
-open_folder = input("Zielordner oeffnen? (j/n): ").lower()
+open_folder = input(f"{Fore.YELLOW}Zielordner oeffnen? (j/n): {Style.RESET_ALL}").lower()
 if open_folder == 'j':
     if sys.platform == "win32":
-        # KORREKTUR: Das Path-Objekt wird explizit in einen String umgewandelt
         os.startfile(str(destination_folder))
     elif sys.platform == "darwin":
-        # KORREKTUR: Das Path-Objekt wird explizit in einen String umgewandelt
         subprocess.run(["open", str(destination_folder)])
     else:
-        # KORREKTUR: Das Path-Objekt wird explizit in einen String umgewandelt
         subprocess.run(["xdg-open", str(destination_folder)])
-    # Die Fore-Bibliothek wird hier nicht verwendet, daher Standard-Print mit Farbcodes
-    print("\033[92mZielordner geoeffnet\033[0m")
+    print(f"{Fore.GREEN}Zielordner geoeffnet{Style.RESET_ALL}")

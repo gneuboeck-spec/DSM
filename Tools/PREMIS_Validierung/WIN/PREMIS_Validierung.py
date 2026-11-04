@@ -18,6 +18,16 @@ import re
 from pathlib import Path
 from datetime import datetime
 
+# ==============================================================================
+# 🔧 FARB-INITIALISIERUNG (Konsistenz mit allen anderen Skripten)
+# ==============================================================================
+try:
+    from colorama import init, Fore, Style
+    init(autoreset=True)
+except ImportError:
+    class Fore: GREEN = RED = YELLOW = CYAN = MAGENTA = WHITE = ""
+    class Style: RESET_ALL = ""
+
 # GUI-Importe
 import tkinter as tk
 from tkinter import filedialog, messagebox
@@ -27,9 +37,9 @@ try:
     from lxml import etree
     HAS_LXML = True
 except ImportError:
-    print("FEHLER: lxml nicht installiert!")
-    print("Bitte installieren: pip install lxml")
-    input("Drücke Enter zum Beenden...")
+    print(f"{Fore.RED}FEHLER: lxml nicht installiert!{Style.RESET_ALL}")
+    print(f"{Fore.YELLOW}Bitte installieren: pip install lxml{Style.RESET_ALL}")
+    input(f"{Fore.YELLOW}Drücke Enter zum Beenden...{Style.RESET_ALL}")
     sys.exit(1)
 
 # HTTP-Requests (für Online-Schema-Fallback)
@@ -110,33 +120,33 @@ def load_schema_with_fallback(xsd_path):
     Gibt (schema_content, source) zurück.
     """
     if not HAS_REQUESTS:
-        print("  [INFO] requests nicht verfügbar, nutze nur lokale Datei.")
+        print(f"  {Fore.YELLOW}[INFO] requests nicht verfügbar, nutze nur lokale Datei.{Style.RESET_ALL}")
         with open(xsd_path, 'rb') as f:
             return f.read(), 'local'
     
     # VERSUCH 1: Direkter Abruf
     try:
-        print("  -> Versuch 1: Direkter Abruf des Schemas von loc.gov...")
+        print(f"  {Fore.CYAN}-> Versuch 1: Direkter Abruf des Schemas von loc.gov...{Style.RESET_ALL}")
         response = requests.get(PREMIS_XSD_URL, timeout=10)
         response.raise_for_status()
-        print("     [OK] Schema erfolgreich online geladen.")
+        print(f"     {Fore.GREEN}[OK] Schema erfolgreich online geladen.{Style.RESET_ALL}")
         return response.content, 'online'
     except Exception as e1:
-        print(f"     [WARNUNG] Versuch 1 fehlgeschlagen: {e1}")
+        print(f"     {Fore.YELLOW}[WARNUNG] Versuch 1 fehlgeschlagen: {e1}{Style.RESET_ALL}")
         
         # VERSUCH 2: Abruf mit Browser-User-Agent
         try:
-            print("  -> Versuch 2: Abruf mit Browser-User-Agent...")
+            print(f"  {Fore.CYAN}-> Versuch 2: Abruf mit Browser-User-Agent...{Style.RESET_ALL}")
             headers = {'User-Agent': BROWSER_USER_AGENT}
             response = requests.get(PREMIS_XSD_URL, headers=headers, timeout=10)
             response.raise_for_status()
-            print("     [OK] Schema erfolgreich online geladen (via User-Agent-Fallback).")
+            print(f"     {Fore.GREEN}[OK] Schema erfolgreich online geladen (via User-Agent-Fallback).{Style.RESET_ALL}")
             return response.content, 'online_user_agent'
         except Exception as e2:
-            print(f"     [WARNUNG] Versuch 2 fehlgeschlagen: {e2}")
+            print(f"     {Fore.YELLOW}[WARNUNG] Versuch 2 fehlgeschlagen: {e2}{Style.RESET_ALL}")
             
             # VERSUCH 3: Lokale Datei
-            print(f"  -> Versuch 3: Verwende lokale Schema-Datei: {xsd_path}")
+            print(f"  {Fore.CYAN}-> Versuch 3: Verwende lokale Schema-Datei: {xsd_path}{Style.RESET_ALL}")
             with open(xsd_path, 'rb') as f:
                 return f.read(), 'local'
 
@@ -152,22 +162,22 @@ def validate_premis(xml_path, xsd_path):
     
     try:
         # XSD-Schema laden (mit Fallback)
-        print("  Loading XSD schema...")
+        print(f"  {Fore.CYAN}Loading XSD schema...{Style.RESET_ALL}")
         schema_content, source = load_schema_with_fallback(xsd_path)
-        print(f"  Schema source: {source}")
+        print(f"  {Fore.WHITE}Schema source: {source}{Style.RESET_ALL}")
         
         schema_root = etree.XML(schema_content)
         schema = etree.XMLSchema(schema_root)
-        print("  XSD schema loaded successfully.")
+        print(f"  {Fore.GREEN}XSD schema loaded successfully.{Style.RESET_ALL}")
         
         # XML-Datei laden
-        print("  Loading PREMIS XML file...")
+        print(f"  {Fore.CYAN}Loading PREMIS XML file...{Style.RESET_ALL}")
         with open(xml_path, 'rb') as f:
             xml_doc = etree.parse(f)
-        print("  PREMIS XML loaded successfully.")
+        print(f"  {Fore.GREEN}PREMIS XML loaded successfully.{Style.RESET_ALL}")
         
         # Validierung durchführen
-        print("  Validating...")
+        print(f"  {Fore.CYAN}Validating...{Style.RESET_ALL}")
         is_valid = schema.validate(xml_doc)
         
         # Fehler sammeln und FileTrove-Warnungen filtern
@@ -226,123 +236,123 @@ def save_report(output_file, premis_file, xsd_file, version_name,
 
 def main():
     print()
-    print("=" * 50)
-    print("  PREMIS XML Validator (Final Combined Version)")
-    print("  Supports PREMIS v3.0")
-    print("  Features: GUI Dialogs + 3-Stage Schema Fallback")
-    print("           + FileTrove Extension Filtering")
-    print("=" * 50)
+    print(f"{Fore.MAGENTA}{'=' * 50}{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}  PREMIS XML Validator (Final Combined Version){Style.RESET_ALL}")
+    print(f"{Fore.CYAN}  Supports PREMIS v3.0{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}  Features: GUI Dialogs + 3-Stage Schema Fallback{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}           + FileTrove Extension Filtering{Style.RESET_ALL}")
+    print(f"{Fore.MAGENTA}{'=' * 50}{Style.RESET_ALL}")
     print()
     
     # Schritt 1: PREMIS-Datei auswählen
-    print("Step 1: Please select PREMIS XML file...")
+    print(f"{Fore.CYAN}Step 1: Please select PREMIS XML file...{Style.RESET_ALL}")
     premis_file = select_file(
         title="Select PREMIS XML file",
         filetypes=[("XML files", "*.xml"), ("All files", "*.*")]
     )
     
     if not premis_file:
-        print("Aborted: No PREMIS file selected.")
-        input("Press Enter to exit...")
+        print(f"{Fore.RED}Aborted: No PREMIS file selected.{Style.RESET_ALL}")
+        input(f"{Fore.YELLOW}Press Enter to exit...{Style.RESET_ALL}")
         return
     
-    print(f"  Selected: {premis_file}")
+    print(f"  {Fore.GREEN}Selected:{Style.RESET_ALL} {Fore.WHITE}{premis_file}{Style.RESET_ALL}")
     
     # Schritt 2: XSD-Schema auswählen
     print()
-    print("Step 2: Please select PREMIS XSD schema...")
+    print(f"{Fore.CYAN}Step 2: Please select PREMIS XSD schema...{Style.RESET_ALL}")
     xsd_file = select_file(
         title="Select PREMIS XSD schema",
         filetypes=[("XSD files", "*.xsd"), ("All files", "*.*")]
     )
     
     if not xsd_file:
-        print("Aborted: No XSD file selected.")
-        input("Press Enter to exit...")
+        print(f"{Fore.RED}Aborted: No XSD file selected.{Style.RESET_ALL}")
+        input(f"{Fore.YELLOW}Press Enter to exit...{Style.RESET_ALL}")
         return
     
-    print(f"  Selected: {xsd_file}")
+    print(f"  {Fore.GREEN}Selected:{Style.RESET_ALL} {Fore.WHITE}{xsd_file}{Style.RESET_ALL}")
     
     # Schritt 3: Dateien prüfen
     print()
-    print("Step 3: Checking files...")
+    print(f"{Fore.CYAN}Step 3: Checking files...{Style.RESET_ALL}")
     
     if not os.path.exists(premis_file):
-        print("ERROR: PREMIS file not found.")
-        input("Press Enter to exit...")
+        print(f"{Fore.RED}ERROR: PREMIS file not found.{Style.RESET_ALL}")
+        input(f"{Fore.YELLOW}Press Enter to exit...{Style.RESET_ALL}")
         return
     
     if not os.path.exists(xsd_file):
-        print("ERROR: XSD file not found.")
-        input("Press Enter to exit...")
+        print(f"{Fore.RED}ERROR: XSD file not found.{Style.RESET_ALL}")
+        input(f"{Fore.YELLOW}Press Enter to exit...{Style.RESET_ALL}")
         return
     
     premis_size = os.path.getsize(premis_file) / 1024
     xsd_size = os.path.getsize(xsd_file) / 1024
-    print(f"  PREMIS file: {premis_size:.2f} KB")
-    print(f"  XSD schema:  {xsd_size:.2f} KB")
+    print(f"  {Fore.WHITE}PREMIS file: {premis_size:.2f} KB{Style.RESET_ALL}")
+    print(f"  {Fore.WHITE}XSD schema:  {xsd_size:.2f} KB{Style.RESET_ALL}")
     
     # Schritt 4: Schema-Version erkennen
     print()
-    print("Step 4: Detecting schema version...")
+    print(f"{Fore.CYAN}Step 4: Detecting schema version...{Style.RESET_ALL}")
     version, version_name, namespace = detect_schema_version(xsd_file)
-    print(f"  Detected version: {version_name}")
+    print(f"  {Fore.GREEN}Detected version: {version_name}{Style.RESET_ALL}")
     
     if version in ('unknown', 'custom', 'error'):
         print()
-        print("  WARNING: Non-standard schema detected!")
-        print(f"  Namespace: {namespace}")
-        continue_validation = input("  Continue anyway? (y/n): ").lower()
+        print(f"  {Fore.YELLOW}WARNING: Non-standard schema detected!{Style.RESET_ALL}")
+        print(f"  {Fore.WHITE}Namespace: {namespace}{Style.RESET_ALL}")
+        continue_validation = input(f"  {Fore.YELLOW}Continue anyway? (y/n): {Style.RESET_ALL}").lower()
         if continue_validation != 'y':
-            print("Aborted by user.")
+            print(f"{Fore.CYAN}Aborted by user.{Style.RESET_ALL}")
             return
     
     # Schritt 5: Validierung durchführen
     print()
-    print("Step 5: Performing validation...")
+    print(f"{Fore.CYAN}Step 5: Performing validation...{Style.RESET_ALL}")
     print()
     
     is_valid, errors, ignored_count = validate_premis(premis_file, xsd_file)
     
     # Schritt 6: Ergebnisse anzeigen
     print()
-    print("=" * 50)
-    print("  VALIDATION RESULT")
-    print("=" * 50)
-    print(f"  File:    {Path(premis_file).name}")
-    print(f"  Schema:  {Path(xsd_file).name}")
-    print(f"  Version: {version_name}")
+    print(f"{Fore.MAGENTA}{'=' * 50}{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}  VALIDATION RESULT{Style.RESET_ALL}")
+    print(f"{Fore.MAGENTA}{'=' * 50}{Style.RESET_ALL}")
+    print(f"  {Fore.WHITE}File:    {Path(premis_file).name}{Style.RESET_ALL}")
+    print(f"  {Fore.WHITE}Schema:  {Path(xsd_file).name}{Style.RESET_ALL}")
+    print(f"  {Fore.WHITE}Version: {version_name}{Style.RESET_ALL}")
     print()
     
     if is_valid and not errors:
-        print("  " + "=" * 46)
-        print("  [OK] VALIDATION SUCCESSFUL!")
-        print("  The PREMIS file is fully conformant.")
-        print("  " + "=" * 46)
+        print(f"  {Fore.MAGENTA}{'=' * 46}{Style.RESET_ALL}")
+        print(f"  {Fore.GREEN}[OK] VALIDATION SUCCESSFUL!{Style.RESET_ALL}")
+        print(f"  {Fore.GREEN}The PREMIS file is fully conformant.{Style.RESET_ALL}")
+        print(f"  {Fore.MAGENTA}{'=' * 46}{Style.RESET_ALL}")
         
         if ignored_count > 0:
             print()
-            print(f"  INFO: {ignored_count} warning(s) from custom extensions")
-            print("        (FileTrove/Greaseweazle namespace) were ignored.")
+            print(f"  {Fore.CYAN}INFO: {ignored_count} warning(s) from custom extensions{Style.RESET_ALL}")
+            print(f"  {Fore.CYAN}      (FileTrove/Greaseweazle namespace) were ignored.{Style.RESET_ALL}")
     else:
-        print("  " + "=" * 46)
-        print(f"  [FAIL] VALIDATION FAILED!")
-        print(f"  {len(errors)} error(s) found.")
-        print("  " + "=" * 46)
+        print(f"  {Fore.MAGENTA}{'=' * 46}{Style.RESET_ALL}")
+        print(f"  {Fore.RED}[FAIL] VALIDATION FAILED!{Style.RESET_ALL}")
+        print(f"  {Fore.RED}{len(errors)} error(s) found.{Style.RESET_ALL}")
+        print(f"  {Fore.MAGENTA}{'=' * 46}{Style.RESET_ALL}")
         print()
-        print("  ERRORS:")
-        print("  " + "-" * 43)
+        print(f"  {Fore.RED}ERRORS:{Style.RESET_ALL}")
+        print(f"  {Fore.MAGENTA}{'-' * 43}{Style.RESET_ALL}")
         for error in errors:
-            print(f"  {error}")
+            print(f"  {Fore.RED}{error}{Style.RESET_ALL}")
         
         if ignored_count > 0:
             print()
-            print(f"  INFO: {ignored_count} additional FileTrove/Greaseweazle")
-            print("        extension warning(s) were ignored.")
+            print(f"  {Fore.CYAN}INFO: {ignored_count} additional FileTrove/Greaseweazle{Style.RESET_ALL}")
+            print(f"  {Fore.CYAN}      extension warning(s) were ignored.{Style.RESET_ALL}")
     
     # Optional: Ergebnis speichern
     print()
-    save_result = input("Save result to text file? (y/n): ").lower()
+    save_result = input(f"{Fore.YELLOW}Save result to text file? (y/n): {Style.RESET_ALL}").lower()
     
     if save_result == 'y':
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -352,12 +362,12 @@ def main():
         try:
             save_report(output_file, premis_file, xsd_file, version_name,
                        is_valid, errors, ignored_count)
-            print(f"  Report saved: {output_file}")
+            print(f"  {Fore.GREEN}Report saved: {output_file}{Style.RESET_ALL}")
         except Exception as e:
-            print(f"  ERROR saving report: {e}")
+            print(f"  {Fore.RED}ERROR saving report: {e}{Style.RESET_ALL}")
     
     print()
-    input("Press Enter to exit...")
+    input(f"{Fore.YELLOW}Press Enter to exit...{Style.RESET_ALL}")
 
 
 if __name__ == "__main__":

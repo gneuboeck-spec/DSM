@@ -21,16 +21,23 @@ from multiprocessing import Pool, cpu_count
 from functools import partial
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+try:
+    from colorama import init, Fore, Style
+    init(autoreset=True)
+except ImportError:
+    class Fore: GREEN = RED = YELLOW = CYAN = MAGENTA = WHITE = ""
+    class Style: RESET_ALL = ""
+
 # --- RAPIDFUZZ IMPORTS (Schnelle C++ Engine) ---
 try:
     from rapidfuzz import fuzz
     HAS_RAPIDFUZZ = True
     if __name__ == "__main__" or os.getpid() == os.getppid():
-        print("🚀 RapidFuzz gefunden! C++-Beschleunigung für Großtexte aktiviert.")
+        print(f"{Fore.GREEN}🚀 RapidFuzz gefunden! C++-Beschleunigung für Großtexte aktiviert.{Style.RESET_ALL}")
 except ImportError:
     HAS_RAPIDFUZZ = False
-    print("⚠️ RapidFuzz nicht gefunden. Verwende Python difflib (Langsamer bei riesigen Texten).")
-    print("👉 Tipp: Installiere rapidfuzz mit 'pip install rapidfuzz' für drastisch mehr Speed!")
+    print(f"{Fore.YELLOW}⚠️ RapidFuzz nicht gefunden. Verwende Python difflib (Langsamer bei riesigen Texten).{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}👉 Tipp: Installiere rapidfuzz mit 'pip install rapidfuzz' für drastisch mehr Speed!{Style.RESET_ALL}")
 
 import matplotlib
 matplotlib.use('TkAgg')
@@ -701,7 +708,7 @@ def convert_with_libreoffice(file_path: Path, cache_dir: Path) -> Path:
     if target_file.exists() and target_file.stat().st_size > 0:
         return target_file
         
-    print(f"  🔄 Konvertiere {file_path.name} mit LibreOffice zu TXT...")
+    print(f"  {Fore.CYAN}🔄 Konvertiere {file_path.name} mit LibreOffice zu TXT...{Style.RESET_ALL}")
     
     max_retries = 3
     
@@ -747,7 +754,7 @@ def convert_with_libreoffice(file_path: Path, cache_dir: Path) -> Path:
                         success = True
                         break
                 except subprocess.TimeoutExpired:
-                    print(f"     ⏱️ Timeout bei Versuch {attempt + 1}")
+                    print(f"     {Fore.YELLOW}⏱️ Timeout bei Versuch {attempt + 1}{Style.RESET_ALL}")
                     continue
                 except Exception:
                     continue
@@ -760,7 +767,7 @@ def convert_with_libreoffice(file_path: Path, cache_dir: Path) -> Path:
                 return target_file
                 
         except Exception as e:
-            print(f"     ⚠️ Fehler bei Versuch {attempt + 1}: {e}")
+            print(f"     {Fore.RED}⚠️ Fehler bei Versuch {attempt + 1}: {e}{Style.RESET_ALL}")
         
         try:
             shutil.rmtree(temp_profile_dir, ignore_errors=True)
@@ -771,7 +778,7 @@ def convert_with_libreoffice(file_path: Path, cache_dir: Path) -> Path:
             time.sleep(2)
     
     if file_path.suffix.lower() not in ['.doc', '.docx']:
-        print(f"  ⚠️ Standard-Konvertierung fehlgeschlagen, versuche .doc Auto-Detection...")
+        print(f"  {Fore.YELLOW}⚠️ Standard-Konvertierung fehlgeschlagen, versuche .doc Auto-Detection...{Style.RESET_ALL}")
         temp_doc = cache_dir / (file_path.stem + "_temp.doc")
         try:
             shutil.copy2(file_path, temp_doc)
@@ -784,7 +791,7 @@ def convert_with_libreoffice(file_path: Path, cache_dir: Path) -> Path:
             if temp_doc.exists():
                 temp_doc.unlink()
 
-    print(f"  ❌ Konvertierung von {file_path.name} mit LibreOffice fehlgeschlagen (nach {max_retries} Versuchen).")
+    print(f"  {Fore.RED}❌ Konvertierung von {file_path.name} mit LibreOffice fehlgeschlagen (nach {max_retries} Versuchen).{Style.RESET_ALL}")
     return None
 
 
@@ -816,7 +823,7 @@ def extract_pdf_text(file_path: Path) -> str:
         if full_text.strip():
             return full_text
     except Exception as e:
-        print(f"  ⚠️ pymupdf Fehler bei {file_path.name}: {e}")
+        print(f"  {Fore.RED}⚠️ pymupdf Fehler bei {file_path.name}: {e}{Style.RESET_ALL}")
     
     try:
         import pdfplumber
@@ -856,7 +863,7 @@ def extract_text(file_path: Path, cache_dir: Path) -> str:
         elif ext == '.pdf':
             full_text = extract_pdf_text(file_path)
             if not full_text.strip():
-                print(f"  ⚠️ Kein Text in PDF extrahiert: {file_path.name}")
+                print(f"  {Fore.YELLOW}⚠️ Kein Text in PDF extrahiert: {file_path.name}{Style.RESET_ALL}")
                 
         elif ext == '.docx':
             import docx
@@ -872,7 +879,7 @@ def extract_text(file_path: Path, cache_dir: Path) -> str:
                     return full_text
             except Exception:
                 pass
-            print(f"  📄 Konvertiere altes .doc Format: {file_path.name}")
+            print(f"  {Fore.CYAN}📄 Konvertiere altes .doc Format: {file_path.name}{Style.RESET_ALL}")
             converted_path = convert_with_libreoffice(file_path, cache_dir)
             if converted_path:
                 return extract_text(converted_path, cache_dir)
@@ -887,7 +894,7 @@ def extract_text(file_path: Path, cache_dir: Path) -> str:
                             return full_text
             except Exception:
                 pass
-            print(f"  📄 Konvertiere OpenDocument Format: {file_path.name}")
+                print(f"  {Fore.CYAN}📄 Konvertiere OpenDocument Format: {file_path.name}{Style.RESET_ALL}")
             converted_path = convert_with_libreoffice(file_path, cache_dir)
             if converted_path:
                 return extract_text(converted_path, cache_dir)
@@ -905,7 +912,7 @@ def extract_text(file_path: Path, cache_dir: Path) -> str:
                 return extract_text(converted_path, cache_dir)
                 
     except Exception as e:
-        print(f"  ⚠️ Fehler beim Lesen von {file_path.name}: {e}")
+        print(f"  {Fore.RED}⚠️ Fehler beim Lesen von {file_path.name}: {e}{Style.RESET_ALL}")
         
     return full_text
 
@@ -933,7 +940,7 @@ def extract_text_simple(file_path: Path, cache_dir: Path = None) -> str:
             except Exception:
                 return ""
     except Exception as e:
-        print(f"      ⚠️ Lesefehler bei {file_path.name}: {e}")
+        print(f"      {Fore.RED}⚠️ Lesefehler bei {file_path.name}: {e}{Style.RESET_ALL}")
         return ""
     return ""
 
@@ -1009,8 +1016,8 @@ def find_version_groups(files_data, similarity_threshold, max_compare_length):
     global SIMILARITY_CACHE
     SIMILARITY_CACHE = {}
 
-    print(f"\n🔍 Suche nach Text-Versionen (Threshold: {similarity_threshold})...")
-    print(f"   Max. Vergleichslänge: {max_compare_length:,} Zeichen pro Text")
+    print(f"\n{Fore.CYAN}🔍 Suche nach Text-Versionen (Threshold: {similarity_threshold})...{Style.RESET_ALL}")
+    print(f"   {Fore.WHITE}Max. Vergleichslänge: {max_compare_length:,} Zeichen pro Text{Style.RESET_ALL}")
 
     n = len(files_data)
     parent = list(range(n))
@@ -1026,7 +1033,7 @@ def find_version_groups(files_data, similarity_threshold, max_compare_length):
         if root_i != root_j:
             parent[root_i] = root_j
 
-    print("  ⚡ Berechne Text-Fingerabdrücke im Voraus...")
+    print(f"  {Fore.CYAN}⚡ Berechne Text-Fingerabdrücke im Voraus...{Style.RESET_ALL}")
     preprocessed = []
     word_regex = re.compile(r'\w+')
 
@@ -1064,7 +1071,7 @@ def find_version_groups(files_data, similarity_threshold, max_compare_length):
                     pairs_to_compare.append((i, j))
 
     total_pairs = len(pairs_to_compare)
-    print(f"   ⚡ Vergleiche {total_pairs} Paare (gefiltert durch Längen-Bucketing) mit {cpu_count()} Kernen...")
+    print(f"   {Fore.CYAN}⚡ Vergleiche {total_pairs} Paare (gefiltert durch Längen-Bucketing) mit {cpu_count()} Kernen...{Style.RESET_ALL}")
 
     start_time = time.time()
 
@@ -1087,7 +1094,7 @@ def find_version_groups(files_data, similarity_threshold, max_compare_length):
                 if result is not None:
                     results.append(result)
     except ImportError:
-        print("   (Installiere 'tqdm' für Fortschrittsbalken: pip install tqdm)")
+        print(f"   {Fore.YELLOW}(Installiere 'tqdm' für Fortschrittsbalken: pip install tqdm){Style.RESET_ALL}")
         with Pool(processes=cpu_count()) as pool:
             results = [r for r in pool.imap_unordered(func, pairs_to_compare) if r is not None]
 
@@ -1104,14 +1111,14 @@ def find_version_groups(files_data, similarity_threshold, max_compare_length):
 
     elapsed = time.time() - start_time
     elapsed_str = format_time(elapsed)
-    print(f"\n✅ {len(result)} Versions-Gruppen gefunden in {elapsed_str}.\n")
+    print(f"\n{Fore.GREEN}✅ {len(result)} Versions-Gruppen gefunden in {elapsed_str}.{Style.RESET_ALL}\n")
 
     return result
 
 
 def calculate_metrics(files_data, groups, base_criterion, max_compare_length):
     global SIMILARITY_CACHE
-    print("📊 Berechne Versions-Metriken innerhalb der Gruppen...")
+    print(f"{Fore.CYAN}📊 Berechne Versions-Metriken innerhalb der Gruppen...{Style.RESET_ALL}")
     version_results = {}
 
     for group_id, (root_idx, indices) in enumerate(groups.items(), 1):
@@ -1179,7 +1186,7 @@ def save_csv(rows, output_file):
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter=';')
         writer.writeheader()
         writer.writerows(rows)
-    print(f"\n💾 CSV gespeichert: {output_file}")
+    print(f"\n{Fore.GREEN}💾 CSV gespeichert: {output_file}{Style.RESET_ALL}")
 
 
 def save_as_excel(rows, output_file, base_dir: Path):
@@ -1187,7 +1194,7 @@ def save_as_excel(rows, output_file, base_dir: Path):
         from openpyxl import Workbook
         from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     except ImportError:
-        print("⚠️ openpyxl nicht installiert. Bitte: pip install openpyxl")
+        print(f"{Fore.RED}⚠️ openpyxl nicht installiert. Bitte: pip install openpyxl{Style.RESET_ALL}")
         return
     
     wb = Workbook()
@@ -1279,7 +1286,7 @@ def save_as_excel(rows, output_file, base_dir: Path):
     ws.auto_filter.ref = ws.dimensions
     
     wb.save(str(output_file))
-    print(f"📊 Excel-Datei mit Farben und klickbaren Hyperlinks gespeichert: {output_file}")
+    print(f"{Fore.GREEN}📊 Excel-Datei mit Farben und klickbaren Hyperlinks gespeichert: {output_file}{Style.RESET_ALL}")
 
 
 # ==============================================================================
@@ -1289,9 +1296,9 @@ def main():
     global SIMILARITY_THRESHOLD, LENGTH_RATIO_THRESHOLD, WORD_OVERLAP_THRESHOLD, BASE_CRITERION, MIN_TEXT_LENGTH, EXCERPT_THRESHOLD, MAX_COMPARE_LENGTH, USE_SMART_SAMPLING
 
     if len(sys.argv) < 3:
-        print("❌ Fehler: Eingabe- und Ausgabe-Pfad fehlen.")
-        print("Verwendung: python 01_dokumentenvergleich.py <eingabe_pfad> <ausgabe_pfad>")
-        input("Drücke Enter zum Beenden...")
+        print(f"{Fore.RED}❌ Fehler: Eingabe- und Ausgabe-Pfad fehlen.{Style.RESET_ALL}")
+        print(f"{Fore.WHITE}Verwendung: python 01_dokumentenvergleich.py <eingabe_pfad> <ausgabe_pfad>{Style.RESET_ALL}")
+        input(f"{Fore.YELLOW}Drücke Enter zum Beenden...{Style.RESET_ALL}")
         return
 
     eingabe_pfad = Path(sys.argv[1])
@@ -1304,12 +1311,12 @@ def main():
     log_file = open(log_filename, 'w', encoding='utf-8')
     sys.stdout = Tee(sys.__stdout__, log_file)
     sys.stderr = Tee(sys.__stderr__, log_file)
-    print(f"📝 Log-Datei erstellt: {log_filename}")
-    print(f"🚀 Textdokumente-Vergleich (High-Performance Engine) gestartet\n")
+    print(f"{Fore.GREEN}📝 Log-Datei erstellt: {log_filename}{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}🚀 Textdokumente-Vergleich (High-Performance Engine) gestartet{Style.RESET_ALL}\n")
     
-    print("=" * 60)
-    print("SCHRITT 1: Einstellungen für syntaktischen Vergleich")
-    print("=" * 60)
+    print(f"{Fore.MAGENTA}{'=' * 60}{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}SCHRITT 1: Einstellungen für syntaktischen Vergleich{Style.RESET_ALL}")
+    print(f"{Fore.MAGENTA}{'=' * 60}{Style.RESET_ALL}")
 
     settings = get_settings_from_user(SIMILARITY_THRESHOLD, LENGTH_RATIO_THRESHOLD, WORD_OVERLAP_THRESHOLD, BASE_CRITERION, MIN_TEXT_LENGTH, EXCERPT_THRESHOLD, MAX_COMPARE_LENGTH)
     
@@ -1322,15 +1329,15 @@ def main():
     MAX_COMPARE_LENGTH = settings['max_compare']
     USE_SMART_SAMPLING = (settings['sampling'] == 'smart')
 
-    print(f"\n⚙️ Aktive Einstellungen:")
-    print(f"   Ähnlichkeit: {SIMILARITY_THRESHOLD} | Längenverhältnis: {LENGTH_RATIO_THRESHOLD} | Wort-Overlap: {WORD_OVERLAP_THRESHOLD}")
-    print(f"   Mindestlänge: {MIN_TEXT_LENGTH} Zeichen | Auszugs-Schwelle: {EXCERPT_THRESHOLD}")
-    print(f"   Max. Vergleichslänge: {MAX_COMPARE_LENGTH:,} Zeichen")
-    print(f"   Sampling-Modus: {'Smart (Anfang + Ende)' if USE_SMART_SAMPLING else 'Standard (Nur Anfang)'}")
+    print(f"\n{Fore.CYAN}⚙️ Aktive Einstellungen:{Style.RESET_ALL}")
+    print(f"   {Fore.WHITE}Ähnlichkeit: {SIMILARITY_THRESHOLD} | Längenverhältnis: {LENGTH_RATIO_THRESHOLD} | Wort-Overlap: {WORD_OVERLAP_THRESHOLD}{Style.RESET_ALL}")
+    print(f"   {Fore.WHITE}Mindestlänge: {MIN_TEXT_LENGTH} Zeichen | Auszugs-Schwelle: {EXCERPT_THRESHOLD}{Style.RESET_ALL}")
+    print(f"   {Fore.WHITE}Max. Vergleichslänge: {MAX_COMPARE_LENGTH:,} Zeichen{Style.RESET_ALL}")
+    print(f"   {Fore.WHITE}Sampling-Modus: {'Smart (Anfang + Ende)' if USE_SMART_SAMPLING else 'Standard (Nur Anfang)'}{Style.RESET_ALL}")
 
-    print(f"\n✅ Ordner gewählt: {eingabe_pfad}")
+    print(f"\n{Fore.GREEN}✅ Ordner gewählt: {eingabe_pfad}{Style.RESET_ALL}")
 
-    print("\n📂 Lese Dateien...")
+    print(f"\n{Fore.CYAN}📂 Lese Dateien...{Style.RESET_ALL}")
     cache_dir = eingabe_pfad / ".conversion_cache"
 
     file_paths = []
@@ -1366,38 +1373,38 @@ def main():
     pdf_count = sum(1 for f in files_data if f['path'].suffix.lower() == '.pdf')
     other_count = len(files_data) - doc_count - docx_count - pdf_count
 
-    print(f"\n✅ {len(files_data)} Dateien eingelesen.")
-    print(f"   📊 Statistik:")
-    print(f"     ✅ {success_count} Dateien mit erfolgreich extrahiertem Text")
-    print(f"     ⚠️  {empty_count} Dateien ohne Text (leer oder Lesefehler)")
-    print(f"   📄 Dateitypen-Verteilung:")
-    print(f"     • {doc_count} alte .doc-Dateien (über LibreOffice konvertiert)")
-    print(f"     • {docx_count} moderne .docx-Dateien (direkt gelesen)")
-    print(f"     • {pdf_count} PDF-Dateien")
-    print(f"     • {other_count} andere Formate (.txt, .odt, .rtf, etc.)")
+    print(f"\n{Fore.GREEN}✅ {len(files_data)} Dateien eingelesen.{Style.RESET_ALL}")
+    print(f"   {Fore.CYAN}📊 Statistik:{Style.RESET_ALL}")
+    print(f"     {Fore.GREEN}✅ {success_count} Dateien mit erfolgreich extrahiertem Text{Style.RESET_ALL}")
+    print(f"     {Fore.YELLOW}⚠️  {empty_count} Dateien ohne Text (leer oder Lesefehler){Style.RESET_ALL}")
+    print(f"   {Fore.CYAN}📄 Dateitypen-Verteilung:{Style.RESET_ALL}")
+    print(f"     {Fore.WHITE}• {doc_count} alte .doc-Dateien (über LibreOffice konvertiert){Style.RESET_ALL}")
+    print(f"     {Fore.WHITE}• {docx_count} moderne .docx-Dateien (direkt gelesen){Style.RESET_ALL}")
+    print(f"     {Fore.WHITE}• {pdf_count} PDF-Dateien{Style.RESET_ALL}")
+    print(f"     {Fore.WHITE}• {other_count} andere Formate (.txt, .odt, .rtf, etc.){Style.RESET_ALL}")
 
     if empty_count > 0:
-        print(f"   ⚠️  Dateien ohne Text:")
+        print(f"   {Fore.YELLOW}⚠️  Dateien ohne Text:{Style.RESET_ALL}")
         for f in files_data:
             if len(f['text']) == 0:
                 print(f"      - {f['name']} ({f['path'].suffix})")
     print()
 
-    print("=" * 60)
-    print("SCHRITT 2: Syntaktischer Vergleich")
-    print("=" * 60)
+    print(f"{Fore.MAGENTA}{'=' * 60}{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}SCHRITT 2: Syntaktischer Vergleich{Style.RESET_ALL}")
+    print(f"{Fore.MAGENTA}{'=' * 60}{Style.RESET_ALL}")
 
     groups = find_version_groups(files_data, SIMILARITY_THRESHOLD, MAX_COMPARE_LENGTH)
     version_results = calculate_metrics(files_data, groups, BASE_CRITERION, MAX_COMPARE_LENGTH)
     
-    print("\n🔍 DIAGNOSE: Analyse nicht-gruppierter Dateien...")
+    print(f"\n{Fore.CYAN}🔍 DIAGNOSE: Analyse nicht-gruppierter Dateien...{Style.RESET_ALL}")
     ungrouped_count = 0
     for i, data in enumerate(files_data):
         ver = version_results.get(i, {})
         if not ver.get('gruppe'):
             ungrouped_count += 1
             text_len = len(data['text'].strip())
-            print(f"  ⚠️ {data['name']}: {text_len} Zeichen extrahiert")
+            print(f"  {Fore.YELLOW}⚠️ {data['name']}: {text_len} Zeichen extrahiert{Style.RESET_ALL}")
             
             if text_len == 0:
                 print(f"     -> URSACHE: Datei ist leer oder Lesefehler.")
@@ -1408,7 +1415,7 @@ def main():
                 print(f"     -> URSACHE: Text vorhanden, aber zu unterschiedlich. (Vorschau: '{preview}...')")
     
     if ungrouped_count == 0:
-        print("  ✅ Alle Dateien mit ausreichend Text wurden erfolgreich gruppiert!")
+        print(f"  {Fore.GREEN}✅ Alle Dateien mit ausreichend Text wurden erfolgreich gruppiert!{Style.RESET_ALL}")
 
     rows = []
     for i, data in enumerate(files_data):
@@ -1440,14 +1447,14 @@ def main():
     output_excel = ausgabe_pfad / "versionen_analyse_farbig.xlsx"
     save_as_excel(rows, output_excel, eingabe_pfad)
 
-    print("\n" + "=" * 60)
-    print("✅ SCHRITT 1 ABGESCHLOSSEN!")
-    print(f"📄 Ergebnis-CSV: {output_csv}")
-    print(f"📊 Ergebnis-Excel: {output_excel}")
-    print(f"📝 Log-Datei: {log_filename}")
-    print("=" * 60)
-    print("\nDu kannst nun in der menu.py '2 - KI-Analyse' auswählen.")
-    input("\n⏹️ Drücke Enter zum Beenden...")
+    print(f"\n{Fore.MAGENTA}{'=' * 60}{Style.RESET_ALL}")
+    print(f"{Fore.GREEN}✅ SCHRITT 1 ABGESCHLOSSEN!{Style.RESET_ALL}")
+    print(f"{Fore.GREEN}📄 Ergebnis-CSV: {output_csv}{Style.RESET_ALL}")
+    print(f"{Fore.GREEN}📊 Ergebnis-Excel: {output_excel}{Style.RESET_ALL}")
+    print(f"{Fore.GREEN}📝 Log-Datei: {log_filename}{Style.RESET_ALL}")
+    print(f"{Fore.MAGENTA}{'=' * 60}{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}Du kannst nun in der menu.py '2 - KI-Analyse' auswählen.{Style.RESET_ALL}")
+    input(f"\n{Fore.YELLOW}⏹️ Drücke Enter zum Beenden...{Style.RESET_ALL}")
 
     sys.stdout = sys.__stdout__
     sys.stderr = sys.__stderr__
@@ -1459,5 +1466,5 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        print(f"\n❌ KRITISCHER FEHLER: {e}")
-        input("Drücke Enter zum Beenden...")
+        print(f"\n{Fore.RED}❌ KRITISCHER FEHLER: {e}{Style.RESET_ALL}")
+        input(f"{Fore.YELLOW}Drücke Enter zum Beenden...{Style.RESET_ALL}")

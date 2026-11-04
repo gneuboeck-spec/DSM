@@ -16,6 +16,16 @@ from pathlib import Path
 from datetime import datetime
 
 # ==============================================================================
+# 🔧 FARB-INITIALISIERUNG (Konsistenz mit allen anderen Skripten)
+# ==============================================================================
+try:
+    from colorama import init, Fore, Style
+    init(autoreset=True)
+except ImportError:
+    class Fore: GREEN = RED = YELLOW = CYAN = MAGENTA = WHITE = ""
+    class Style: RESET_ALL = ""
+
+# ==============================================================================
 # 🔧 DYNAMISCHE PFADERMITTLUNG FÜR EXTERNE TOOLS
 # ==============================================================================
 
@@ -78,18 +88,18 @@ mime_to_ext_map = {
 }
 
 # ==============================================================================
-# 🔧 LOGGING SETUP (Mit Farberhalt für die Konsole)
+# 🔧 LOGGING SETUP (Mit Farberhalt für die Konsole via Colorama)
 # ==============================================================================
 
 class ColoredFormatter(logging.Formatter):
     """Formatter, der Log-Level in der Konsole einfärbt, aber die Nachricht (mit Emojis) intakt lässt."""
     COLORS = {
-        'DEBUG': '\033[94m',      # Blau
-        'INFO': '\033[92m',       # Grün
-        'WARNING': '\033[93m',    # Gelb
-        'ERROR': '\033[91m',      # Rot
-        'CRITICAL': '\033[91m\033[1m', # Fett Rot
-        'RESET': '\033[0m'
+        'DEBUG': Fore.CYAN,      # Cyan für Debug-Infos
+        'INFO': Fore.GREEN,      # Grün für erfolgreiche Infos
+        'WARNING': Fore.YELLOW,  # Gelb für Warnungen
+        'ERROR': Fore.RED,       # Rot für Fehler
+        'CRITICAL': Fore.RED,    # Rot für kritische Fehler
+        'RESET': Style.RESET_ALL
     }
 
     def format(self, record):
@@ -422,7 +432,7 @@ def main():
 
     # Validierung des Eingabeverzeichnisses
     if not input_path.is_dir():
-        print(f"\033[91mFEHLER: Eingabeverzeichnis existiert nicht: {input_path}\033[0m")
+        print(f"{Fore.RED}FEHLER: Eingabeverzeichnis existiert nicht: {input_path}{Style.RESET_ALL}")
         sys.exit(1)
 
     # Ausgabeverzeichnis erstellen (nur für Logfiles)
@@ -531,7 +541,7 @@ def main():
     
     # Sicheres Öffnen des Ordners am Ende
     try:
-        open_q = input("\nAnalyse beendet. Zielordner öffnen? (j/n): ").lower()
+        open_q = input(f"\n{Fore.YELLOW}Analyse beendet. Zielordner öffnen? (j/n): {Style.RESET_ALL}").lower()
         if open_q == 'j':
             if sys.platform == "win32":
                 os.startfile(input_path)

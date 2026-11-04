@@ -19,6 +19,13 @@ import tempfile
 import unicodedata
 import shutil
 
+try:
+    from colorama import init, Fore, Style
+    init(autoreset=True)
+except ImportError:
+    class Fore: GREEN = RED = YELLOW = CYAN = MAGENTA = WHITE = ""
+    class Style: RESET_ALL = ""
+
 # Versuch, openpyxl zu importieren. Wird für die korrekte Hyperlink-Erstellung benötigt.
 try:
     import openpyxl
@@ -502,12 +509,12 @@ def find_duplicate_groups(base_dir):
             except Exception:
                 continue
 
-    print(f"   ✅ {total_files} Dateien gescannt.")
+    print(f"   {Fore.GREEN}✅{Style.RESET_ALL} {total_files} Dateien gescannt.")
     
     potential_duplicates = {size: files for size, files in size_groups.items() if len(files) > 1}
-    print(f"   ℹ️  {len(potential_duplicates)} Größen-Kategorien mit potenziellen Duplikaten gefunden.")
+    print(f"   {Fore.YELLOW}ℹ️{Style.RESET_ALL}  {len(potential_duplicates)} Größen-Kategorien mit potenziellen Duplikaten gefunden.")
 
-    print("   Berechne SHA-256 Prüfsummen für potenzielle Duplikaten...")
+    print(f"   {Fore.CYAN}Berechne SHA-256 Prüfsummen für potenzielle Duplikaten...{Style.RESET_ALL}")
     hash_groups = defaultdict(list)
     files_to_hash = sum(len(files) for files in potential_duplicates.values())
     hashed_count = 0
@@ -521,9 +528,9 @@ def find_duplicate_groups(base_dir):
             
             hashed_count += 1
             if hashed_count % 100 == 0:
-                print(f"   ⏳ Fortschritt: {hashed_count}/{files_to_hash} Dateien gehasht...", end='\r')
+                print(f"   {Fore.CYAN}⏳ Fortschritt:{Style.RESET_ALL} {hashed_count}/{files_to_hash} Dateien gehasht...", end='\r')
     
-    print(f"\n   ✅ {hashed_count} Prüfsummen berechnet.")
+    print(f"\n   {Fore.GREEN}✅{Style.RESET_ALL} {hashed_count} Prüfsummen berechnet.")
 
     actual_duplicates = {key: files for key, files in hash_groups.items() if len(files) > 1}
     
@@ -578,14 +585,14 @@ def find_duplicate_groups(base_dir):
                 content_hash_groups[content_hash].append(file_path)
             
             if idx % 10 == 0:
-                print(f"   ⏳ Fortschritt: {idx}/{len(candidate_documents)} Dokumente verarbeitet...", end='\r')
+                print(f"   {Fore.CYAN}⏳ Fortschritt:{Style.RESET_ALL} {idx}/{len(candidate_documents)} Dokumente verarbeitet...", end='\r')
         
-        print(f"\n   ✅ {len(candidate_documents)} Dokumente verarbeitet.")
+        print(f"\n   {Fore.GREEN}✅{Style.RESET_ALL} {len(candidate_documents)} Dokumente verarbeitet.")
         
         content_duplicates = {key: files for key, files in content_hash_groups.items() if len(files) > 1}
         
         if content_duplicates:
-            print(f"   🎯 {len(content_duplicates)} Gruppen mit inhaltlich identischen Dokumenten gefunden!")
+            print(f"   {Fore.MAGENTA}🎯{Style.RESET_ALL} {len(content_duplicates)} Gruppen mit inhaltlich identischen Dokumenten gefunden!")
             
             for content_hash, representatives in content_duplicates.items():
                 merged_files = []
@@ -660,7 +667,7 @@ def perform_deletion(duplicate_groups, base_dir, log_dir):
                     action_str = "GELÖSCHT (Duplikat)"
                     deleted_count += 1
                     saved_space_bytes += size_bytes
-                    print(f"[OK] Datei gelöscht: {dup_file.name}")
+                    print(f"   {Fore.GREEN}[OK]{Style.RESET_ALL} Datei gelöscht: {dup_file.name}")
                     
                 except PermissionError:
                     try:
@@ -669,13 +676,13 @@ def perform_deletion(duplicate_groups, base_dir, log_dir):
                         action_str = "GELÖSCHT (Schreibschutz entfernt)"
                         deleted_count += 1
                         saved_space_bytes += size_bytes
-                        print(f"[OK] Datei gelöscht (Schreibschutz entfernt): {dup_file.name}")
+                        print(f"   {Fore.GREEN}[OK]{Style.RESET_ALL} Datei gelöscht (Schreibschutz entfernt): {dup_file.name}")
                     except Exception as e2:
                         action_str = f"FEHLER: {e2}"
-                        print(f"[FEHLER] Kein Zugriff auf: {dup_file.name} ({e2})")
+                        print(f"   {Fore.RED}[FEHLER]{Style.RESET_ALL} Kein Zugriff auf: {dup_file.name} ({e2})")
                 except Exception as e:
                     action_str = f"FEHLER: {e}"
-                    print(f"[FEHLER] Unerwarteter Fehler beim Löschen von {dup_file.name}: {e}")
+                    print(f"   {Fore.RED}[FEHLER]{Style.RESET_ALL} Unerwarteter Fehler beim Löschen von {dup_file.name}: {e}")
 
             final_log_data.append({
                 'Gruppe_ID': f"GRUPPE_{group_id:03d}",
@@ -725,8 +732,8 @@ if __name__ == "__main__":
         print(f"- Log-Ausgabeverzeichnis: {log_path}\n")
 
         if DRY_RUN:
-            print("\n\033[93m=== TESTLAUF (DRY_RUN) AKTIV ===\033[0m")
-            print("Es werden keine Dateien wirklich gelöscht.\n")
+            print(f"\n{Fore.YELLOW}=== TESTLAUF (DRY_RUN) AKTIV ==={Style.RESET_ALL}")
+            print(f"{Fore.WHITE}Es werden keine Dateien wirklich gelöscht.{Style.RESET_ALL}\n")
 
         duplicate_groups, total_files = find_duplicate_groups(base_path)
 
@@ -822,7 +829,7 @@ if __name__ == "__main__":
             final_log_file_csv = log_path / final_log_name_csv
             write_csv_log_file(final_log_file_csv, 'final', final_log_data)
             
-            print(f"\n\033[92mBereinigung erfolgreich abgeschlossen!\033[0m")
+            print(f"\n{Fore.GREEN}Bereinigung erfolgreich abgeschlossen!{Style.RESET_ALL}")
             messagebox.showinfo(
                 "Erfolg", 
                 f"Bereinigung abgeschlossen.\n\n"

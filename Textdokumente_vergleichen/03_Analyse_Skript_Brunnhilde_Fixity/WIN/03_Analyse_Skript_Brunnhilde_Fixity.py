@@ -14,6 +14,17 @@ import ctypes
 import tempfile
 from pathlib import Path
 
+try:
+    from colorama import init, Fore, Style
+    init(autoreset=True)
+except ImportError:
+    class Fore: GREEN = RED = YELLOW = CYAN = MAGENTA = WHITE = ""
+    class Style: RESET_ALL = ""
+
+# GUI-Importe für die Dialogfenster
+import tkinter as tk
+from tkinter import filedialog, messagebox
+
 # GUI-Importe für die Dialogfenster
 import tkinter as tk
 from tkinter import filedialog, messagebox
@@ -79,8 +90,8 @@ def setup_and_validate_paths(source_dir, output_dir, siegfried_dir, clamav_dir):
         safe_output = source_path.parent / f"{source_path.name}_Brunnhilde_Reports"
         safe_output.mkdir(parents=True, exist_ok=True)
         brunnhilde_output_dir = safe_output / f"{prefix}_brunnhilde_temp"
-        print(f"\033[93mWarnung: Zielverzeichnis liegt im Quellverzeichnis.\033[0m")
-        print(f"Temp-Ordner wurde umgeleitet nach: {brunnhilde_output_dir}")
+        print(f"{Fore.YELLOW}[WARNUNG] Zielverzeichnis liegt im Quellverzeichnis.{Style.RESET_ALL}")
+        print(f"{Fore.WHITE}Temp-Ordner wurde umgeleitet nach: {brunnhilde_output_dir}{Style.RESET_ALL}")
 
     paths = {
         "base_dir": source_path,
@@ -96,14 +107,14 @@ def setup_and_validate_paths(source_dir, output_dir, siegfried_dir, clamav_dir):
         if not siegfried_exe.is_file():
             return None, f"'sf.exe' wurde nicht im Siegfried-Verzeichnis gefunden:\n{paths['siegfried_dir']}"
     else:
-        print("\033[93mWarnung: Kein Pfad für Siegfried (SIEGFRIED_DIR) angegeben.\033[0m")
+        print(f"{Fore.YELLOW}[WARNUNG] Kein Pfad für Siegfried (SIEGFRIED_DIR) angegeben.{Style.RESET_ALL}")
 
     if paths["clamav_dir"]:
         clamav_exe = paths["clamav_dir"] / "clamscan.exe"
         if not clamav_exe.is_file():
             return None, f"'clamscan.exe' wurde nicht im ClamAV-Verzeichnis gefunden:\n{paths['clamav_dir']}"
 
-    print("\033[92mAlle Pfade und Tools wurden erfolgreich validiert.\033[0m")
+    print(f"{Fore.GREEN}[OK] Alle Pfade und Tools wurden erfolgreich validiert.{Style.RESET_ALL}")
     return paths, "OK"
 
 # ==============================================================================
@@ -115,11 +126,11 @@ def trigger_clamav_admin_update():
     Öffnet ein separates CMD-Fenster mit Administratorrechten und führt
     darin das ClamAV-Update (freshclam.exe) automatisch aus.
     """
-    print("\n\033[93m" + "!" * 60)
-    print(" HINWEIS: Virendefinitionsdatei ist älter als 7 Tage!")
+    print(f"\n{Fore.YELLOW}" + "!" * 60)
+    print(" [HINWEIS] Virendefinitionsdatei ist älter als 7 Tage!")
     print(" Es öffnet sich jetzt ein eigenes Administrator-Fenster,")
     print(" in dem das Update (freshclam.exe) automatisch gestartet wird.")
-    print("!" * 60 + "\033[0m\n")
+    print("!" * 60 + f"{Style.RESET_ALL}\n")
 
     # Kleine Batch-Datei für das erhöhte Fenster erstellen
     bat_path = Path(tempfile.gettempdir()) / "freshclam_admin_update.bat"
@@ -206,7 +217,7 @@ def extract_brunnhilde_info(source_path, brunnhilde_output_dir):
     """
     brunnhilde_metadata = {}
 
-    print(f"\n--- Generiere SHA-256 Prüfsummen für alle Dateien... ---")
+    print(f"\n{Fore.CYAN}--- Generiere SHA-256 Prüfsummen für alle Dateien... ---{Style.RESET_ALL}")
     sha_list = []
     for root, _, files in os.walk(source_path):
         for name in files:
@@ -282,10 +293,10 @@ def extract_brunnhilde_info(source_path, brunnhilde_output_dir):
             str(brunnhilde_report_path)
         ]
         
-        print(f"\n--- Führe Brunnhilde aus für {source_path}... ---")
+        print(f"\n{Fore.CYAN}--- Führe Brunnhilde aus für {source_path}... ---{Style.RESET_ALL}")
         # Anzeige des Befehls für Debugging (mit Quoting für Leerzeichen)
         display_cmd = ' '.join(f'"{a}"' if ' ' in a else a for a in args_list)
-        print(f"Befehl: {display_cmd}")
+        print(f"{Fore.WHITE}Befehl: {display_cmd}{Style.RESET_ALL}")
         
         # 3. Direkter Aufruf via Popen mit shell=False
         # Dies umgeht das Problem, dass Windows Pfade mit Leerzeichen ("C:\Program Files...") zerlegt.
@@ -322,27 +333,27 @@ def extract_brunnhilde_info(source_path, brunnhilde_output_dir):
         returncode = return_code
         # ------------------------------------------------------------------
         
-        print(f"Brunnhilde Exit Code: {returncode}")
-        print(f"--- Brunnhilde-Ausführung beendet ---")
+        print(f"{Fore.WHITE}Brunnhilde Exit Code: {returncode}{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}--- Brunnhilde-Ausführung beendet ---{Style.RESET_ALL}")
         
         try:
             brunnhilde_report_path.mkdir(exist_ok=True)
             tree_output_file = brunnhilde_report_path / "tree.txt"
             
-            print(f"\n--- Erstelle 'tree.txt' manuell als Workaround... ---")
+            print(f"\n{Fore.CYAN}--- Erstelle 'tree.txt' manuell als Workaround... ---{Style.RESET_ALL}")
             tree_command = f'cmd /c tree "{str(source_path)}" /A /F > "{str(tree_output_file)}"'
             
-            print(f"Führe Befehl aus: {tree_command}")
+            print(f"{Fore.WHITE}Führe Befehl aus: {tree_command}{Style.RESET_ALL}")
             subprocess.run(tree_command, shell=True, check=True, text=True, encoding='utf-8', errors='replace')
             
             if tree_output_file.exists() and tree_output_file.stat().st_size > 0:
-                print(f"--- 'tree.txt' erfolgreich erstellt unter: {tree_output_file} ---")
+                print(f"{Fore.GREEN}--- [OK] 'tree.txt' erfolgreich erstellt unter: {tree_output_file} ---{Style.RESET_ALL}")
             else:
-                print(f"--- WARNUNG: 'tree.txt' konnte nicht manuell erstellt werden oder ist leer. ---")
+                print(f"{Fore.YELLOW}--- [WARNUNG] 'tree.txt' konnte nicht manuell erstellt werden oder ist leer. ---{Style.RESET_ALL}")
         except subprocess.CalledProcessError as e:
-            print(f"--- FEHLER beim Ausführen von 'tree.exe': Befehl schlug fehl mit Code {e.returncode}. ---")
+            print(f"{Fore.RED}--- [FEHLER] Beim Ausführen von 'tree.exe': Befehl schlug fehl mit Code {e.returncode}. ---{Style.RESET_ALL}")
         except Exception as e:
-            print(f"--- FEHLER beim manuellen Erstellen von 'tree.txt': {e} ---")
+            print(f"{Fore.RED}--- [FEHLER] Beim manuellen Erstellen von 'tree.txt': {e} ---{Style.RESET_ALL}")
 
         if not brunnhilde_report_path.exists():
             print(f"Fehler: Brunnhilde-Berichtsordner nicht gefunden unter {brunnhilde_report_path}.")
@@ -407,9 +418,9 @@ def extract_brunnhilde_info(source_path, brunnhilde_output_dir):
 if __name__ == "__main__":
     # 1. Pfade aus sys.argv holen (werden von der menu.py übergeben)
     if len(sys.argv) < 3:
-        print("❌ Fehler: Eingabe- und Ausgabe-Pfad fehlen.")
-        print("Verwendung: python 03_Analyse_Skript_Brunnhilde_Fixity.py <eingabe_pfad> <ausgabe_pfad>")
-        input("Drücken Sie die Eingabetaste, um dieses Fenster zu schließen...")
+        print(f"{Fore.RED}[FEHLER] Eingabe- und Ausgabe-Pfad fehlen.{Style.RESET_ALL}")
+        print(f"{Fore.WHITE}Verwendung: python 03_Analyse_Skript_Brunnhilde_Fixity.py <eingabe_pfad> <ausgabe_pfad>{Style.RESET_ALL}")
+        input(f"{Fore.YELLOW}Drücken Sie die Eingabetaste, um dieses Fenster zu schließen...{Style.RESET_ALL}")
         sys.exit(1)
 
     source_dir = sys.argv[1]
@@ -495,7 +506,7 @@ if __name__ == "__main__":
             pass  # Sicher ist sicher, falls Berechtigungen fehlen
 
         # 8. Abschluss-Dialog
-        print("\nAnalyse erfolgreich abgeschlossen!")
+        print(f"\n{Fore.GREEN}Analyse erfolgreich abgeschlossen!{Style.RESET_ALL}")
         if messagebox.askyesno("Analyse abgeschlossen", f"Die Analyse ist fertig.\n\nMöchten Sie den Zielordner öffnen?\n{output_dir}"):
             os.startfile(output_dir)
 
@@ -506,5 +517,5 @@ if __name__ == "__main__":
 
     finally:
         # 9. Fenster offen halten für Doppelklick-Start
-        print("\n" + "="*50)
-        input("Drücken Sie die Eingabetaste, um dieses Fenster zu schließen...")
+        print(f"\n{Fore.MAGENTA}{'='*50}{Style.RESET_ALL}")
+        input(f"{Fore.YELLOW}Drücken Sie die Eingabetaste, um dieses Fenster zu schließen...{Style.RESET_ALL}")

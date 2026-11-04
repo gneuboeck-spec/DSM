@@ -55,22 +55,22 @@ def main():
         data_path_input = Path.home() / "Documents" / "data" / ac_number / disk_archive_id
 
     print("")
-    print(Fore.MAGENTA + "========================================")
-    print(Fore.CYAN + "  DATEIEN FUER VL-EXPORT KOPIEREN")
-    print(Fore.MAGENTA + "========================================")
+    print(f"{Fore.MAGENTA}========================================{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}  DATEIEN FUER VL-EXPORT KOPIEREN{Style.RESET_ALL}")
+    print(f"{Fore.MAGENTA}========================================{Style.RESET_ALL}")
     print("")
 
     # --- Pfade definieren ---
-    print("\n" + Fore.CYAN + "Pfade definieren")
+    print(f"\n{Fore.CYAN}Pfade definieren{Style.RESET_ALL}")
     
     # NEU: Der übergebene Datenpfad IST der MainFolder (der ID-Ordner)
     main_folder = data_path_input
     base_path = main_folder.parent
     destination_folder = main_folder / f"4_{disk_archive_id}_VL"
     
-    print(Fore.WHITE + f"  BasePath: {base_path}")
-    print(Fore.WHITE + f"  MainFolder: {main_folder}")
-    print(Fore.WHITE + f"  DestinationFolder: {destination_folder}")
+    print(f"{Fore.WHITE}  BasePath: {base_path}{Style.RESET_ALL}")
+    print(f"{Fore.WHITE}  MainFolder: {main_folder}{Style.RESET_ALL}")
+    print(f"{Fore.WHITE}  DestinationFolder: {destination_folder}{Style.RESET_ALL}")
 
     # --- Pfadvalidierung ---
     print(f"\n{Fore.CYAN}Pfade validieren{Style.RESET_ALL}")
@@ -81,71 +81,71 @@ def main():
     if not destination_folder.is_dir():
         print(f"{Fore.RED}FEHLER: Zielordner existiert nicht: {destination_folder}{Style.RESET_ALL}"); sys.exit(1)
     
-    print(f"{Fore.GREEN}Alle Pfade vorhanden{Style.RESET_ALL}")
+    print(f"{Fore.GREEN}[OK] Alle Pfade vorhanden{Style.RESET_ALL}")
     
     # --- Quelldateien und -ordner definieren ---
     source_picture_carrier = main_folder / f"0_{disk_archive_id}_picture-carrier"
     source_extracted_files = main_folder / f"2_{disk_archive_id}_extracted-files"
     source_for_transfer = main_folder / f"3_{disk_archive_id}_for-transfer"
 
-    print("\n" + Fore.CYAN + "Kopiervorgang starten")
+    print(f"\n{Fore.CYAN}Kopiervorgang starten{Style.RESET_ALL}")
 
     # --- 1. TIF-Dateien kopieren ---
-    print("\n" + Fore.CYAN + "1. TIF-Dateien kopieren")
+    print(f"\n{Fore.CYAN}1. TIF-Dateien kopieren{Style.RESET_ALL}")
     if source_picture_carrier.is_dir():
         tif_files = list(source_picture_carrier.glob("*.tif"))
         if tif_files:
             for tif_file in tif_files:
                 dest_file = destination_folder / tif_file.name
                 if dest_file.exists():
-                    print(Fore.YELLOW + f"  [WARNUNG] Datei existiert bereits: {tif_file.name}")
+                    print(f"  {Fore.YELLOW}[WARNUNG] Datei existiert bereits: {tif_file.name}{Style.RESET_ALL}")
                 else:
                     shutil.copy2(tif_file, dest_file)
-                    print(Fore.GREEN + f"  [OK] Kopiert: {tif_file.name}")
+                    print(f"  {Fore.GREEN}[OK] Kopiert: {tif_file.name}{Style.RESET_ALL}")
         else:
-            print(Fore.YELLOW + f"  [WARNUNG] Keine TIF-Dateien gefunden in {source_picture_carrier}")
+            print(f"  {Fore.YELLOW}[WARNUNG] Keine TIF-Dateien gefunden in {source_picture_carrier}{Style.RESET_ALL}")
     else:
-        print(Fore.YELLOW + f"  [WARNUNG] Ordner nicht gefunden: {source_picture_carrier}")
+        print(f"  {Fore.YELLOW}[WARNUNG] Ordner nicht gefunden: {source_picture_carrier}{Style.RESET_ALL}")
 
     # --- 2. content-Datei kopieren ---
-    print("\n" + Fore.CYAN + "2. content-Datei kopieren")
+    print(f"\n{Fore.CYAN}2. content-Datei kopieren{Style.RESET_ALL}")
     content_file = source_extracted_files / f"2_{disk_archive_id}_extracted-files.content"
     if content_file.is_file():
         dest_file = destination_folder / content_file.name
         if dest_file.exists():
-            print(Fore.YELLOW + f"  [WARNUNG] Datei existiert bereits: {content_file.name}")
+            print(f"  {Fore.YELLOW}[WARNUNG] Datei existiert bereits: {content_file.name}{Style.RESET_ALL}")
         else:
             shutil.copy2(content_file, dest_file)
-            print(Fore.GREEN + f"  [OK] Kopiert: {content_file.name}")
+            print(f"  {Fore.GREEN}[OK] Kopiert: {content_file.name}{Style.RESET_ALL}")
     else:
-        print(Fore.YELLOW + f"  [WARNUNG] Datei nicht gefunden: {content_file}")
+        print(f"  {Fore.YELLOW}[WARNUNG] Datei nicht gefunden: {content_file}{Style.RESET_ALL}")
 
     # --- 3. Tree-Datei aus extrahierten Dateien kopieren ---
-    print("\n" + Fore.CYAN + "3. Tree-Datei aus extrahierten Dateien kopieren")
+    print(f"\n{Fore.CYAN}3. Tree-Datei aus extrahierten Dateien kopieren{Style.RESET_ALL}")
     tree_file_extracted = source_extracted_files / f"2_{disk_archive_id}_extracted-files_tree.txt"
     if tree_file_extracted.is_file():
         dest_file = destination_folder / tree_file_extracted.name
         if dest_file.exists():
-            print(Fore.YELLOW + f"  [WARNUNG] Datei existiert bereits: {tree_file_extracted.name}")
+            print(f"  {Fore.YELLOW}[WARNUNG] Datei existiert bereits: {tree_file_extracted.name}{Style.RESET_ALL}")
         else:
             shutil.copy2(tree_file_extracted, dest_file)
-            print(Fore.GREEN + f"  [OK] Kopiert: {tree_file_extracted.name}")
+            print(f"  {Fore.GREEN}[OK] Kopiert: {tree_file_extracted.name}{Style.RESET_ALL}")
     else:
-        print(Fore.YELLOW + f"  [WARNUNG] Datei nicht gefunden: {tree_file_extracted}")
+        print(f"  {Fore.YELLOW}[WARNUNG] Datei nicht gefunden: {tree_file_extracted}{Style.RESET_ALL}")
 
     # --- 4. Tree-Datei aus For-Transfer-Ordner kopieren ---
-    print("\n" + Fore.CYAN + "4. Tree-Datei aus For-Transfer-Ordner kopieren")
+    print(f"\n{Fore.CYAN}4. Tree-Datei aus For-Transfer-Ordner kopieren{Style.RESET_ALL}")
     transfer_tree_filename = f"3_{disk_archive_id}_for-transfer_tree.txt"
     tree_file_for_transfer = source_for_transfer / transfer_tree_filename
     if tree_file_for_transfer.is_file():
         dest_file = destination_folder / tree_file_for_transfer.name
         if dest_file.exists():
-            print(Fore.YELLOW + f"  [WARNUNG] Datei existiert bereits: {tree_file_for_transfer.name}")
+            print(f"  {Fore.YELLOW}[WARNUNG] Datei existiert bereits: {tree_file_for_transfer.name}{Style.RESET_ALL}")
         else:
             shutil.copy2(tree_file_for_transfer, dest_file)
-            print(Fore.GREEN + f"  [OK] Kopiert: {tree_file_for_transfer.name}")
+            print(f"  {Fore.GREEN}[OK] Kopiert: {tree_file_for_transfer.name}{Style.RESET_ALL}")
     else:
-        print(Fore.YELLOW + f"  [WARNUNG] Datei nicht gefunden: {tree_file_for_transfer}")
+        print(f"  {Fore.YELLOW}[WARNUNG] Datei nicht gefunden: {tree_file_for_transfer}{Style.RESET_ALL}")
 
     # --- Zielordner optional öffnen ---
     print("")
@@ -157,13 +157,13 @@ def main():
             subprocess.run(["open", destination_folder])
         else:
             subprocess.run(["xdg-open", destination_folder])
-        print(Fore.GREEN + "Zielordner geoeffnet")
+        print(f"{Fore.GREEN}Zielordner geoeffnet{Style.RESET_ALL}")
 
     # --- Abschluss ---
     print("")
-    print(Fore.MAGENTA + "========================================")
-    print(Fore.GREEN + "  KOPIERVORGANG ABGESCHLOSSEN")
-    print(Fore.MAGENTA + "========================================")
+    print(f"{Fore.MAGENTA}========================================{Style.RESET_ALL}")
+    print(f"{Fore.GREEN}  KOPIERVORGANG ABGESCHLOSSEN{Style.RESET_ALL}")
+    print(f"{Fore.MAGENTA}========================================{Style.RESET_ALL}")
     print("")
 
 if __name__ == "__main__":

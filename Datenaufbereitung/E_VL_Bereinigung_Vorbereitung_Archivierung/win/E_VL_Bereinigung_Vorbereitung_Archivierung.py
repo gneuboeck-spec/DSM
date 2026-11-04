@@ -132,13 +132,13 @@ def find_unwanted_items(base_dir):
 
 def perform_deletion(files_to_delete, empty_dirs_to_delete, extensions_counter, final_deleted_files, final_deleted_dirs):
     """Führt den eigentlichen Löschvorgang für die übergebenen Listen durch."""
-    print("\n--- Starte Löschvorgang ---")
+    print(f"\n{Fore.CYAN}--- Starte Löschvorgang ---{Style.RESET_ALL}")
     
     for file_path in files_to_delete:
         try:
             # 1. Versuch: Normaler Löschversuch
             os.remove(file_path)
-            print(f"[OK] Datei gelöscht: {file_path}")
+            print(f"   {Fore.GREEN}[OK]{Style.RESET_ALL} Datei gelöscht: {file_path}")
             final_deleted_files.append(file_path)
             
             ext = next((ext for ext in DELETE_EXTENSIONS if file_path.lower().endswith(ext)), "Andere")
@@ -149,26 +149,26 @@ def perform_deletion(files_to_delete, empty_dirs_to_delete, extensions_counter, 
             try:
                 os.chmod(file_path, stat.S_IWRITE)
                 os.remove(file_path)
-                print(f"[OK] Datei gelöscht (Schreibschutz entfernt): {file_path}")
+                print(f"   {Fore.GREEN}[OK]{Style.RESET_ALL} Datei gelöscht (Schreibschutz entfernt): {file_path}")
                 final_deleted_files.append(file_path)
                 
                 ext = next((ext for ext in DELETE_EXTENSIONS if file_path.lower().endswith(ext)), "Andere")
                 extensions_counter[ext] += 1
             except Exception as e2:
-                print(f"[FEHLER] Kein Zugriff auf: {file_path}")
-                print(f"         Grund: Datei ist wahrscheinlich gerade in Verwendung oder eine geschützte Systemdatei. ({e2})")
+                print(f"   {Fore.RED}[FEHLER]{Style.RESET_ALL} Kein Zugriff auf: {file_path}")
+                print(f"          Grund: Datei ist wahrscheinlich gerade in Verwendung oder eine geschützte Systemdatei. ({e2})")
                 
         except Exception as e:
-            print(f"[FEHLER] Unerwarteter Fehler beim Löschen von {file_path}: {e}")
+            print(f"   {Fore.RED}[FEHLER]{Style.RESET_ALL} Unerwarteter Fehler beim Löschen von {file_path}: {e}")
 
     # Ordner-Logik bleibt unverändert
     for dir_path in sorted(empty_dirs_to_delete, key=len, reverse=True):
         try:
             os.rmdir(dir_path)
-            print(f"[OK] Leerer Ordner gelöscht: {dir_path}")
+            print(f"   {Fore.GREEN}[OK]{Style.RESET_ALL} Leerer Ordner gelöscht: {dir_path}")
             final_deleted_dirs.append(dir_path)
         except Exception as e:
-            print(f"[FEHLER] Fehler beim Löschen des Ordners {dir_path}: {e}")
+            print(f"   {Fore.RED}[FEHLER]{Style.RESET_ALL} Fehler beim Löschen des Ordners {dir_path}: {e}")
             
 # ==============================================================================
 # --- HAUPT-AUSFÜHRUNGSBLOCK ---
@@ -245,17 +245,17 @@ if __name__ == "__main__":
             if not DRY_RUN:
                 confirm = input(f"\n{Fore.YELLOW}Möchten Sie den Löschvorgang in der VL-Stufe wirklich starten? (j/n): {Style.RESET_ALL}").lower()
                 if confirm != 'j':
-                    print("Löschvorgang vom Benutzer abgebrochen.")
+                    print(f"{Fore.YELLOW}Löschvorgang vom Benutzer abgebrochen.{Style.RESET_ALL}")
                     sys.exit(0)
             else:
-                print("\n=== TESTLAUF AKTIV ===")
+                print(f"\n{Fore.YELLOW}=== TESTLAUF AKTIV ==={Style.RESET_ALL}")
 
             final_deleted_extensions_count = defaultdict(int)
             final_deleted_files = []
             final_deleted_dirs = []
 
             if DRY_RUN:
-                print("--- Simulation ---")
+                print(f"{Fore.CYAN}--- Simulation ---{Style.RESET_ALL}")
                 final_deleted_files = files_to_delete
                 final_deleted_dirs = empty_dirs_to_delete
             else:
@@ -278,6 +278,6 @@ if __name__ == "__main__":
             print(f"{Fore.GREEN}Zielordner geoeffnet{Style.RESET_ALL}")
 
     else:
-        print("\nSkript wird aufgrund von Konfigurationsfehlern beendet.")
+        print(f"\n{Fore.RED}[FEHLER] Skript wird aufgrund von Konfigurationsfehlern beendet.{Style.RESET_ALL}")
 
-    print("\nSkript beendet.")
+    print(f"\n{Fore.CYAN}Skript beendet.{Style.RESET_ALL}")

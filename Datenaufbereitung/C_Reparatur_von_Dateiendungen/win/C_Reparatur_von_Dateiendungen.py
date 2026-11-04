@@ -94,12 +94,12 @@ SIEGFRIED_EXE = find_tool("sf", r"C:\Program Files\Siegfried\sf.exe")
 class ColoredFormatter(logging.Formatter):
     """Formatter, der Log-Level in der Konsole einfärbt, aber die Nachricht (mit Emojis) intakt lässt."""
     COLORS = {
-        'DEBUG': '\033[94m',      # Blau
-        'INFO': '\033[92m',       # Grün
-        'WARNING': '\033[93m',    # Gelb
-        'ERROR': '\033[91m',      # Rot
-        'CRITICAL': '\033[91m\033[1m', # Fett Rot
-        'RESET': '\033[0m'
+        'DEBUG': Fore.CYAN,             # Cyan für Debug-Infos
+        'INFO': Fore.GREEN,             # Grün für erfolgreiche Infos
+        'WARNING': Fore.YELLOW,         # Gelb für Warnungen
+        'ERROR': Fore.RED,              # Rot für Fehler
+        'CRITICAL': Fore.RED,           # Rot für kritische Fehler
+        'RESET': Style.RESET_ALL
     }
 
     def format(self, record):
@@ -532,7 +532,7 @@ def main():
                 print(f"{Fore.RED}[FEHLER] Kopieren fehlgeschlagen: {e}{Style.RESET_ALL}")
                 sys.exit(1)
         else:
-            print(f"{Fore.RED}Fehler: Quell-Daten in Stufe 2 nicht gefunden ({source_stage2}){Style.RESET_ALL}")
+            print(f"{Fore.RED}[FEHLER] Quell-Daten in Stufe 2 nicht gefunden ({source_stage2}){Style.RESET_ALL}")
             sys.exit(1)
     
     # Logger initialisieren

@@ -72,11 +72,11 @@ def setup_and_validate_paths(ac_number, disk_archive_id, project_base_path_overr
 
 def manage_intermediate_files(folder, log_filepath, is_dry_run):
     if is_dry_run:
-        print("=== TESTLAUF AKTIV (KEINE ODF-DATEIEN WERDEN GELÖSCHT) ===")
+        print(f"{Fore.YELLOW}=== TESTLAUF AKTIV (KEINE ODF-DATEIEN WERDEN GELÖSCHT) ==={Style.RESET_ALL}")
     else:
-        print("=== ECHTER LÖSCHVORGANG AKTIV ===")
+        print(f"{Fore.CYAN}=== ECHTER LÖSCHVORGANG AKTIV ==={Style.RESET_ALL}")
         
-    print(f"Starte Suche nach ODF-Zwischendateien im Ordner: {folder}\n")
+    print(f"{Fore.CYAN}Starte Suche nach ODF-Zwischendateien im Ordner: {folder}{Style.RESET_ALL}\n")
     
     files_to_process = []
     
@@ -96,40 +96,42 @@ def manage_intermediate_files(folder, log_filepath, is_dry_run):
             # Füge die .odt-Datei zur Löschliste hinzu, wenn die Quelldatei existiert
             if source_file.exists():
                 files_to_process.append(str(file)) # Konvertiere zurück zu String für Konsistenz
-    # --- ENDE DER KORREKTUR ---
 
     if not files_to_process:
-        print("Keine ODF-Zwischendateien zum Verarbeiten gefunden.")
+        print(f"{Fore.YELLOW}Keine ODF-Zwischendateien zum Verarbeiten gefunden.{Style.RESET_ALL}")
         return 0
 
     if is_dry_run:
-        print(f"{len(files_to_process)} potenzielle ODF-Zwischendateien gefunden.")
+        print(f"{Fore.CYAN}{len(files_to_process)} potenzielle ODF-Zwischendateien gefunden.{Style.RESET_ALL}")
         try:
             with open(log_filepath, "w", encoding="utf-8") as logfile:
                 logfile.write("# Protokoll des TESTLAUFS (keine ODF-Dateien wurden gelöscht)\n" + f"# Erstellt am: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n" + "="*50 + "\n\n")
                 logfile.write(f"--- DATEIEN, DIE GELÖSCHT WÜRDEN ({len(files_to_process)}) ---\n")
                 for path in sorted(files_to_process): logfile.write(f"{path}\n")
             print(f"\n{Fore.GREEN}[OK] Testlauf-Log wurde erfolgreich erstellt.{Style.RESET_ALL}")
-        except Exception as e: print(f"\n{Fore.RED}[FEHLER] Die Log-Datei konnte nicht geschrieben werden: {e}{Style.RESET_ALL}")
+        except Exception as e: 
+            print(f"\n{Fore.RED}[FEHLER] Die Log-Datei konnte nicht geschrieben werden: {e}{Style.RESET_ALL}")
         return 0
     else:
-        print("Die folgenden ODF-Zwischendateien wurden zur Löschung identifiziert:")
+        print(f"{Fore.CYAN}Die folgenden ODF-Zwischendateien wurden zur Löschung identifiziert:{Style.RESET_ALL}")
         for f in sorted(files_to_process): print(f"  - {f}")
         
         confirm = input(f"\n{Fore.YELLOW}Möchten Sie diese ODF-Dateien wirklich löschen? (j/n): {Style.RESET_ALL}").lower()
-        if confirm != 'j': print("ODF-Löschvorgang abgebrochen."); return 0
+        if confirm != 'j': 
+            print(f"{Fore.YELLOW}ODF-Löschvorgang abgebrochen.{Style.RESET_ALL}")
+            return 0
 
-        print(f"\nStarte ODF-Löschvorgang und erstelle Log-Datei: {log_filepath}")
+        print(f"\n{Fore.CYAN}Starte ODF-Löschvorgang und erstelle Log-Datei: {log_filepath}{Style.RESET_ALL}")
         successful_deletions, failed_deletions = [], []
         for f_path in files_to_process:
             try:
                 # Nutze Path(f_path).unlink() statt os.remove für bessere Pfadbehandlung
                 Path(f_path).unlink() 
                 successful_deletions.append(f_path)
-                print(f"GELÖSCHT: {os.path.basename(f_path)}")
+                print(f"   {Fore.GREEN}[OK]{Style.RESET_ALL} GELÖSCHT: {os.path.basename(f_path)}")
             except Exception as e:
                 failed_deletions.append((f_path, str(e)))
-                print(f"FEHLER bei '{os.path.basename(f_path)}': {e}")
+                print(f"   {Fore.RED}[FEHLER]{Style.RESET_ALL} bei '{os.path.basename(f_path)}': {e}")
         
         try:
             with open(log_filepath, "w", encoding="utf-8") as logfile:
@@ -141,16 +143,16 @@ def manage_intermediate_files(folder, log_filepath, is_dry_run):
                     for path, error in sorted(failed_deletions): logfile.write(f"Datei: {path}\nFehler: {error}\n\n")
                 else: logfile.write("Keine Fehler aufgetreten.\n")
             print(f"\n{Fore.GREEN}[OK] ODF-Log-Datei wurde erfolgreich erstellt.{Style.RESET_ALL}")
-        except Exception as e: print(f"\n{Fore.RED}[FEHLER] Die Log-Datei konnte nicht geschrieben werden: {e}{Style.RESET_ALL}")
-        print(f"\nODF-Aufräumen abgeschlossen. {len(successful_deletions)} gelöscht, {len(failed_deletions)} fehlgeschlagen.")
+        except Exception as e: 
+            print(f"\n{Fore.RED}[FEHLER] Die Log-Datei konnte nicht geschrieben werden: {e}{Style.RESET_ALL}")
+        print(f"\n{Fore.GREEN}ODF-Aufräumen abgeschlossen. {len(successful_deletions)} gelöscht, {len(failed_deletions)} fehlgeschlagen.{Style.RESET_ALL}")
         return len(successful_deletions)
-
 # ==============================================================================
 # --- LOGIK FÜR "KONVERTIERTE WAVs LÖSCHEN" ---
 # ==============================================================================
 
 def find_and_delete_intermediate_wavs(folder, log_filepath):
-    print(f"Starte Suche nach konvertierten WAV-Dateien im Ordner: {folder}\n")
+    print(f"{Fore.CYAN}Starte Suche nach konvertierten WAV-Dateien im Ordner: {folder}{Style.RESET_ALL}\n")
     
     files_to_delete = []
     all_found_files = set(os.path.join(root, name) for root, _, files in os.walk(folder) for name in files)
@@ -168,22 +170,26 @@ def find_and_delete_intermediate_wavs(folder, log_filepath):
                         files_to_delete.append(filepath)
 
     if not files_to_delete:
-        print("Keine konvertierten WAV-Dateien zum Löschen gefunden.")
+        print(f"{Fore.YELLOW}Keine konvertierten WAV-Dateien zum Löschen gefunden.{Style.RESET_ALL}")
         return 0
 
-    print("Die folgenden, durch Konvertierung erstellten WAV-Dateien wurden identifiziert:")
+    print(f"{Fore.CYAN}Die folgenden, durch Konvertierung erstellten WAV-Dateien wurden identifiziert:{Style.RESET_ALL}")
     for f in files_to_delete: print(f"  - {os.path.basename(f)}")
     
     confirm = input(f"\n{Fore.YELLOW}Möchten Sie diese WAV-Dateien wirklich löschen? (j/n): {Style.RESET_ALL}").lower()
-    if confirm != 'j': print("WAV-Löschvorgang abgebrochen."); return 0
-
+    if confirm != 'j': 
+        print(f"{Fore.YELLOW}WAV-Löschvorgang abgebrochen.{Style.RESET_ALL}")
+        return 0
     deleted_count, failed_deletions = 0, []
     print() 
     for f in files_to_delete:
         try:
-            os.remove(f); print(f"Gelöscht: {os.path.basename(f)}"); deleted_count += 1
+            os.remove(f)
+            print(f"   {Fore.GREEN}[OK]{Style.RESET_ALL} Gelöscht: {os.path.basename(f)}")
+            deleted_count += 1
         except Exception as e:
-            failed_deletions.append((f, str(e))); print(f"FEHLER beim Löschen von {os.path.basename(f)}: {e}")
+            failed_deletions.append((f, str(e)))
+            print(f"   {Fore.RED}[FEHLER]{Style.RESET_ALL} beim Löschen von {os.path.basename(f)}: {e}")
             
     try:
         with open(log_filepath, "w", encoding="utf-8") as logfile:
@@ -196,9 +202,10 @@ def find_and_delete_intermediate_wavs(folder, log_filepath):
                 for path, error in sorted(failed_deletions): logfile.write(f"Datei: {path}\nFehler: {error}\n\n")
             else: logfile.write("Keine Fehler aufgetreten.\n")
         print(f"\n{Fore.GREEN}[OK] WAV-Log-Datei wurde erfolgreich erstellt: {log_filepath}{Style.RESET_ALL}")
-    except Exception as e: print(f"\n{Fore.RED}[FEHLER] Die Log-Datei konnte nicht geschrieben werden: {e}{Style.RESET_ALL}")
+    except Exception as e: 
+        print(f"\n{Fore.RED}[FEHLER] Die Log-Datei konnte nicht geschrieben werden: {e}{Style.RESET_ALL}")
             
-    print(f"\nWAV-Aufräumen abgeschlossen. {deleted_count} von {len(files_to_delete)} WAV-Dateien gelöscht.")
+    print(f"\n{Fore.GREEN}WAV-Aufräumen abgeschlossen. {deleted_count} von {len(files_to_delete)} WAV-Dateien gelöscht.{Style.RESET_ALL}")
     return deleted_count
 
 # ==============================================================================
@@ -236,12 +243,12 @@ if __name__ == "__main__":
             choice = input(f"{Fore.YELLOW}Ihre Wahl: {Style.RESET_ALL}").strip().lower()
 
             if choice == '1':
-                print("\n--- Aktion: ODF- und WAV-Zwischendateien in einem Rutsch löschen ---")
+                print(f"\n{Fore.CYAN}--- Aktion: ODF- und WAV-Zwischendateien in einem Rutsch löschen ---{Style.RESET_ALL}")
                 
                 # --- SCHRITT 1: ODF-Dateien löschen ---
-                print("\n" + "="*60)
-                print("  SCHRITT 1/2: ODF-Zwischendateien")
-                print("="*60)
+                print(f"\n{Fore.MAGENTA}{'='*60}{Style.RESET_ALL}")
+                print(f"{Fore.CYAN}  SCHRITT 1/2: ODF-Zwischendateien{Style.RESET_ALL}")
+                print(f"{Fore.MAGENTA}{'='*60}{Style.RESET_ALL}")
                 odf_deleted = manage_intermediate_files(
                     folder=validated_paths["target_folder"],
                     log_filepath=validated_paths["log_filepath_odf"],
@@ -249,27 +256,27 @@ if __name__ == "__main__":
                 )
                 
                 # Kurze Pause zwischen den Schritten
-                print("\n" + "-"*60)
+                print(f"\n{Fore.MAGENTA}{'-'*60}{Style.RESET_ALL}")
                 
                 # --- SCHRITT 2: WAV-Dateien löschen ---
-                print("\n" + "="*60)
-                print("  SCHRITT 2/2: Konvertierte WAV-Dateien")
-                print("="*60)
+                print(f"\n{Fore.MAGENTA}{'='*60}{Style.RESET_ALL}")
+                print(f"{Fore.CYAN}  SCHRITT 2/2: Konvertierte WAV-Dateien{Style.RESET_ALL}")
+                print(f"{Fore.MAGENTA}{'='*60}{Style.RESET_ALL}")
                 wav_deleted = find_and_delete_intermediate_wavs(
                     folder=validated_paths["target_folder"],
                     log_filepath=validated_paths["log_filepath_wav"]
                 )
                 
                 # --- ZUSAMMENFASSUNG ---
-                print("\n" + "="*60)
-                print("  ZUSAMMENFASSUNG")
-                print("="*60)
-                print(f"  ODF-Dateien gelöscht: {odf_deleted}")
-                print(f"  WAV-Dateien gelöscht: {wav_deleted}")
-                print(f"  Gesamt gelöscht:       {odf_deleted + wav_deleted}")
-                print("="*60)
+                print(f"\n{Fore.MAGENTA}{'='*60}{Style.RESET_ALL}")
+                print(f"{Fore.CYAN}  ZUSAMMENFASSUNG{Style.RESET_ALL}")
+                print(f"{Fore.MAGENTA}{'='*60}{Style.RESET_ALL}")
+                print(f"  {Fore.WHITE}ODF-Dateien gelöscht: {odf_deleted}{Style.RESET_ALL}")
+                print(f"  {Fore.WHITE}WAV-Dateien gelöscht: {wav_deleted}{Style.RESET_ALL}")
+                print(f"  {Fore.WHITE}Gesamt gelöscht:       {odf_deleted + wav_deleted}{Style.RESET_ALL}")
+                print(f"{Fore.MAGENTA}{'='*60}{Style.RESET_ALL}")
                 
-                input("\nAktion beendet. Drücken Sie Enter, um zum Menü zurückzukehren.")
+                input(f"\n{Fore.YELLOW}Aktion beendet. Drücken Sie Enter, um zum Menü zurückzukehren.{Style.RESET_ALL}")
             
             elif choice == 'q':
                 break

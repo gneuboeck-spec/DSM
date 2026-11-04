@@ -209,7 +209,7 @@ def setup_and_validate_paths(ac_number, disk_archive_id, project_base_path_overr
 
     # Validierung der Ordner
     if not paths["base_dir"].is_dir():
-        print(f"\033[91mFehler: Der Eingabe-Ordner (BASE_DIR) wurde nicht gefunden:\n{paths['base_dir']}\033[0m")
+        print(f"{Fore.RED}[FEHLER] Der Eingabe-Ordner (BASE_DIR) wurde nicht gefunden:\n{paths['base_dir']}{Style.RESET_ALL}")
         return None
         
     # Sicherstellen, dass der Zielordner (logfiles) existiert, um Schreibfehler zu vermeiden.
@@ -217,7 +217,7 @@ def setup_and_validate_paths(ac_number, disk_archive_id, project_base_path_overr
     paths["output_xml"].parent.mkdir(parents=True, exist_ok=True)
     
     if not paths["output_xml"].parent.is_dir():
-        print(f"\033[91mFehler: Der Ausgabe-Ordner für die XML-Datei existiert nicht:\n{paths['output_xml'].parent}\033[0m")
+        print(f"{Fore.RED}[FEHLER] Der Ausgabe-Ordner für die XML-Datei existiert nicht:\n{paths['output_xml'].parent}{Style.RESET_ALL}")
         return None
     
     # Validierung der externen Tools
@@ -225,10 +225,10 @@ def setup_and_validate_paths(ac_number, disk_archive_id, project_base_path_overr
                        "Hachoir": HACHOIR_METADATA_PATH, "Siegfried": SIEGFRIED_PATH }
     for tool_name, tool_path in tools_to_check.items():
         if not Path(tool_path).exists():
-            print(f"\033[91mFehler: {tool_name} wurde nicht gefunden unter:\n{tool_path}\033[0m")
+            print(f"{Fore.RED}[FEHLER] {tool_name} wurde nicht gefunden unter:\n{tool_path}{Style.RESET_ALL}")
             return None
 
-    print("\033[92mAlle Pfade und Programme wurden erfolgreich gefunden und validiert.\033[0m")
+    print(f"{Fore.GREEN}[OK] Alle Pfade und Programme wurden erfolgreich gefunden und validiert.{Style.RESET_ALL}")
     return paths
 
 # --- 3. Haupt-Ausführungsblock zur Pfad-Initialisierung ---
@@ -247,9 +247,9 @@ try:
         
     validated_paths = setup_and_validate_paths(ac_number_input, disk_archive_id_input, project_base_path_override=data_path_input)
 except IndexError:
-    print("Keine Kommandozeilen-Argumente gefunden. Bitte geben Sie die Daten manuell ein:")
-    ac_number_input = input("AC-Nummer eingeben: ")
-    disk_archive_id_input = input("Datenträger-ID eingeben: ")
+    print(f"{Fore.YELLOW}Keine Kommandozeilen-Argumente gefunden. Bitte geben Sie die Daten manuell ein:{Style.RESET_ALL}")
+    ac_number_input = input(f"{Fore.YELLOW}AC-Nummer eingeben: {Style.RESET_ALL}")
+    disk_archive_id_input = input(f"{Fore.YELLOW}Datenträger-ID eingeben: {Style.RESET_ALL}")
     
     data_path_input = Path(os.environ.get("DATA_PATH", Path.home() / "Documents/data" / ac_number_input / disk_archive_id_input))
     validated_paths = setup_and_validate_paths(ac_number_input, disk_archive_id_input, project_base_path_override=data_path_input)
@@ -323,13 +323,13 @@ TAGS_TO_REMOVE = {
 
 # Sicherstellen, dass die YARA-Regeln existieren, bevor sie kompiliert werden
 if not Path(YARA_RULES_FILE).exists():
-    print(f"Fehler: YARA-Regeldatei nicht gefunden unter {YARA_RULES_FILE}")
+    print(f"{Fore.RED}[FEHLER] YARA-Regeldatei nicht gefunden unter {YARA_RULES_FILE}{Style.RESET_ALL}")
     sys.exit(1)
 
 try:
     rules = yara.compile(filepath=str(YARA_RULES_FILE))
 except yara.Error as e:
-    print(f"Fehler beim Kompilieren der YARA-Regeln: {e}")
+    print(f"{Fore.RED}[FEHLER] Beim Kompilieren der YARA-Regeln: {e}{Style.RESET_ALL}")
     sys.exit(1)
 
 root = ET.Element("filetrove")
@@ -1401,7 +1401,7 @@ def process_file(file_path, relative_path):
                 detailed_match_info.append(m_info)
 
     except Exception as e:
-        print(f"Fehler bei YARA-Matches für {file_path}: {e}")
+        print(f"{Fore.RED}[FEHLER] Bei YARA-Matches für {file_path}: {e}{Style.RESET_ALL}")
         matches = []
 
     final_unified_metadata = unify_metadata_keys(all_raw_metadata)
@@ -1424,20 +1424,20 @@ def process_file(file_path, relative_path):
                 final_unified_metadata['video_frame_height'] = final_unified_metadata['image_height']
             del final_unified_metadata['image_height']
 
-    if 'duration' in final_unified_metadata:
-        final_mime_type = final_unified_metadata.get("mime_type", "").lower()
-        file_type_group = get_file_type_group(file_path)
-        is_media_file = (final_mime_type.startswith('audio/') or final_mime_type.startswith('video/') or final_mime_type == 'image/gif' or file_type_group in ['audio', 'video'])
-        if not is_media_file:
-            print(f"Info: Entferne 'duration' ({final_unified_metadata['duration']}) für unpassenden MIME-Typ: {final_mime_type}")
-            del final_unified_metadata['duration']
+        if 'duration' in final_unified_metadata:
+            final_mime_type = final_unified_metadata.get("mime_type", "").lower()
+            file_type_group = get_file_type_group(file_path)
+            is_media_file = (final_mime_type.startswith('audio/') or final_mime_type.startswith('video/') or final_mime_type == 'image/gif' or file_type_group in ['audio', 'video'])
+            if not is_media_file:
+                print(f"{Fore.CYAN}[INFO] Entferne 'duration' ({final_unified_metadata['duration']}) für unpassenden MIME-Typ: {final_mime_type}{Style.RESET_ALL}")
+                del final_unified_metadata['duration']
 
     if 'audio_channel_count' in final_unified_metadata:
         final_mime_type = final_unified_metadata.get("mime_type", "").lower()
         file_type_group = get_file_type_group(file_path)
         is_media_file = (final_mime_type.startswith('audio/') or final_mime_type.startswith('video/') or file_type_group in ['audio', 'video'])
         if not is_media_file:
-            print(f"Info: Entferne 'audio_channel_count' ({final_unified_metadata['audio_channel_count']}) für unpassenden MIME-Typ: {final_mime_type}")
+            print(f"{Fore.CYAN}[INFO] Entferne 'audio_channel_count' ({final_unified_metadata['audio_channel_count']}) für unpassenden MIME-Typ: {final_mime_type}{Style.RESET_ALL}")
             del final_unified_metadata['audio_channel_count']
 
     print(f"\n--- Vereinheitlichte Metadaten für {relative_path} (final) ---")
@@ -1470,7 +1470,7 @@ def process_file(file_path, relative_path):
                 PdfReader(file_path)
                 is_valid = True
             except Exception as e:
-                print(f"PDF-Validierung fehlgeschlagen für {relative_path}: {e}")
+                print(f"{Fore.RED}[FEHLER] PDF-Validierung fehlgeschlagen für {relative_path}: {e}{Style.RESET_ALL}")
                 is_valid = False
         elif suffix in [".docx", ".xlsx", ".pptx", ".odt", ".ods", ".odp"]:
             with open(file_path, "rb") as f:
@@ -1481,17 +1481,17 @@ def process_file(file_path, relative_path):
                             if zip_ref.testzip() is None:
                                 is_valid = True
                             else:
-                                print(f"ZIP-Validierung fehlgeschlagen für {relative_path}: fehlerhafte Datei im ZIP.")
+                                print(f"{Fore.RED}[FEHLER] ZIP-Validierung fehlgeschlagen für {relative_path}: fehlerhafte Datei im ZIP.{Style.RESET_ALL}")
                     except zipfile.BadZipFile:
-                        print(f"ZIP-Validierung fehlgeschlagen für {relative_path}: Keine gültige ZIP-Datei.")
+                        print(f"{Fore.RED}[FEHLER] ZIP-Validierung fehlgeschlagen für {relative_path}: Keine gültige ZIP-Datei.{Style.RESET_ALL}")
                 else:
-                    print(f"ZIP-Validierung fehlgeschlagen für {relative_path}: Kein ZIP-Magic-Header.")
+                    print(f"{Fore.RED}[FEHLER] ZIP-Validierung fehlgeschlagen für {relative_path}: Kein ZIP-Magic-Header.{Style.RESET_ALL}")
         elif mime_type.startswith("image/"):
             try:
                 Image.open(file_path).verify()
                 is_valid = True
             except Exception as e:
-                print(f"Bild-Validierung fehlgeschlagen für {relative_path}: {e}")
+                print(f"{Fore.RED}[FEHLER] Bild-Validierung fehlgeschlagen für {relative_path}: {e}{Style.RESET_ALL}")
                 is_valid = False
         elif mime_type.startswith("audio/") or mime_type.startswith("video/"):
             if final_unified_metadata.get("duration") or final_unified_metadata.get("ffprobe_format_duration"):
@@ -1525,7 +1525,7 @@ def write_xml_to_file(element_tree_root, output_file_path):
 
     tree = ET.ElementTree(element_tree_root)
     tree.write(output_file_path, encoding='utf-8', xml_declaration=True)
-    print(f"Metadaten erfolgreich nach {output_file_path} geschrieben.")
+    print(f"{Fore.GREEN}[OK] Metadaten erfolgreich nach {output_file_path} geschrieben.{Style.RESET_ALL}")
 
 
 def get_file_type_group(filepath):
@@ -1553,7 +1553,7 @@ def main():
     global REFERENCE_HASHES, INTEGRITY_SUCCESS, INTEGRITY_ERRORS, INTEGRITY_NEW
     
     if not os.path.isdir(BASE_DIR):
-        print(f"Fehler: Das angegebene Verzeichnis '{BASE_DIR}' existiert nicht.")
+        print(f"{Fore.RED}[FEHLER] Das angegebene Verzeichnis '{BASE_DIR}' existiert nicht.{Style.RESET_ALL}")
         sys.exit(1)
 
     processed_count = 0
@@ -1573,7 +1573,7 @@ def main():
                 process_file(file_path, relative_path)
                 processed_count += 1
             except Exception as e:
-                print(f"Ein unerwarteter Fehler ist aufgetreten beim Verarbeiten von {file_path}: {e}")
+                print(f"{Fore.RED}[FEHLER] Unerwarteter Fehler beim Verarbeiten von {file_path}: {e}{Style.RESET_ALL}")
                 ET.SubElement(root, "file", {"path": relative_path.as_posix(), "name": relative_path.name, "error": str(e)})
 
     if processed_count > 0:
@@ -1619,9 +1619,9 @@ def main():
         except Exception as e:
             print(f"{Fore.RED}Fehler beim Schreiben des Integritaets-Logs: {e}{Style.RESET_ALL}")
             
-        print(f"\n{processed_count} Dateien erfolgreich verarbeitet.")
+        print(f"\n{Fore.GREEN}{processed_count} Dateien erfolgreich verarbeitet.{Style.RESET_ALL}")
     else:
-        print("\nKeine Dateien zum Verarbeiten gefunden oder alle übersprungen.")
+        print(f"\n{Fore.YELLOW}Keine Dateien zum Verarbeiten gefunden oder alle übersprungen.{Style.RESET_ALL}")
 
     # 4. Zielordner optional öffnen
     destination_folder = Path(OUTPUT_XML).parent

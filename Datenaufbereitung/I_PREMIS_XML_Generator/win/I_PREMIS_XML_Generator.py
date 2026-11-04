@@ -137,7 +137,7 @@ def parse_ftk_log(log_path):
         with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
             content = f.read()
     except Exception as e:
-        print(f"WARNUNG: Konnte Log nicht lesen: {e}")
+        print(f"{Fore.RED}[FEHLER] Konnte Log nicht lesen: {e}{Style.RESET_ALL}")
         return ctx
 
     ctx.log_content = content
@@ -204,7 +204,7 @@ def parse_redumper_log(log_path):
         with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
             content = f.read()
     except Exception as e:
-        print(f"WARNUNG: Konnte Redumper Log nicht lesen: {e}")
+        print(f"{Fore.RED}[FEHLER] Konnte Redumper Log nicht lesen: {e}{Style.RESET_ALL}")
         return ctx
 
     ctx.log_content = content
@@ -258,7 +258,7 @@ def parse_greaseweazle_log(log_path):
         with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
             content = f.read()
     except Exception as e:
-        print(f"WARNUNG: Konnte Log nicht lesen: {e}")
+        print(f"{Fore.RED}[FEHLER] Konnte Log nicht lesen: {e}{Style.RESET_ALL}")
         return ctx
 
     ctx.log_content = content
@@ -1059,7 +1059,7 @@ class PremisGenerator:
             with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
         except Exception as e:
-            print(f"  WARNUNG: Konnte viruscheck-log.txt nicht lesen: {e}")
+            print(f"  {Fore.RED}[FEHLER] Konnte viruscheck-log.txt nicht lesen: {e}{Style.RESET_ALL}")
             return None
             
         data = {}

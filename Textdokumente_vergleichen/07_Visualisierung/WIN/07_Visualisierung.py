@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 import sys
 import csv
 import tkinter as tk
@@ -10,6 +14,16 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.patches import Patch
+
+# ==============================================================================
+# 🔧 FARB-INITIALISIERUNG (Konsistenz mit allen anderen Skripten)
+# ==============================================================================
+try:
+    from colorama import init, Fore, Style
+    init(autoreset=True)
+except ImportError:
+    class Fore: GREEN = RED = YELLOW = CYAN = MAGENTA = WHITE = ""
+    class Style: RESET_ALL = ""
 
 plt.rcParams['font.sans-serif'] = ['DejaVu Sans', 'Arial', 'Helvetica']
 plt.rcParams['axes.unicode_minus'] = False
@@ -442,7 +456,6 @@ def show_single_group(rows, groups, group_name):
         ax.set_xlabel('Dateigröße (KB)', fontsize=10)
         ax.grid(axis='x', alpha=0.3)
         
-        from matplotlib.patches import Patch
         legend_elements = [Patch(facecolor='#4CAF50', label='Version'),
                           Patch(facecolor='#FF9800', label='Kurztext')]
         ax.legend(handles=legend_elements, loc='lower right', fontsize=9)
@@ -608,7 +621,6 @@ def show_single_group(rows, groups, group_name):
         ax2.set_title('💾 Dateigrößen-Vergleich', fontsize=10, pad=10)
         ax2.grid(axis='x', alpha=0.3)
         
-        from matplotlib.patches import Patch
         legend_elements = [Patch(facecolor='#4CAF50', label='Version'),
                           Patch(facecolor='#FF9800', label='Kurztext')]
         ax2.legend(handles=legend_elements, loc='lower right', fontsize=8)
@@ -772,9 +784,9 @@ def show_visualization_menu(rows):
 # ==============================================================================
 def main():
     if len(sys.argv) < 3:
-        print("❌ Fehler: Eingabe- und Ausgabe-Pfad fehlen.")
-        print("Verwendung: python 07_Visualisierung.py <eingabe_pfad> <ausgabe_pfad>")
-        input("Drücke Enter zum Beenden...")
+        print(f"{Fore.RED}❌ Fehler: Eingabe- und Ausgabe-Pfad fehlen.{Style.RESET_ALL}")
+        print(f"{Fore.WHITE}Verwendung: python 07_Visualisierung.py <eingabe_pfad> <ausgabe_pfad>{Style.RESET_ALL}")
+        input(f"{Fore.YELLOW}Drücke Enter zum Beenden...{Style.RESET_ALL}")
         return
 
     ausgabe_pfad = Path(sys.argv[2])
@@ -784,14 +796,14 @@ def main():
         csv_file = ausgabe_pfad / "versionen_analyse.csv"
     
     if not csv_file.exists():
-        print(f"❌ Keine CSV gefunden in: {ausgabe_pfad}")
-        print("Bitte zuerst Skript 1 (und optional 2) ausführen.")
-        input("Drücke Enter zum Beenden...")
+        print(f"{Fore.RED}❌ Keine CSV gefunden in: {ausgabe_pfad}{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}Bitte zuerst Skript 1 (und optional 2) ausführen.{Style.RESET_ALL}")
+        input(f"{Fore.YELLOW}Drücke Enter zum Beenden...{Style.RESET_ALL}")
         return
 
-    print(f"\n🚀 Visualisierung gestartet")
-    print(f"Lade Daten aus: {csv_file}")
-    print("=" * 60)
+    print(f"\n{Fore.CYAN}🚀 Visualisierung gestartet{Style.RESET_ALL}")
+    print(f"{Fore.WHITE}Lade Daten aus: {csv_file}{Style.RESET_ALL}")
+    print(f"{Fore.MAGENTA}{'=' * 60}{Style.RESET_ALL}")
 
     with open(csv_file, 'r', encoding='utf-8-sig') as f:
         rows = list(csv.DictReader(f, delimiter=';'))
@@ -822,15 +834,15 @@ def main():
 
     show_visualization_menu(rows)
     
-    print("\n" + "=" * 60)
-    print("✅ VISUALISIERUNG ABGESCHLOSSEN!")
-    print("=" * 60)
-    input("\n⏹️ Drücke Enter zum Beenden...")
+    print(f"\n{Fore.MAGENTA}{'=' * 60}{Style.RESET_ALL}")
+    print(f"{Fore.GREEN}✅ VISUALISIERUNG ABGESCHLOSSEN!{Style.RESET_ALL}")
+    print(f"{Fore.MAGENTA}{'=' * 60}{Style.RESET_ALL}")
+    input(f"\n{Fore.YELLOW}⏹️ Drücke Enter zum Beenden...{Style.RESET_ALL}")
 
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        print(f"\n❌ KRITISCHER FEHLER: {e}")
-        input("Drücke Enter zum Beenden...")
+        print(f"\n{Fore.RED}❌ KRITISCHER FEHLER: {e}{Style.RESET_ALL}")
+        input(f"{Fore.YELLOW}Drücke Enter zum Beenden...{Style.RESET_ALL}")

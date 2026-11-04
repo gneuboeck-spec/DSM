@@ -588,7 +588,7 @@ if __name__ == "__main__":
             data_path_input = Path(os.environ.get("DATA_PATH", Path.home() / "Documents/data" / ac_number_input / disk_archive_id_input))
             
     except IndexError: 
-        print("FEHLER: AC-Nummer und Datenträger-ID wurden nicht übergeben.")
+        print(f"{Fore.RED}[FEHLER] AC-Nummer und Datenträger-ID wurden nicht übergeben.{Style.RESET_ALL}")
         sys.exit(1)
 
     validated_paths = setup_and_validate_paths(
@@ -743,4 +743,4 @@ if __name__ == "__main__":
         if input(f"{Fore.YELLOW}Zielordner oeffnen? (j/n): {Style.RESET_ALL}").lower() == 'j':
             os.startfile(destination_folder)
 
-    print("\nSkript beendet.")
+    print(f"\n{Fore.CYAN}Skript beendet.{Style.RESET_ALL}")

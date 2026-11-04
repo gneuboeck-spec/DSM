@@ -25,7 +25,7 @@ def compress_and_remove_folder(folder_path: Path, output_name: str):
     Hilfsfunktion: Komprimiert einen spezifischen Ordner zu .tar.gz und löscht den Originalordner.
     """
     if folder_path.exists() and folder_path.is_dir():
-        print(f"{Fore.CYAN} -> Komprimiere: {folder_path.name}")
+        print(f"{Fore.CYAN} -> Komprimiere: {folder_path.name}{Style.RESET_ALL}")
         output_path = folder_path.parent / output_name
         
         # w:gz steht für write + gzip Komprimierung
@@ -33,12 +33,12 @@ def compress_and_remove_folder(folder_path: Path, output_name: str):
             # arcname sorgt dafür, dass im Archiv nur der Ordnername als Wurzel liegt
             tar.add(folder_path, arcname=folder_path.name)
             
-        print(f"{Fore.GREEN}    [OK] Archiv erstellt: {output_name}")
-        print(f"{Fore.YELLOW}    -> Lösche unkomprimierten Originalordner zur Speicherplatzfreigabe...")
+        print(f"{Fore.GREEN}    [OK] Archiv erstellt: {output_name}{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}    -> Lösche unkomprimierten Originalordner zur Speicherplatzfreigabe...{Style.RESET_ALL}")
         shutil.rmtree(folder_path)
-        print(f"{Fore.GREEN}    [OK] Originalordner erfolgreich gelöscht.")
+        print(f"{Fore.GREEN}    [OK] Originalordner erfolgreich gelöscht.{Style.RESET_ALL}")
     else:
-        print(f"{Fore.YELLOW}    [INFO] Ordner nicht gefunden, Komprimierung übersprungen: {folder_path}")
+        print(f"{Fore.YELLOW}    [INFO] Ordner nicht gefunden, Komprimierung übersprungen: {folder_path}{Style.RESET_ALL}")
 
 def run_final_archiving(ac_number, disk_id, project_base_path_override=None):
     """
@@ -80,16 +80,16 @@ def run_final_archiving(ac_number, disk_id, project_base_path_override=None):
 
     try:
         # --- SCHRITT 0: GEZIELTE SPEICHERPLATZ-OPTIMIERUNG (VOR BAGIT) ---
-        print(f"\n{Fore.CYAN}--- SCHRITT 0: Gezielte Komprimierung des Brunnhilde-Ordners ---")
+        print(f"\n{Fore.CYAN}--- SCHRITT 0: Gezielte Komprimierung des Brunnhilde-Ordners ---{Style.RESET_ALL}")
         
         # NUR der spezifische Unterordner in 'logfiles' wird komprimiert
         brunnhilde_folder = f5_lza / "logfiles" / f"2_{disk_id}_extracted-files_brunnhilde"
         compress_and_remove_folder(brunnhilde_folder, f"2_{disk_id}_extracted-files_brunnhilde.tar.gz")
         
-        print(f"{Fore.GREEN} [OK] Schritt 0 abgeschlossen. BagIt wird nun mit dem komprimierten Archiv erstellt.")
+        print(f"{Fore.GREEN} [OK] Schritt 0 abgeschlossen. BagIt wird nun mit dem komprimierten Archiv erstellt.{Style.RESET_ALL}")
 
         # --- SCHRITT 1: BAGIT ERSTELLEN ---
-        print(f"\n{Fore.CYAN}--- SCHRITT 1: BagIt-Container erstellen ---")
+        print(f"\n{Fore.CYAN}--- SCHRITT 1: BagIt-Container erstellen ---{Style.RESET_ALL}")
         metadata = {
             'Contact-Name': 'Datenrettung Digit',
             'ZPH-ID': disk_id,
@@ -97,40 +97,39 @@ def run_final_archiving(ac_number, disk_id, project_base_path_override=None):
         }
         # Erstellt den Bag (Inhalt wandert nach data/, inkl. der soeben erstellten .tar.gz Datei)
         bag = bagit.make_bag(str(f5_lza), metadata, checksums=['sha256'])
-        print(f"{Fore.GREEN} [OK] Basis-Bag erstellt.")
+        print(f"{Fore.GREEN} [OK] Basis-Bag erstellt.{Style.RESET_ALL}")
 
         # --- SCHRITT 2: MASTER-INDEX IN DATA/LOGFILES BELASSEN ---
-        print(f"\n{Fore.CYAN}--- SCHRITT 2: Master-Index Position prüfen ---")
+        print(f"\n{Fore.CYAN}--- SCHRITT 2: Master-Index Position prüfen ---{Style.RESET_ALL}")
         
         expected_index_path = f5_lza / "data" / "logfiles" / master_index_name
         if expected_index_path.exists():
-            print(f"{Fore.GREEN} [OK] Master-Index '{master_index_name}' verbleibt korrekt in data/logfiles/.")
+            print(f"{Fore.GREEN} [OK] Master-Index '{master_index_name}' verbleibt korrekt in data/logfiles/.{Style.RESET_ALL}")
         else:
             print(f"{Fore.YELLOW} [WARNUNG] Master-Index '{master_index_name}' nicht in data/logfiles/ gefunden.{Style.RESET_ALL}")
-
         # --- SCHRITT 3: BAGIT AKTUALISIEREN ---
-        print(f"\n{Fore.CYAN}--- SCHRITT 3: BagIt Manifeste aktualisieren ---")
+        print(f"\n{Fore.CYAN}--- SCHRITT 3: BagIt Manifeste aktualisieren ---{Style.RESET_ALL}")
         # BagIt berechnet nun die SHA-256 Prüfsummen für die neuen Dateien (z.B. .tar.gz)
         bag.save(manifests=True) 
-        print(f"{Fore.GREEN} [OK] BagIt-Prüfsummen (SHA-256) aktualisiert.")
+        print(f"{Fore.GREEN} [OK] BagIt-Prüfsummen (SHA-256) aktualisiert.{Style.RESET_ALL}")
 
         # --- SCHRITT 4: ORDNER UMBENENNEN (5_..._LZA -> disk_id) ---
-        print(f"\n{Fore.CYAN}--- SCHRITT 4: Archiv-Ordner final umbenennen ---")
+        print(f"\n{Fore.CYAN}--- SCHRITT 4: Archiv-Ordner final umbenennen ---{Style.RESET_ALL}")
         final_archive_path = disk_path / disk_id
         
         if f5_lza.exists() and not final_archive_path.exists():
-            print(f"{Fore.YELLOW}    Benenne '{f5_lza.name}' um in '{disk_id}'...")
+            print(f"{Fore.YELLOW}    Benenne '{f5_lza.name}' um in '{disk_id}'...{Style.RESET_ALL}")
             f5_lza.rename(final_archive_path)
-            print(f"{Fore.GREEN}    [OK] Ordner erfolgreich in '{disk_id}' umbenannt.")
+            print(f"{Fore.GREEN}    [OK] Ordner erfolgreich in '{disk_id}' umbenannt.{Style.RESET_ALL}")
             # Variable aktualisieren, damit die folgenden Meldungen den neuen Namen verwenden
             f5_lza = final_archive_path
         elif final_archive_path.exists():
-            print(f"{Fore.YELLOW}    [WARNUNG] Zielordner '{final_archive_path.name}' existiert bereits. Umbenennung übersprungen.")
+            print(f"{Fore.YELLOW}    [WARNUNG] Zielordner '{final_archive_path.name}' existiert bereits. Umbenennung übersprungen.{Style.RESET_ALL}")
         
-        print(f"{Fore.GREEN} [INFO] Der BagIt-Ordner ({f5_lza.name}) ist nun das fertige Archiv (AIP).")
+        print(f"{Fore.CYAN} [INFO] Der BagIt-Ordner ({f5_lza.name}) ist nun das fertige Archiv (AIP).{Style.RESET_ALL}")
 
         # --- SCHRITT 5: ALTE STUFEN 0-3 LÖSCHEN (VL STUFE 4 BLEIBT) ---
-        print(f"\n{Fore.CYAN}--- SCHRITT 5: Alte Stufen 0-3 bereinigen ---")
+        print(f"\n{Fore.CYAN}--- SCHRITT 5: Alte Stufen 0-3 bereinigen ---{Style.RESET_ALL}")
         
         stages_to_delete = [
             f"0_{disk_id}_picture-carrier",
@@ -145,17 +144,17 @@ def run_final_archiving(ac_number, disk_id, project_base_path_override=None):
             if stage_path.exists():
                 try:
                     shutil.rmtree(stage_path)
-                    print(f"{Fore.GREEN} [Cleanup] Gelöscht: {stage_name}")
+                    print(f"{Fore.GREEN} [Cleanup] Gelöscht: {stage_name}{Style.RESET_ALL}")
                     deleted_count += 1
                 except Exception as e:
-                    print(f"{Fore.YELLOW} [WARNUNG] Konnte {stage_name} nicht löschen (z.B. durch offene Datei): {e}")
+                    print(f"{Fore.YELLOW} [WARNUNG] Konnte {stage_name} nicht löschen (z.B. durch offene Datei): {e}{Style.RESET_ALL}")
             else:
-                print(f"{Fore.CYAN} [Info] {stage_name} existiert nicht (bereits gelöscht).")
+                print(f"{Fore.CYAN} [Info] {stage_name} existiert nicht (bereits gelöscht).{Style.RESET_ALL}")
         
         if f4_vl.exists():
-            print(f"{Fore.CYAN} [Info] VL-Stufe (4_{disk_id}_VL) bleibt als Arbeitskopie erhalten.")
+            print(f"{Fore.CYAN} [Info] VL-Stufe (4_{disk_id}_VL) bleibt als Arbeitskopie erhalten.{Style.RESET_ALL}")
         
-        print(f"{Fore.GREEN} [Cleanup] {deleted_count} von {len(stages_to_delete)} alten Stufen gelöscht.")
+        print(f"{Fore.GREEN} [Cleanup] {deleted_count} von {len(stages_to_delete)} alten Stufen gelöscht.{Style.RESET_ALL}")
 
         print(f"\n{Fore.MAGENTA}===================================================")
         print(f"{Fore.GREEN} ✅ ARCHIVIERUNG ERFOLGREICH ABGESCHLOSSEN")
@@ -185,4 +184,4 @@ if __name__ == "__main__":
                 
         run_final_archiving(ac_number, disk_id, project_base_path_override=data_path_input)
     else:
-        print(f"{Fore.RED}Fehler: AC-Nummer und ID fehlen. Aufruf: script.py <AC_NUMMER> <DISK_ID>")
+        print(f"{Fore.RED}[FEHLER] AC-Nummer und ID fehlen. Aufruf: script.py <AC_NUMMER> <DISK_ID>{Style.RESET_ALL}")

@@ -461,9 +461,9 @@ if __name__ == "__main__":
 
             try:
                 if source_tree.exists():
-                    shutil.move(str(source_tree), str(dest_tree))
+                    shutil.move(source_tree, dest_tree) # pathlib-Objekte werden direkt akzeptiert
             except Exception as e:
-                print(f"FEHLER beim Verschieben der tree.txt: {e}")
+                print(f"{Fore.RED}[FEHLER] Beim Verschieben der tree.txt: {e}{Style.RESET_ALL}")
                 
         destination_folder = validated_paths["base_dir"].parent
         

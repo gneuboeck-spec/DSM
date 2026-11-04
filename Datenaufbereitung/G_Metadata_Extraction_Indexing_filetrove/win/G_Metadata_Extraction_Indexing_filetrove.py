@@ -288,13 +288,13 @@ TAGS_TO_REMOVE = {
 
 # Sicherstellen, dass die YARA-Regeln existieren, bevor sie kompiliert werden
 if not Path(YARA_RULES_FILE).exists():
-    print(f"Fehler: YARA-Regeldatei nicht gefunden unter {YARA_RULES_FILE}")
+    print(f"{Fore.RED}[FEHLER] YARA-Regeldatei nicht gefunden unter {YARA_RULES_FILE}{Style.RESET_ALL}")
     sys.exit(1)
 
 try:
     rules = yara.compile(filepath=str(YARA_RULES_FILE))
 except yara.Error as e:
-    print(f"Fehler beim Kompilieren der YARA-Regeln: {e}")
+    print(f"{Fore.RED}[FEHLER] Beim Kompilieren der YARA-Regeln: {e}{Style.RESET_ALL}")
     sys.exit(1)
 
 root = ET.Element("filetrove")
@@ -1494,7 +1494,7 @@ def write_xml_to_file(element_tree_root, output_file_path):
 
     tree = ET.ElementTree(element_tree_root)
     tree.write(output_file_path, encoding='utf-8', xml_declaration=True)
-    print(f"Metadaten erfolgreich nach {output_file_path} geschrieben.")
+    print(f"{Fore.GREEN}[OK] Metadaten erfolgreich nach {output_file_path} geschrieben.{Style.RESET_ALL}")
 
 
 def get_file_type_group(filepath):
@@ -1522,7 +1522,7 @@ def main():
     global REFERENCE_HASHES, INTEGRITY_SUCCESS, INTEGRITY_ERRORS, INTEGRITY_NEW
     
     if not os.path.isdir(BASE_DIR):
-        print(f"Fehler: Das angegebene Verzeichnis '{BASE_DIR}' existiert nicht.")
+        print(f"{Fore.RED}[FEHLER] Das angegebene Verzeichnis '{BASE_DIR}' existiert nicht.{Style.RESET_ALL}")
         sys.exit(1)
 
     processed_count = 0
@@ -1542,7 +1542,7 @@ def main():
                 process_file(file_path, relative_path)
                 processed_count += 1
             except Exception as e:
-                print(f"Ein unerwarteter Fehler ist aufgetreten beim Verarbeiten von {file_path}: {e}")
+                print(f"{Fore.RED}[FEHLER] Unerwarteter Fehler beim Verarbeiten von {file_path}: {e}{Style.RESET_ALL}")
                 ET.SubElement(root, "file", {"path": relative_path.as_posix(), "name": relative_path.name, "error": str(e)})
 
     if processed_count > 0:
@@ -1604,9 +1604,9 @@ def main():
         except Exception as e:
             print(f"{Fore.RED}Fehler beim Kopieren nach Stufe 4: {e}{Style.RESET_ALL}")
             
-        print(f"\n{processed_count} Dateien erfolgreich verarbeitet.")
+        print(f"\n{Fore.GREEN}{processed_count} Dateien erfolgreich verarbeitet.{Style.RESET_ALL}")
     else:
-        print("\nKeine Dateien zum Verarbeiten gefunden oder alle übersprungen.")
+        print(f"\n{Fore.YELLOW}Keine Dateien zum Verarbeiten gefunden oder alle übersprungen.{Style.RESET_ALL}")
 
     # 4. Zielordner optional öffnen
     destination_folder = Path(OUTPUT_XML).parent

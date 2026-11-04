@@ -15,6 +15,13 @@ from datetime import datetime
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
+try:
+    from colorama import init, Fore, Style
+    init(autoreset=True)
+except ImportError:
+    class Fore: GREEN = RED = YELLOW = CYAN = MAGENTA = WHITE = ""
+    class Style: RESET_ALL = ""
+
 # ==============================================================================
 # 🔧 KONFIGURATION
 # ==============================================================================
@@ -37,7 +44,7 @@ def write_log_file(log_path, mode, extensions_counter, files_list, dirs_list):
     """Schreibt die Zusammenfassung in eine Log-Datei (entweder Vorschau oder final)."""
     header_text = "VORSCHAU: Folgende Elemente wurden zur Löschung identifiziert" if mode == 'preview' else "BERICHT: Folgende Elemente WURDEN GELÖSCHT"
     
-    print(f"\nErstelle {mode}-Log-Datei: {log_path}")
+    print(f"\n{Fore.CYAN}Erstelle {mode}-Log-Datei: {log_path}{Style.RESET_ALL}")
     try:
         sorted_items = sorted(extensions_counter.items(), key=lambda item: item[1], reverse=True)
         with open(log_path, 'w', encoding='utf-8') as f:
@@ -59,10 +66,10 @@ def write_log_file(log_path, mode, extensions_counter, files_list, dirs_list):
             f.write(f"\n\n--- Detaillierte Liste der {len(dirs_list)} leeren Ordner ---\n")
             for dir_path in sorted(dirs_list):
                 f.write(f"{dir_path}\n")
-        print(f"[OK] {mode.capitalize()}-Log-Datei erfolgreich erstellt.")
+        print(f"{Fore.GREEN}[OK] {mode.capitalize()}-Log-Datei erfolgreich erstellt.{Style.RESET_ALL}")
         return True
     except Exception as e:
-        print(f"[FEHLER] {mode.capitalize()}-Log-Datei konnte nicht erstellt werden: {e}")
+        print(f"{Fore.RED}[FEHLER] {mode.capitalize()}-Log-Datei konnte nicht erstellt werden: {e}{Style.RESET_ALL}")
         return False
 
 def find_unwanted_items(base_dir):
@@ -95,13 +102,13 @@ def find_unwanted_items(base_dir):
 
 def perform_deletion(files_to_delete, empty_dirs_to_delete, extensions_counter, final_deleted_files, final_deleted_dirs):
     """Führt den eigentlichen Löschvorgang für die übergebenen Listen durch."""
-    print("\n--- Starte Löschvorgang ---")
+    print(f"\n{Fore.CYAN}--- Starte Löschvorgang ---{Style.RESET_ALL}")
     
     for file_path in files_to_delete:
         try:
             # 1. Versuch: Normaler Löschversuch
             os.remove(file_path)
-            print(f"[OK] Datei gelöscht: {file_path}")
+            print(f"   {Fore.GREEN}[OK]{Style.RESET_ALL} Datei gelöscht: {file_path}")
             final_deleted_files.append(file_path)
             
             ext = next((ext for ext in DELETE_EXTENSIONS if file_path.lower().endswith(ext)), "Andere")
@@ -112,26 +119,26 @@ def perform_deletion(files_to_delete, empty_dirs_to_delete, extensions_counter, 
             try:
                 os.chmod(file_path, stat.S_IWRITE)
                 os.remove(file_path)
-                print(f"[OK] Datei gelöscht (Schreibschutz entfernt): {file_path}")
+                print(f"   {Fore.GREEN}[OK]{Style.RESET_ALL} Datei gelöscht (Schreibschutz entfernt): {file_path}")
                 final_deleted_files.append(file_path)
                 
                 ext = next((ext for ext in DELETE_EXTENSIONS if file_path.lower().endswith(ext)), "Andere")
                 extensions_counter[ext] += 1
             except Exception as e2:
-                print(f"[FEHLER] Kein Zugriff auf: {file_path}")
-                print(f"         Grund: Datei ist wahrscheinlich gerade in Verwendung oder eine geschützte Systemdatei. ({e2})")
+                print(f"   {Fore.RED}[FEHLER]{Style.RESET_ALL} Kein Zugriff auf: {file_path}")
+                print(f"          Grund: Datei ist wahrscheinlich gerade in Verwendung oder eine geschützte Systemdatei. ({e2})")
                 
         except Exception as e:
-            print(f"[FEHLER] Unerwarteter Fehler beim Löschen von {file_path}: {e}")
+            print(f"   {Fore.RED}[FEHLER]{Style.RESET_ALL} Unerwarteter Fehler beim Löschen von {file_path}: {e}")
 
     # Ordner-Logik
     for dir_path in sorted(empty_dirs_to_delete, key=len, reverse=True):
         try:
             os.rmdir(dir_path)
-            print(f"[OK] Leerer Ordner gelöscht: {dir_path}")
+            print(f"   {Fore.GREEN}[OK]{Style.RESET_ALL} Leerer Ordner gelöscht: {dir_path}")
             final_deleted_dirs.append(dir_path)
         except Exception as e:
-            print(f"[FEHLER] Fehler beim Löschen des Ordners {dir_path}: {e}")
+            print(f"   {Fore.RED}[FEHLER]{Style.RESET_ALL} Fehler beim Löschen des Ordners {dir_path}: {e}")
 
 # ==============================================================================
 # --- HAUPT-AUSFÜHRUNGSBLOCK (ANGEPASST FÜR MENU.PY) ===========================
@@ -139,9 +146,9 @@ def perform_deletion(files_to_delete, empty_dirs_to_delete, extensions_counter, 
 if __name__ == "__main__":
     # 1. Pfade aus sys.argv holen (werden von der menu.py übergeben)
     if len(sys.argv) < 3:
-        print("❌ Fehler: Quellverzeichnis und Log-Verzeichnis fehlen.")
-        print("Verwendung: python 04_bereinigung.py <quellverzeichnis> <log_verzeichnis>")
-        input("Drücken Sie die Eingabetaste, um dieses Fenster zu schließen...")
+        print(f"{Fore.RED}[FEHLER] Quellverzeichnis und Log-Verzeichnis fehlen.{Style.RESET_ALL}")
+        print(f"{Fore.WHITE}Verwendung: python 04_bereinigung.py <quellverzeichnis> <log_verzeichnis>{Style.RESET_ALL}")
+        input(f"{Fore.YELLOW}Drücken Sie die Eingabetaste, um dieses Fenster zu schließen...{Style.RESET_ALL}")
         sys.exit(1)
 
     source_dir = sys.argv[1]
@@ -220,7 +227,7 @@ if __name__ == "__main__":
                 final_log_file = log_path / final_log_name
                 write_log_file(final_log_file, 'final', final_deleted_extensions_count, final_deleted_files, final_deleted_dirs)
                 
-                print("\n\033[92mBereinigung erfolgreich abgeschlossen!\033[0m")
+                print(f"\n{Fore.GREEN}Bereinigung erfolgreich abgeschlossen!{Style.RESET_ALL}")
                 messagebox.showinfo("Erfolg", f"Bereinigung abgeschlossen.\n\nDas finale Log wurde gespeichert unter:\n{final_log_file}")
             else:
                 messagebox.showinfo("Info", "Keine Dateien wurden tatsächlich gelöscht.")
@@ -241,5 +248,5 @@ if __name__ == "__main__":
 
     finally:
         # 8. Fenster offen halten für Doppelklick-Start
-        print("\n" + "="*50)
-        input("Drücken Sie die Eingabetaste, um dieses Fenster zu schließen...")
+        print(f"\n{Fore.MAGENTA}{'='*50}{Style.RESET_ALL}")
+        input(f"{Fore.YELLOW}Drücken Sie die Eingabetaste, um dieses Fenster zu schließen...{Style.RESET_ALL}")

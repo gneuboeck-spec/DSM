@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Gregor Neuboeck <g.neuboeck@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 import sys
 import csv
 import re
@@ -5,6 +9,16 @@ import tkinter as tk
 from tkinter import messagebox
 from pathlib import Path
 from datetime import datetime
+
+# ==============================================================================
+# 🔧 FARB-INITIALISIERUNG (Konsistenz mit allen anderen Skripten)
+# ==============================================================================
+try:
+    from colorama import init, Fore, Style
+    init(autoreset=True)
+except ImportError:
+    class Fore: GREEN = RED = YELLOW = CYAN = MAGENTA = WHITE = ""
+    class Style: RESET_ALL = ""
 
 # ==============================================================================
 # === LOGGING-HILFSKLASSE (Tee) =================================================
@@ -79,7 +93,7 @@ def extract_text_simple(file_path: Path, cache_dir: Path = None) -> str:
             except Exception:
                 return ""
     except Exception as e:
-        print(f"      ⚠️ Lesefehler bei {file_path.name}: {e}")
+        print(f"      {Fore.RED}⚠️ Lesefehler bei {file_path.name}: {e}{Style.RESET_ALL}")
         return ""
     return ""
 
@@ -341,16 +355,16 @@ def show_ki_process(parent_dialog):
 # === SCHRITT 2: KI-ANALYSE ====================================================
 # ==============================================================================
 def run_ki_analysis(root_path, rows, threshold, min_len, max_len):
-    print("\n🧠 Lade KI-Modell (beim 1. Mal dauert es etwas)...")
-    print(f"   📁 Cache-Ordner: {KI_MODEL_CACHE}")
+    print(f"\n{Fore.CYAN}🧠 Lade KI-Modell (beim 1. Mal dauert es etwas)...{Style.RESET_ALL}")
+    print(f"   {Fore.WHITE}📁 Cache-Ordner: {KI_MODEL_CACHE}{Style.RESET_ALL}")
     try:
         from sentence_transformers import SentenceTransformer, util
         KI_MODEL_CACHE.mkdir(exist_ok=True)
         model = SentenceTransformer(MODEL_NAME, cache_folder=str(KI_MODEL_CACHE))
-        print("   ✅ Modell geladen!\n")
+        print(f"   {Fore.GREEN}✅ Modell geladen!{Style.RESET_ALL}\n")
     except Exception as e:
-        print(f"❌ FEHLER beim Laden des KI-Modells: {e}")
-        print("Tipp: Installiere es mit 'pip install sentence-transformers'")
+        print(f"{Fore.RED}❌ FEHLER beim Laden des KI-Modells: {e}{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}Tipp: Installiere es mit 'pip install sentence-transformers'{Style.RESET_ALL}")
         return rows
     
     cache_dir = root_path / ".ki_conversion_cache"
@@ -363,7 +377,7 @@ def run_ki_analysis(root_path, rows, threshold, min_len, max_len):
                 grouped_docs[grp] = []
             grouped_docs[grp].append(row)
     
-    print("   Extrahiere Referenztexte der bestehenden Gruppen...")
+    print(f"   {Fore.CYAN}Extrahiere Referenztexte der bestehenden Gruppen...{Style.RESET_ALL}")
     group_bases = {}
     for grp, docs in grouped_docs.items():
         base_row = next((d for d in docs if '(Basis)' in d.get('Basisdokument', '')), None)
@@ -374,10 +388,10 @@ def run_ki_analysis(root_path, rows, threshold, min_len, max_len):
                 group_bases[grp] = get_ai_text_sample(full_txt, MAX_CHARS_FOR_AI)
     
     if not group_bases:
-        print("⚠️ Keine Basis-Dokumente gefunden.")
+        print(f"{Fore.YELLOW}⚠️ Keine Basis-Dokumente gefunden.{Style.RESET_ALL}")
         return rows
     
-    print("🔬 Führe semantische Analyse durch...")
+    print(f"{Fore.CYAN}🔬 Führe semantische Analyse durch...{Style.RESET_ALL}")
     base_texts = list(group_bases.values())
     base_names = list(group_bases.keys())
     base_embeddings = model.encode(base_texts, convert_to_tensor=True)
@@ -427,7 +441,7 @@ def run_ki_analysis(root_path, rows, threshold, min_len, max_len):
             else:
                 row['KI_Ergebnis'] = f"⚠️ Nicht geprüft (kein Trigger/außerhalb {min_len}-{max_len} Zeichen)"
     
-    print(f"\n🎉 Fertig! {updated_count} Kurztexte wurden durch die KI Gruppen zugeordnet.")
+    print(f"\n{Fore.GREEN}🎉 Fertig! {updated_count} Kurztexte wurden durch die KI Gruppen zugeordnet.{Style.RESET_ALL}")
     return rows
 
 
@@ -447,7 +461,7 @@ def save_csv(rows, output_file):
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter=';')
         writer.writeheader()
         writer.writerows(rows)
-    print(f"\n💾 CSV gespeichert: {output_file}")
+    print(f"\n{Fore.GREEN}💾 CSV gespeichert: {output_file}{Style.RESET_ALL}")
 
 
 # === NUR HIER WURDE EINE MINIMALE ÄNDERUNG VORGENOMMEN (base_dir Parameter + Hyperlink-Logik) ===
@@ -456,7 +470,7 @@ def save_as_excel(rows, output_file, base_dir: Path):
         from openpyxl import Workbook
         from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     except ImportError:
-        print("⚠️ openpyxl nicht installiert. Bitte: pip install openpyxl")
+        print(f"{Fore.RED}⚠️ openpyxl nicht installiert. Bitte: pip install openpyxl{Style.RESET_ALL}")
         return
     
     wb = Workbook()
@@ -548,7 +562,7 @@ def save_as_excel(rows, output_file, base_dir: Path):
     ws.auto_filter.ref = ws.dimensions
     
     wb.save(str(output_file))
-    print(f"📊 Excel-Datei mit Farben und klickbaren Hyperlinks gespeichert: {output_file}")
+    print(f"{Fore.GREEN}📊 Excel-Datei mit Farben und klickbaren Hyperlinks gespeichert: {output_file}{Style.RESET_ALL}")
 
 
 # ==============================================================================
@@ -556,9 +570,9 @@ def save_as_excel(rows, output_file, base_dir: Path):
 # ==============================================================================
 def main():
     if len(sys.argv) < 3:
-        print("❌ Fehler: Eingabe- und Ausgabe-Pfad fehlen.")
-        print("Verwendung: python 06_KI_Analyse.py <eingabe_pfad> <ausgabe_pfad>")
-        input("Drücke Enter zum Beenden...")
+        print(f"{Fore.RED}❌ Fehler: Eingabe- und Ausgabe-Pfad fehlen.{Style.RESET_ALL}")
+        print(f"{Fore.WHITE}Verwendung: python 06_KI_Analyse.py <eingabe_pfad> <ausgabe_pfad>{Style.RESET_ALL}")
+        input(f"{Fore.YELLOW}Drücke Enter zum Beenden...{Style.RESET_ALL}")
         return
 
     eingabe_pfad = Path(sys.argv[1])
@@ -571,20 +585,20 @@ def main():
     log_file = open(log_filename, 'w', encoding='utf-8')
     sys.stdout = Tee(sys.__stdout__, log_file)
     sys.stderr = Tee(sys.__stderr__, log_file)
-    print(f"📝 Log-Datei erstellt: {log_filename}")
+    print(f"{Fore.GREEN}📝 Log-Datei erstellt: {log_filename}{Style.RESET_ALL}")
 
     csv_file = ausgabe_pfad / "versionen_analyse.csv"
     if not csv_file.exists():
-        print(f"❌ Datei nicht gefunden: {csv_file}")
-        print("Bitte zuerst Skript 1 (Dokumentenvergleich) ausführen.")
-        input("Drücke Enter zum Beenden...")
+        print(f"{Fore.RED}❌ Datei nicht gefunden: {csv_file}{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}Bitte zuerst Skript 1 (Dokumentenvergleich) ausführen.{Style.RESET_ALL}")
+        input(f"{Fore.YELLOW}Drücke Enter zum Beenden...{Style.RESET_ALL}")
         return
 
-    print(f"\n🚀 KI-Analyse gestartet")
-    print(f"Eingabe (CSV): {csv_file}")
-    print(f"Ausgabe:       {ausgabe_pfad}")
-    print(f"KI-Modell-Cache: {KI_MODEL_CACHE}")
-    print("=" * 60)
+    print(f"\n{Fore.CYAN}🚀 KI-Analyse gestartet{Style.RESET_ALL}")
+    print(f"{Fore.WHITE}Eingabe (CSV): {csv_file}{Style.RESET_ALL}")
+    print(f"{Fore.WHITE}Ausgabe:       {ausgabe_pfad}{Style.RESET_ALL}")
+    print(f"{Fore.WHITE}KI-Modell-Cache: {KI_MODEL_CACHE}{Style.RESET_ALL}")
+    print(f"{Fore.MAGENTA}{'=' * 60}{Style.RESET_ALL}")
 
     with open(csv_file, 'r', encoding='utf-8-sig') as f:
         rows = list(csv.DictReader(f, delimiter=';'))
@@ -595,10 +609,10 @@ def main():
     min_len = settings['min_len']
     max_len = settings['max_len']
     
-    print(f"\n⚙️ Aktive KI-Einstellungen:")
-    print(f"   Semantischer Threshold: {threshold}")
-    print(f"   Längenfilter: {min_len} bis {max_len} Zeichen (oder Trigger-Wort im Namen)")
-    print("-" * 60)
+    print(f"\n{Fore.CYAN}⚙️ Aktive KI-Einstellungen:{Style.RESET_ALL}")
+    print(f"   {Fore.WHITE}Semantischer Threshold: {threshold}{Style.RESET_ALL}")
+    print(f"   {Fore.WHITE}Längenfilter: {min_len} bis {max_len} Zeichen (oder Trigger-Wort im Namen){Style.RESET_ALL}")
+    print(f"{Fore.MAGENTA}{'-' * 60}{Style.RESET_ALL}")
 
     # NEU: Übergeben der neuen Längenparameter an die Analyse-Funktion
     rows = run_ki_analysis(eingabe_pfad, rows, threshold, min_len, max_len)
@@ -610,19 +624,19 @@ def main():
     # NEU: eingabe_pfad wird jetzt als dritter Parameter übergeben
     save_as_excel(rows, output_excel, eingabe_pfad)
 
-    print("\n" + "=" * 60)
-    print("✅ SCHRITT 2 ABGESCHLOSSEN!")
-    print(f"📄 Ergebnis-CSV: {output_csv}")
-    print(f"📊 Ergebnis-Excel: {output_excel}")
-    print(f"📝 Log-Datei: {log_filename}")
-    print("=" * 60)
-    print("\nDu kannst nun in der menu.py '3 - Visualisierung' auswählen.")
-    input("\n⏹️ Drücke Enter zum Beenden...")
+    print(f"\n{Fore.MAGENTA}{'=' * 60}{Style.RESET_ALL}")
+    print(f"{Fore.GREEN}✅ SCHRITT 2 ABGESCHLOSSEN!{Style.RESET_ALL}")
+    print(f"{Fore.GREEN}📄 Ergebnis-CSV: {output_csv}{Style.RESET_ALL}")
+    print(f"{Fore.GREEN}📊 Ergebnis-Excel: {output_excel}{Style.RESET_ALL}")
+    print(f"{Fore.GREEN}📝 Log-Datei: {log_filename}{Style.RESET_ALL}")
+    print(f"{Fore.MAGENTA}{'=' * 60}{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}Du kannst nun in der menu.py '3 - Visualisierung' auswählen.{Style.RESET_ALL}")
+    input(f"\n{Fore.YELLOW}⏹️ Drücke Enter zum Beenden...{Style.RESET_ALL}")
 
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        print(f"\n❌ KRITISCHER FEHLER: {e}")
-        input("Drücke Enter zum Beenden...")
+        print(f"\n{Fore.RED}❌ KRITISCHER FEHLER: {e}{Style.RESET_ALL}")
+        input(f"{Fore.YELLOW}Drücke Enter zum Beenden...{Style.RESET_ALL}")
